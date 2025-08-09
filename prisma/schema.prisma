@@ -35,6 +35,8 @@ model User {
   createdDepartments Department[] @relation("DepartmentCreators") // User တစ်ယောက်က ဖန်တီးထားတဲ့ Department အများ
   managedDepartments Department[] @relation("DepartmentManager")
   updatedDepartments Department[] @relation("DepartmentUpdaters")
+  createdCategories Category[] @relation("CategoryCreators") // User တစ်ယောက်က ဖန်တီးထားတဲ့ Category အများ
+  updatedCategories Category[] @relation("CategoryUpdaters") // User တစ်ယောက်က အပ်ဒိတ်လုပ်ထားတဲ့ Category အများ
 }
 
 model Department {
@@ -60,4 +62,25 @@ model Department {
   @@index([isArchived])
 
   @@map("department")
+}
+
+
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+
+  creatorId   String?  
+  creator     User?    @relation("CategoryCreators", fields: [creatorId], references: [id])
+
+  updaterId   String?  
+  updater     User?    @relation("CategoryUpdaters", fields: [updaterId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isArchived  Boolean  @default(false)
+
+  @@index([isArchived])
+
+  @@map("category")
 }

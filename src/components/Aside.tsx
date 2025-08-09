@@ -65,7 +65,7 @@ const navItems = [
       },
       {
         name: "Category",
-        href: "/category/index",
+        href: "/main/category",
         icon: AdjustmentsHorizontalIcon,
         activeCheck: (route: string) => route.startsWith("category"),
       },

@@ -46,7 +46,6 @@ export async function createDepartment(
     throw new Error('User must be logged in to create a department');
   }
 
-  console.log("Creating department:", parsed);
 
   // Create department record in DB
   const data = await prisma.department.create({
