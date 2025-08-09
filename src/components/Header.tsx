@@ -1,5 +1,6 @@
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import React, {  } from 'react'
+import Button from './Button'
 
 interface HeaderProps {
     title?: string
@@ -22,14 +23,9 @@ export default function Header({
 
     return (
         <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 justify-between items-center">
-            <div className="flex items-center space-x-2">
-                <button
-                    onClick={() => click()}
-                    type="button"
-                    className="rounded h-[33px] text-sm px-2.5 text-gray-100 cursor-pointer bg-indigo-500 hover:bg-indigo-600 shadow-md flex items-center space-x-1"
-                >
-                    <p>{buttonLabel}</p>
-                </button>
+            <div className="flex items-center space-x-2">            
+
+                <Button click={click} buttonLabel={buttonLabel} />
                 <h1 className="text-sm text-gray-800">{title}</h1>
             </div>
 

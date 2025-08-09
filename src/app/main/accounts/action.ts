@@ -4,9 +4,12 @@ import { prisma } from "@/libs/prisma";
 import z from "zod";
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/auth"; // 👈 authOptions ကို import
+import { authOptions } from "@/libs/auth";
+import { Prisma } from "@prisma/client";
+import { UserWithRelations } from "./page"; // ✅ imported type from Page
+import { getCurrentUserId } from "@/libs/action";
 
-
+// ===== Validation Schemas =====
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -14,21 +17,16 @@ const FormSchema = z.object({
   role: z.enum(["CUSTOMER", "AGENT", "ADMIN", "SUPER_ADMIN"]),
 });
 
-
-
-
-
-export async function getCurrentUserId() {
-  const data = await getServerSession(authOptions);
-  return data?.user?.id;
-}
-
-
 const FormSchemaUpdate = FormSchema.omit({
   password: true,
 });
 
-export async function createAccount(formData: FormData) {
+
+
+// ===== Create Account =====
+export async function createAccount(
+  formData: FormData
+): Promise<{ success: boolean; data: UserWithRelations }> {
   const raw = {
     name: formData.get("name"),
     email: formData.get("email"),
@@ -41,39 +39,48 @@ export async function createAccount(formData: FormData) {
   // Check if user exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
-    // Throw an error to be caught in the caller
     throw new Error("User already exists");
   }
 
+  // Hash password and get creator ID
   const hashedPassword = await bcrypt.hash(password, 10);
-
-
   const creatorId = await getCurrentUserId();
 
+  // Create user
   await prisma.user.create({
     data: {
       name,
       email,
       password: hashedPassword,
       role,
-      createdById: creatorId,
+      createdId: creatorId,
     },
   });
 
-  return { success: true };
+  // Fetch with relations
+  const data = await prisma.user.findUniqueOrThrow({
+    where: { email },
+    include: {
+      creator: { select: { name: true, email: true } },
+      updater: { select: { name: true, email: true } },
+    },
+  });
+
+  return { success: true, data };
 }
 
-
+// ===== Get Single Account =====
 export async function getAccount(id: string) {
   return await prisma.user.findUnique({
     where: { id },
   });
 }
 
-// Fetch all non-archived user accounts from the database
-import { Prisma } from "@prisma/client";
-
-export async function getAllAccounts(page: number = 1, searchQuery: string = "") {
+// ===== Get All Accounts =====
+export async function getAllAccounts(
+  page: number = 1,
+  searchQuery: string = ""
+) {
   const take = 10;
   const skip = (page - 1) * take;
   const trimmedQuery = searchQuery.trim();
@@ -82,8 +89,18 @@ export async function getAllAccounts(page: number = 1, searchQuery: string = "")
     isArchived: false,
     ...(trimmedQuery && {
       OR: [
-        { name: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
-        { email: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+        {
+          name: {
+            contains: trimmedQuery,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        {
+          email: {
+            contains: trimmedQuery,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
       ],
     }),
   };
@@ -94,7 +111,7 @@ export async function getAllAccounts(page: number = 1, searchQuery: string = "")
     where,
     skip,
     take,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
@@ -104,20 +121,21 @@ export async function getAllAccounts(page: number = 1, searchQuery: string = "")
   return { data, total };
 }
 
-
-
+// ===== Delete Account (Soft Delete) =====
 export async function deleteAccount(id: string) {
-  // Soft delete by setting isArchived to true
-
+  const session = await getServerSession(authOptions);
 
   return await prisma.user.update({
     where: { id },
-    data: { isArchived: true, updatedById: (await getServerSession(authOptions))?.user?.id },
+    data: {
+      isArchived: true,
+      updatedId: session?.user?.id,
+    },
   });
 }
 
-
-export async function updateAccount(formData: FormData, id: string) {
+// ===== Update Account =====
+export async function updateAccount(formData: FormData, id: string) : Promise<{ success: boolean; data: UserWithRelations }> {
   const { name, email, role } = FormSchemaUpdate.parse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -125,14 +143,24 @@ export async function updateAccount(formData: FormData, id: string) {
   });
 
   try {
-
     const updaterId = await getCurrentUserId();
-    const updatedUser = await prisma.user.update({
+
+     await prisma.user.update({
       where: { id },
-      data: { name, email, role, updatedById: updaterId },
+      data: { name, email, role, updatedId: updaterId },
     });
 
-    return updatedUser;
+
+      // Fetch with relations
+  const data = await prisma.user.findUniqueOrThrow({
+    where: { email },
+    include: {
+      creator: { select: { name: true, email: true } },
+      updater: { select: { name: true, email: true } },
+    },
+  });
+
+    return { success: true, data };
   } catch (error) {
     console.error("Error updating account:", error);
     throw error;

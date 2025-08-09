@@ -4,8 +4,8 @@ import Header from "@/components/Header";
 import { useEffect, useState } from "react";
 import Portal from "@/components/Portal";
 import Form from "./Form";
-import { deleteAccount, getAllAccounts } from "./action";
-import { User } from "@prisma/client";
+import { deleteDepartment, getAllDepartments } from "./action";
+import { Department } from "@prisma/client";
 import TableBody from "@/components/TableBody";
 import DotMenu from "@/components/DotMenu";
 import TableHead from "@/components/TableHead";
@@ -13,12 +13,16 @@ import Swal from 'sweetalert2';
 import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
 
-export type UserWithRelations = User & {
+export type DepartmentWithRelations = Department & {
     creator?: {
         name: string | null;
         email: string | null;
     } | null;
     updater?: {
+        name: string | null;
+        email: string | null;
+    } | null;
+    manager?: {
         name: string | null;
         email: string | null;
     } | null;
@@ -28,7 +32,8 @@ export default function Page() {
 
 
     const [showForm, setShowForm] = useState(false);
-    const [accounts, setAccounts] = useState<UserWithRelations[]>([]);
+
+    const [departments, setDepartments] = useState<DepartmentWithRelations[]>([]);
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const take = 10;
@@ -40,14 +45,14 @@ export default function Page() {
     const fetchAccounts = async (currentPage: number) => {
         try {
             // setLoading(true);
-            const { data, total } = await getAllAccounts(currentPage, searchQuery);
+            const { data, total } = await getAllDepartments(currentPage, searchQuery);
             const totalPages = Math.ceil(total / take);
             // page က totalPages ထက်ကြီးနေပြီး totalPages > 0 ဆိုရင်
             if (currentPage > totalPages && totalPages > 0) {
                 setPage(totalPages); // နောက်ဆုံး valid page ကို သတ်မှတ်ပေး
                 return; // ဒီနေရာမှာ setPage ပြင်လိုက်ပြီး fetch ထပ်လုပ်ဖို့ useEffect က လုပ်ပေးမယ်
             } else {
-                setAccounts(data);
+                setDepartments(data);
             }
         } catch (error) {
             console.error("Failed to fetch accounts:", error);
@@ -84,12 +89,12 @@ export default function Page() {
             });
 
             if (result.isConfirmed) {
-                await deleteAccount(id);
-                setAccounts(accounts.filter(account => account.id !== id));
+                await deleteDepartment(id);
+                setDepartments(departments.filter(department => department.id !== id));
 
                 Swal.fire({
                     title: 'Deleted!',
-                    text: 'The account has been deleted.',
+                    text: 'The department has been deleted.',
                     icon: 'success',
                     timer: 1500,
                     showConfirmButton: false,
@@ -115,17 +120,17 @@ export default function Page() {
 
     return (
         <>
-            <div className="w-full min-h-full bg-white pb-10 rounded-lg">
+            <div className="max-w-full min-h-full  overflow-x-auto bg-white pb-10 rounded-lg">
                 <Header
-                    title="Users"
-                    placeholder="Search by name or email"
+                    title="Departments"
+                    placeholder="Search by Department name"
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
                 />
 
                 <div className="p-5">
-                    {accounts.length > 0 ? (
+                    {departments.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
                                 <table className="w-full min-w-[1102px] border border-gray-200">
@@ -133,8 +138,12 @@ export default function Page() {
                                         <tr className="border-b border-gray-100">
                                             <TableHead data="No." />
                                             <TableHead data="Name" />
-                                            <TableHead data="Email" />
-                                            <TableHead data="Role" />
+                                            <TableHead data="Description" />
+                                            <TableHead data="Manager" />
+                                            <TableHead data="Department Email" />
+                                            <TableHead data="Department Contact" />
+                                            {/* <TableHead data="Email" /> */}
+                                            {/* <TableHead data="Role" /> */}
                                             <TableHead data="Created At" />
                                             <TableHead data="Updated At" />
                                             <TableHead data="Creator" />
@@ -142,38 +151,55 @@ export default function Page() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {accounts.map((account, index) => (
+                                        {departments.map((department, index) => (
                                             <tr
-                                                key={account.id}
+                                                key={department.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
-                                                <TableBody data={account.name} />
-                                                <TableBody data={account.email} />
-                                                <TableBody data={account.role} />
-                                                <TableBody data={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-                                                <TableBody data={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-
-
+                                                <TableBody data={department.name} />
+                                                <TableBody data={department.description || "-"} />
+                                                {/* <TableBody data={department.manager?.name || "-"} /> */}
                                                 <td className={`px-5 py-4 sm:px-6 `}>
-                                                    <p className="text-gray-500 truncate">{account.creator
-                                                        ? account.creator.name || "-"
+                                                    <p className="text-gray-500 truncate">{department.manager
+                                                        ? department.manager.name || "-"
                                                         : "-"}</p>
 
                                                     <p className="text-gray-500 text-xs truncate">
-                                                        {account.creator
-                                                            ? account.creator.email || "-"
+                                                        {department.manager
+                                                            ? department.manager.email || "-"
+                                                            : "-"}
+                                                    </p>
+                                                </td>
+
+                                                <TableBody data={department.email || "-"} />
+                                                <TableBody data={department.contact || "-"} />
+
+                                                {/* <TableBody data={department.email} /> */}
+                                                {/* <TableBody data={department.role} /> */}
+                                                <TableBody data={new Date(department.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+                                                <TableBody data={new Date(department.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+
+
+                                                <td className={`px-5 py-4 sm:px-6 `}>
+                                                    <p className="text-gray-500 truncate">{department.creator
+                                                        ? department.creator.name || "-"
+                                                        : "-"}</p>
+
+                                                    <p className="text-gray-500 text-xs truncate">
+                                                        {department.creator
+                                                            ? department.creator.email || "-"
                                                             : "-"}
                                                     </p>
                                                 </td>
 
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
-                                                    <DotMenu isBottom={index >= accounts.length - 2} option={{
+                                                    <DotMenu isBottom={index >= departments.length - 2} option={{
                                                         // view: true,
                                                         edit: true,
                                                         delete: true
-                                                    }} onDelete={() => handleDelete(account.id)}
-                                                        onEdit={() => handleEdit(account.id)}
+                                                    }} onDelete={() => handleDelete(department.id)}
+                                                        onEdit={() => handleEdit(department.id)}
                                                     //  onView={() => handleView(account.id)} 
                                                     />
                                                 </td>
@@ -184,6 +210,7 @@ export default function Page() {
 
                                 
                             </div>
+
 
                             <div className="flex justify-end gap-2 mt-4">
 
@@ -200,7 +227,7 @@ export default function Page() {
 
                                     <Button
                                         click={() => setPage((prev) => prev + 1)}
-                                        disabled={accounts.length < take || isFetching}
+                                        disabled={departments.length < take || isFetching}
                                         buttonLabel={
                                             <>
                                                 <span>Next </span>
@@ -213,14 +240,17 @@ export default function Page() {
                                 </div>
                         </div>
                     ) : (
-                        <p className="text-base text-center text-gray-500">No accounts found.</p>
+                        <p className="text-base text-center text-gray-500">No Department found.</p>
                     )}
                 </div>
             </div>
 
             {showForm && (
                 <Portal>
-                    <Form setShowForm={setShowForm} setAccounts={setAccounts} updateID={updateID} />
+                    <Form setShowForm={setShowForm} setDepartments={setDepartments} updateID={updateID} />
+
+
+
                 </Portal>
             )}
         </>

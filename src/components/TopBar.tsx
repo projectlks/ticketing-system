@@ -71,9 +71,9 @@ export default function TopBar() {
 
                 {/* right side user menu */}
                 <UserProfile
-                    user={user}
-                    onLogout={handleLogout}
-                    onEditProfile={handleEditProfile}
+                    // user={user}
+                    // onLogout={handleLogout}
+                    // onEditProfile={handleEditProfile}
                     menuToggle={menuToggle}
                     setMenuToggle={setMenuToggle}
                 />
