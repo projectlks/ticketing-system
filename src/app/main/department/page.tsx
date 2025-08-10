@@ -12,6 +12,7 @@ import TableHead from "@/components/TableHead";
 import Swal from 'sweetalert2';
 import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
 
 export type DepartmentWithRelations = Department & {
     creator?: {
@@ -40,6 +41,8 @@ export default function Page() {
     const [updateID, setUpdateID] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
 
+
+    const router = useRouter();
 
 
     const fetchAccounts = async (currentPage: number) => {
@@ -195,12 +198,12 @@ export default function Page() {
 
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu isBottom={index >= departments.length - 2} option={{
-                                                        // view: true,
+                                                        view: true,
                                                         edit: true,
                                                         delete: true
                                                     }} onDelete={() => handleDelete(department.id)}
                                                         onEdit={() => handleEdit(department.id)}
-                                                    //  onView={() => handleView(account.id)} 
+                                                     onView={() => router.push(`/main/department/view/${department.id}`)} 
                                                     />
                                                 </td>
                                             </tr>

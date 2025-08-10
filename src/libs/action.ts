@@ -24,3 +24,11 @@ export async function getUserIdsandEmail(): Promise<{ id: string; email: string;
 
   return users;
 }
+
+ 
+ export interface AuditChange {
+  field: string;
+  oldValue: string;
+  newValue: string;
+}
+

@@ -1,12 +1,8 @@
 'use client';
 
 import Input from '@/components/Input';
-import {
-    EyeIcon,
-    ChevronDownIcon,
-    EyeSlashIcon,
-} from '@heroicons/react/24/outline';
-import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
+
+import React, { Dispatch, SetStateAction, useEffect,  useState } from 'react';
 import Swal from 'sweetalert2';
 import { CategoryWithRelations } from './page';
 import { createCategory, getCategory, updateCategory } from './action';
@@ -102,7 +98,7 @@ export default function Form({ setShowForm, setCategories, updateID }: AccountCr
 
         // Validate form
         let isValid = true;
-        const newErrors = { name: '', email: '', password: '', response: null };
+        const newErrors = { name: '',  response: null };
 
         if (!form.name.trim()) {
             newErrors.name = 'Name is required.';
@@ -126,6 +122,8 @@ export default function Form({ setShowForm, setCategories, updateID }: AccountCr
                 if (success) {
                     setCategories((prev) => prev.map((item) => (item.id === updateID ? data : item)));
 
+                    alert("Category updated successfully!");
+
                     Swal.fire({
                         title: 'Success',
                         text: 'Category updated successfully!',
@@ -137,7 +135,11 @@ export default function Form({ setShowForm, setCategories, updateID }: AccountCr
                         },
                     });
                 }
-            } else {
+            }
+            
+            
+            
+            else {
                 const { success, data }: { success: boolean, data: CategoryWithRelations } = await createCategory(formData);
 
                 if (success) {

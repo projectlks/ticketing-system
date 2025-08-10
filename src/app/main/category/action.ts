@@ -113,6 +113,21 @@ export async function updateCategory(
 
   const updaterId = await getCurrentUserId();
 
+  if (!updaterId) {
+  throw new Error("No logged-in user found for updateCategory");
+}
+
+  // 1️⃣ Get existing category to compare changes
+  const existingCategory = await prisma.category.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+
+  if (!existingCategory) {
+    throw new Error("Category not found");
+  }
+
+  // 2️⃣ Update the category
   const data = await prisma.category.update({
     where: { id },
     data: {
@@ -125,5 +140,27 @@ export async function updateCategory(
     },
   });
 
+  // 3️⃣ Create audit logs if something changed
+  // const audits: Promise<any>[] = [];
+  
+  if (existingCategory.name !== name) {
+
+    await prisma.audit.create({
+      data: {
+        entity: "Category",
+        entityId: id,
+        field: "name",
+        oldValue: existingCategory.name,
+        newValue: name,
+        userId: updaterId,
+        // categoryId: id,
+      },
+    });
+    
+  }
+
+
+
   return { success: true, data };
 }
+

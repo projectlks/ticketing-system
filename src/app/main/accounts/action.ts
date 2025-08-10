@@ -7,14 +7,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import { Prisma } from "@prisma/client";
 import { UserWithRelations } from "./page"; // ✅ imported type from Page
-import { getCurrentUserId } from "@/libs/action";
+import { AuditChange, getCurrentUserId } from "@/libs/action";
 
 // ===== Validation Schemas =====
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["CUSTOMER", "AGENT", "ADMIN", "SUPER_ADMIN"]),
+  role: z.enum(["REQUESTER", "AGENT", "ADMIN", "SUPER_ADMIN"]),
 });
 
 const FormSchemaUpdate = FormSchema.omit({
@@ -53,7 +53,7 @@ export async function createAccount(
       email,
       password: hashedPassword,
       role,
-      createdId: creatorId,
+      creatorId: creatorId,
     },
   });
 
@@ -129,36 +129,77 @@ export async function deleteAccount(id: string) {
     where: { id },
     data: {
       isArchived: true,
-      updatedId: session?.user?.id,
+      updaterId: session?.user?.id,
     },
   });
 }
 
 // ===== Update Account =====
-export async function updateAccount(formData: FormData, id: string) : Promise<{ success: boolean; data: UserWithRelations }> {
-  const { name, email, role } = FormSchemaUpdate.parse({
+export async function updateAccount(
+  formData: FormData,
+  id: string
+): Promise<{ success: boolean; data: UserWithRelations }> {
+  const updateDataRaw = {
     name: formData.get("name"),
     email: formData.get("email"),
     role: formData.get("role"),
-  });
+  };
+
+  const updateData = FormSchemaUpdate.parse(updateDataRaw);
 
   try {
     const updaterId = await getCurrentUserId();
+    if (!updaterId) {
+      throw new Error("No logged-in user found for updateAccount");
+    }
 
-     await prisma.user.update({
+    const current = await prisma.user.findUniqueOrThrow({
       where: { id },
-      data: { name, email, role, updatedId: updaterId },
     });
 
+    // Build audit change list
+    const changes: AuditChange[] = Object.entries(updateData).flatMap(
+      ([field, newVal]) => {
+        const oldVal = (current as Record<string, unknown>)[field];
+        if (oldVal?.toString() !== newVal?.toString()) {
+          return [
+            {
+              field,
+              oldValue: oldVal?.toString() ?? "",
+              newValue: newVal?.toString() ?? "",
+            },
+          ];
+        }
+        return [];
+      }
+    );
 
-      // Fetch with relations
-  const data = await prisma.user.findUniqueOrThrow({
-    where: { email },
-    include: {
-      creator: { select: { name: true, email: true } },
-      updater: { select: { name: true, email: true } },
-    },
-  });
+    await prisma.user.update({
+      where: { id },
+      data: { ...updateData, updaterId },
+    });
+
+    if (changes.length > 0) {
+      await prisma.audit.createMany({
+        data: changes.map((c) => ({
+          entity: "User", 
+          entityId: id,
+          field: c.field,
+          oldValue: c.oldValue,
+          newValue: c.newValue,
+          userId: updaterId,
+        })),
+      });
+    }
+
+    // Fetch with relations by id (safer than email)
+    const data = await prisma.user.findUniqueOrThrow({
+      where: { id }, // ✅ fixed
+      include: {
+        creator: { select: { name: true, email: true } },
+        updater: { select: { name: true, email: true } },
+      },
+    });
 
     return { success: true, data };
   } catch (error) {

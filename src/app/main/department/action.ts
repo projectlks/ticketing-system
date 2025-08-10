@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import { Prisma } from "@prisma/client";
 import { DepartmentWithRelations } from "./page";
-import { getCurrentUserId } from "@/libs/action";
+import { AuditChange, getCurrentUserId } from "@/libs/action";
 
 // ===== Validation Schemas =====
 const DepartmentFormSchema = z.object({
@@ -100,7 +100,7 @@ export async function getAllDepartments(
             mode: Prisma.QueryMode.insensitive,
           },
         },
-      
+
       ],
     }),
   };
@@ -135,17 +135,62 @@ export async function deleteDepartment(id: string) {
   });
 }
 
-// ===== Update Department =====
+// // ===== Update Department =====
+// export async function updateDepartment(
+//   formData: FormData,
+//   id: string
+// ): Promise<{ success: boolean; data: DepartmentWithRelations }> {
+//   const updateDataRaw = {
+//     name: formData.get("name"),
+//     description: formData.get("description"),
+//     contact: formData.get("contact"),
+//     email: formData.get("email"),
+//     managerId: formData.get("managerId"),
+//   };
+
+//   // Validate update data - partial allowed
+//   const updateData = DepartmentFormSchemaUpdate.parse(updateDataRaw);
+
+//   try {
+//     const updaterId = await getCurrentUserId();
+
+//     const data = await prisma.department.update({
+//       where: { id },
+//       data: {
+//         ...updateData,
+//         updaterId: updaterId, // if you track updater field on department
+//       },
+//       include: {
+//         creator: { select: { name: true, email: true } },
+//         manager: { select: { name: true, email: true } },
+//       },
+//     });
+
+//     return { success: true, data };
+//   } catch (error) {
+//     console.error("Error updating department:", error);
+//     throw error;
+//   }
+// }
+
+// ===== Update Department with Audit Trail =====
+
+
+// Define the return type
+// ===== Types =====
+
+
+// ===== Update Department with Audit =====
 export async function updateDepartment(
   formData: FormData,
   id: string
-): Promise<{ success: boolean; data: DepartmentWithRelations }> {
+): Promise<{ success: boolean; data: DepartmentWithRelations; changes: AuditChange[] }> {
   const updateDataRaw = {
-    name: formData.get("name"),
-    description: formData.get("description"),
-    contact: formData.get("contact"),
-    email: formData.get("email"),
-    managerId: formData.get("managerId"),
+    name: formData.get("name")?.toString() ?? "",
+    description: formData.get("description")?.toString() ?? "",
+    contact: formData.get("contact")?.toString() ?? "",
+    email: formData.get("email")?.toString() ?? "",
+    managerId: formData.get("managerId")?.toString() ?? "",
   };
 
   // Validate update data - partial allowed
@@ -154,11 +199,34 @@ export async function updateDepartment(
   try {
     const updaterId = await getCurrentUserId();
 
+    if (!updaterId) {
+      throw new Error("No logged-in user found for updateDepartment");
+    }
+
+    // Fetch current department before update
+    const current = await prisma.department.findUniqueOrThrow({
+      where: { id },
+    });
+
+    // Build audit change list
+    const changes: AuditChange[] = Object.entries(updateData).flatMap(([field, newVal]) => {
+      const oldVal = (current as Record<string, unknown>)[field];
+      if (oldVal?.toString() !== newVal.toString()) {
+        return [{
+          field,
+          oldValue: oldVal?.toString() ?? "",
+          newValue: newVal?.toString() ?? "",
+        }];
+      }
+      return [];
+    });
+
+    // Perform update
     const data = await prisma.department.update({
       where: { id },
       data: {
         ...updateData,
-        updaterId: updaterId, // if you track updater field on department
+        updaterId, // track updater
       },
       include: {
         creator: { select: { name: true, email: true } },
@@ -166,7 +234,24 @@ export async function updateDepartment(
       },
     });
 
-    return { success: true, data };
+    // Save audit logs (example: to Audit table)
+    if (changes.length > 0) {
+      await prisma.audit.createMany({
+        data: changes.map(c => ({
+          entity: "Department",
+          entityId: id,
+          field: c.field,
+          oldValue: c.oldValue,
+          newValue: c.newValue,
+          userId: updaterId,
+          // Remove categoryId since it's unrelated here
+          // Add any other necessary audit fields if your model requires
+        })),
+      });
+    }
+
+
+    return { success: true, data, changes };
   } catch (error) {
     console.error("Error updating department:", error);
     throw error;
@@ -175,3 +260,17 @@ export async function updateDepartment(
 
 
 
+
+
+export async function getDepartmentAuditLogs(departmentId: string) {
+  return await prisma.audit.findMany({
+    where: {
+      entity: "Department",
+      entityId: departmentId,
+    },
+    orderBy: { changedAt: "desc" },
+    include: {
+      user: { select: { name: true, email: true } }, // who made the change
+    },
+  });
+}

@@ -32,7 +32,7 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
         name: '',
         email: '',
         password: '',
-        role: 'CUSTOMER',
+        role: 'REQUESTER',
     };
 
     const [form, setForm] = useState(emptyForm);
@@ -46,7 +46,7 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
                     name: accountData?.name ?? '',
                     email: accountData?.email ?? '',
                     password: '', // password usually not sent back
-                    role: accountData?.role ?? 'CUSTOMER',
+                    role: accountData?.role ?? 'REQUESTER',
                 };
                 setForm(normalizedData);
                 setInitialForm(normalizedData);
@@ -327,7 +327,7 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
                                     onChange={handleChange}
                                     className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                 >
-                                    <option value="CUSTOMER">Customer</option>
+                                    <option value="REQUESTER">Requester</option>
                                     <option value="AGENT">Agent</option>
                                     <option value="ADMIN">Admin</option>
                                     <option value="SUPER_ADMIN">Super Admin</option>
