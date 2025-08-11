@@ -7,6 +7,8 @@ import Swal from 'sweetalert2';
 import { DepartmentWithRelations } from './page';
 import { createDepartment, getDepartment, updateDepartment } from './action';
 import { getUserIdsandEmail } from '@/libs/action';
+import Loading from '@/components/Loading';
+import SelectBox from '@/components/SelectBox';
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
@@ -59,7 +61,7 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
                     });
                     setShowForm(false);
                     return;
-                } 
+                }
                 const mappedData = {
                     name: departmentData.name || '',
                     email: departmentData.email || '',
@@ -165,7 +167,7 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
             } else {
                 const { success, data } = await createDepartment(formData);
                 if (success) {
-                    setDepartments((prev) => [...prev, data]);
+                    setDepartments((prev) => [data, ...prev]);
                     Swal.fire({
                         title: 'Success',
                         text: 'Department created successfully!',
@@ -198,167 +200,154 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
     };
 
     return (
-        <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
-            <div
-                className="w-full h-full fixed top-0 left-0 bg-black opacity-20"
-                onClick={handleCancel}
-                aria-hidden="true"
-            />
 
-            <form
-                onSubmit={handleSubmit}
-                className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 bg-white z-50"
-                onClick={(e) => e.stopPropagation()}
-                noValidate
-            >
-                <div className="px-5 py-4 sm:px-6 sm:py-5">
-                    <h1 className="text-2xl text-gray-800 font-bold mb-3 mt-5">
-                        {updateID ? "Update Department" : "Add New Department"}
-                    </h1>
-                    <p className="text-gray-500 text-sm font-semibold">
-                        Effortlessly manage your departments: {updateID ? "update existing details" : "add a new department"}.
-                    </p>
-                </div>
 
-                <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
-                    {/* Name */}
-                    <div>
-                        <label htmlFor="name" className="block mb-1.5 text-sm font-medium text-gray-700">
-                            Name <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            id="name"
-                            name="name"
-                            placeholder="Enter department name"
-                            value={form.name}
-                            onChange={handleChange}
-                            error={!!errors.name}
+        <>
+            {loading && <Loading />}
+
+            <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
+                <div
+                    className="w-full h-full fixed top-0 left-0 bg-black opacity-20"
+                    onClick={handleCancel}
+                    aria-hidden="true"
+                />
+
+                <form
+                    onSubmit={handleSubmit}
+                    className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 bg-white z-50"
+                    onClick={(e) => e.stopPropagation()}
+                    noValidate
+                >
+                    <div className="px-5 py-4 sm:px-6 sm:py-5">
+                        <h1 className="text-2xl text-gray-800 font-bold mb-3 mt-5">
+                            {updateID ? "Update Department" : "Add New Department"}
+                        </h1>
+                        <p className="text-gray-500 text-sm font-semibold">
+                            Effortlessly manage your departments: {updateID ? "update existing details" : "add a new department"}.
+                        </p>
+                    </div>
+
+                    <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
+                        {/* Name */}
+                        <div>
+                            <label htmlFor="name" className="block mb-1.5 text-sm font-medium text-gray-700">
+                                Name <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                id="name"
+                                name="name"
+                                placeholder="Enter department name"
+                                value={form.name}
+                                onChange={handleChange}
+                                error={!!errors.name}
                             // disabled={loading}
-                        />
-                        {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
-                    </div>
+                            />
+                            {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
+                        </div>
 
-                    {/* Description */}
-                    <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Description
-                        </label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            placeholder="Enter department description"
-                            value={form.description}
-                            onChange={handleChange}
-                            disabled={loading}
-                            className="w-full rounded-lg border border-gray-300 p-2 text-gray-800 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
-                            rows={4}
-                        />
-                    </div>
-
-                    {/* Contact */}
-                    <div>
-                        <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Contact Number
-                        </label>
-                        <Input
-                            id="contact"
-                            name="contact"
-                            placeholder="Enter contact number"
-                            value={form.contact}
-                            onChange={handleChange}
-                            error={!!errors.contact}
-                            // disabled={loading}
-                        />
-                        {errors.contact && <p className="text-red-600 text-sm mt-1">{errors.contact}</p>}
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Email
-                        </label>
-                        <Input
-                            id="email"
-                            name="email"
-                            placeholder="Enter email"
-                            value={form.email}
-                            onChange={handleChange}
-                            error={!!errors.email}
-                            // disabled={loading}
-                        />
-                        {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
-                    </div>
-
-                    {/* Manager */}
-                    <div>
-                        <label htmlFor="managerId" className="block mb-1.5 text-sm font-medium text-gray-700">
-                            Manager <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                            <select
-                                ref={selectRef}
-                                id="managerId"
-                                name="managerId"
-                                value={form.managerId}
+                        {/* Description */}
+                        <div>
+                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Description
+                            </label>
+                            <textarea
+                                id="description"
+                                name="description"
+                                placeholder="Enter department description"
+                                value={form.description}
                                 onChange={handleChange}
                                 disabled={loading}
-                                className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none
-                                  ${errors.managerId ? 'border-red-600' : 'border-gray-300'}
-                                `}
-                            >
-                                <option value="">Select a manager</option>
-                                {userIdsAndEmails.map(user => (
-                                    <option key={user.id} value={user.id}>
-                                        {user.name} ({user.email})
-                                    </option>
-                                ))}
-                            </select>
-                            <span
-                                onClick={() => {
-                                    selectRef.current?.focus();
-                                    selectRef.current?.click();
-                                }}
-                                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
-                            >
-                                <ChevronDownIcon className="w-5 h-5" />
-                            </span>
+                                className="w-full rounded-lg border border-gray-300 p-2 text-gray-800 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                                rows={4}
+                            />
                         </div>
-                        {errors.managerId && <p className="text-red-600 text-sm mt-1">{errors.managerId}</p>}
-                    </div>
 
-                    {/* General Error */}
-                    {errors.response && (
-                        <p className="text-red-500 text-xs mb-4" role="alert">{errors.response}</p>
-                    )}
+                        {/* Contact */}
+                        <div>
+                            <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Contact Number
+                            </label>
+                            <Input
+                                id="contact"
+                                name="contact"
+                                placeholder="Enter contact number"
+                                value={form.contact}
+                                onChange={handleChange}
+                                error={!!errors.contact}
+                            // disabled={loading}
+                            />
+                            {errors.contact && <p className="text-red-600 text-sm mt-1">{errors.contact}</p>}
+                        </div>
 
-                    {/* Buttons */}
-                    <div className="mt-6 flex justify-end space-x-3">
-                        <button
-                            type="button"
-                            onClick={handleCancel}
-                            disabled={loading}
-                            className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${
-                                loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'
-                            }`}
-                        >
-                            {loading
-                                ? updateID
-                                    ? 'Updating...'
-                                    : 'Creating...'
-                                : updateID
-                                    ? 'Update Department'
-                                    : 'Create Department'}
-                        </button>
-                    </div>
-                </section>
-            </form>
-        </section>
+                        {/* Email */}
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Email
+                            </label>
+                            <Input
+                                id="email"
+                                name="email"
+                                placeholder="Enter email"
+                                value={form.email}
+                                onChange={handleChange}
+                                error={!!errors.email}
+                            // disabled={loading}
+                            />
+                            {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
+                        </div>
+
+                        {/* Manager */}
+
+
+                        <SelectBox
+                            label="Manager"
+                            id="managerId"
+                            name="managerId"
+                            value={form.managerId}
+                            options={userIdsAndEmails}
+                            onChange={handleChange}
+                            error={errors.managerId}
+                            showEmail={true}
+                        />
+
+
+
+
+
+                        {/* General Error */}
+                        {errors.response && (
+                            <p className="text-red-500 text-xs mb-4" role="alert">{errors.response}</p>
+                        )}
+
+                        {/* Buttons */}
+                        <div className="mt-6 flex justify-end space-x-3">
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                disabled={loading}
+                                className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'
+                                    }`}
+                            >
+                                {loading
+                                    ? updateID
+                                        ? 'Updating...'
+                                        : 'Creating...'
+                                    : updateID
+                                        ? 'Update Department'
+                                        : 'Create Department'}
+                            </button>
+                        </div>
+                    </section>
+                </form>
+            </section>
+
+        </>
     );
 }

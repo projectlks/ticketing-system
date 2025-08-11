@@ -1,24 +1,23 @@
 import AuditLogList from "@/components/AuditLogList";
-import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import { Audit } from "@prisma/client";
-import { DepartmentWithRelations } from "../../page";
 import ViewContext from "@/components/ViewContext";
+import { CategoryWithRelations } from "../../page";
 
-export type DepartmentViewProps = {
-    department: DepartmentWithRelations;
+export type CategoryViewProps = {
+    category: CategoryWithRelations;
     auditLog?: Audit[];
     title?: string;
 };
 
-export function DepartmentView({
-    department,
+export function CategoryView({
+    category,
     auditLog,
-    title = "View Department",
-}: DepartmentViewProps) {
+    title = "View Category",
+}: CategoryViewProps) {
     return (
         <section
             className="grid gap-6 md:grid-cols-2"
-            aria-label="Department details"
+            aria-label="Category details"
         >
             {/* Card Container */}
             <div className="h-fit md:sticky top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
@@ -38,69 +37,50 @@ export function DepartmentView({
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                                 <h3 className="text-xl font-semibold leading-none">
-                                    {department.name}
+                                    {category.name}
                                 </h3>
 
-                                <p className="mt-3 text-sm text-muted-foreground">
-                                    {department.description ?? "—"}
-                                </p>
                             </div>
                         </div>
 
                         {/* Separator */}
                         <div className="border-t border-gray-200" />
 
-                        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">                      
 
 
                             <ViewContext
-                                label="Department Contact"
-                                value={department.contact ?? "—"}
-                                type="tel"
-                            />
-                            <ViewContext
-                                label="Department Email"
-                                value={department.email ?? "—"}
-                                type="email"
-                            />
-                            <ViewContext
-                                label="Manager Name"
-                                value={department.manager?.name ?? "—"}
-                            />
-                            <ViewContext
-                                label="Manager Email"
-                                value={department.manager?.email ?? "—"}
-                                type="email"
+                                label="Created At"
+                                value={new Date(category.createdAt).toLocaleString("en-US", {
+                                    timeZone: "Asia/Yangon",
+                                })}
                             />
                             <ViewContext
                                 label="Created By"
-                                value={department.creator?.name ?? "—"}
-                            />
-                            <ViewContext
-                                label="Last Updated By"
-                                value={department.updater?.name ?? "—"}
-                            />
-                            <ViewContext
-                                label="Created At"
-                                value={new Date(department.createdAt).toLocaleString("en-US", {
-                                    timeZone: "Asia/Yangon",
-                                })}
-                            />
-                            <ViewContext
-                                label="Last Updated At"
-                                value={new Date(department.updatedAt).toLocaleString("en-US", {
-                                    timeZone: "Asia/Yangon",
-                                })}
-                            />
-                            <ViewContext
-                                label="Ticket Count"
-                                value={`${department.tickets?.length ?? 0} Ticket${department.tickets?.length === 1 ? '' : 's'}`}
+                                value={category.creator?.name || "-"}
                             />
 
                             <ViewContext
-                                label="Archived"
-                                value={department.isArchived ? "Yes" : "No"}
+                                label="Last Updated At"
+                                value={new Date(category.updatedAt).toLocaleString("en-US", {
+                                    timeZone: "Asia/Yangon",
+                                })}
                             />
+                            <ViewContext
+                                label="Updated By"
+                                value={category.updater?.name || "-"}
+                            />
+
+                            {/* <ViewContext
+                                label="Is Archived"
+                                value={category.isArchived ? "Yes" : "No"}
+                            /> */}
+
+                            <ViewContext
+                                label="Tickets Count"
+                                value={category.tickets?.length?.toString() || "0"}
+                            />
+
                         </dl>
                     </div>
                 </div>
@@ -124,4 +104,4 @@ export function DepartmentView({
     );
 }
 
-export default DepartmentView;
+export default CategoryView;

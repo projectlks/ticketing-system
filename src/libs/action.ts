@@ -7,8 +7,8 @@ import { prisma } from "./prisma";
 
 // ===== Utils =====
 export async function getCurrentUserId() {
-    const data = await getServerSession(authOptions);
-    return data?.user?.id;
+  const data = await getServerSession(authOptions);
+  return data?.user?.id;
 }
 
 
@@ -25,8 +25,32 @@ export async function getUserIdsandEmail(): Promise<{ id: string; email: string;
   return users;
 }
 
- 
- export interface AuditChange {
+
+export async function getAllDepartmentIdAndName() {
+  const departments = await prisma.department.findMany({
+    where: { isArchived: false },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  return departments;
+}
+
+export async function getAllCategoryIdAndName() {
+  const categories = await prisma.category.findMany({
+    where: { isArchived: false },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  return categories;
+};
+
+export interface AuditChange {
   field: string;
   oldValue: string;
   newValue: string;

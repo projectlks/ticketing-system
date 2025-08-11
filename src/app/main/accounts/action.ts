@@ -44,7 +44,7 @@ export async function createAccount(
 
   // Hash password and get creator ID
   const hashedPassword = await bcrypt.hash(password, 10);
-  const creatorId = await getCurrentUserId();
+  // const creatorId = await getCurrentUserId();
 
   // Create user
   await prisma.user.create({
@@ -53,7 +53,7 @@ export async function createAccount(
       email,
       password: hashedPassword,
       role,
-      creatorId: creatorId,
+      // creatorId: creatorId,
     },
   });
 
@@ -73,6 +73,11 @@ export async function createAccount(
 export async function getAccount(id: string) {
   return await prisma.user.findUnique({
     where: { id },
+    include: {
+      creator: { select: { name: true, email: true } },
+      updater: { select: { name: true, email: true } },
+      assignedTickets: { select: { id: true, title: true, status: true, priority: true } }, // tickets assigned to this user
+    },
   });
 }
 
@@ -182,7 +187,7 @@ export async function updateAccount(
     if (changes.length > 0) {
       await prisma.audit.createMany({
         data: changes.map((c) => ({
-          entity: "User", 
+          entity: "User",
           entityId: id,
           field: c.field,
           oldValue: c.oldValue,
@@ -206,4 +211,20 @@ export async function updateAccount(
     console.error("Error updating account:", error);
     throw error;
   }
+}
+
+
+
+
+export async function getAccountAuditLogs(accountId: string) {
+  return await prisma.audit.findMany({
+    where: {
+      entity: "Account",
+      entityId: accountId,
+    },
+    orderBy: { changedAt: "desc" },
+    include: {
+      user: { select: { name: true, email: true } }, // who made the change
+    },
+  });
 }

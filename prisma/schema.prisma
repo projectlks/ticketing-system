@@ -57,7 +57,7 @@ model User {
   updatedCategories Category[] @relation("CategoryUpdaters")
 
   // Tickets
-  requestTickets Ticket[] @relation("TicketRequester")
+  requestTickets  Ticket[] @relation("TicketRequester")
   assignedTickets Ticket[] @relation("TicketAssignedTo")
 
   // Audits
@@ -136,18 +136,18 @@ model Ticket {
   requesterId String @map("requester_id")
   requester   User   @relation("TicketRequester", fields: [requesterId], references: [id])
 
-  channelId String @map("channel_id")
 
-  status String
+  status String @default("OPEN") @map("status") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
 
-  assignedToId String @map("assigned_to_id")
-  assignedTo   User   @relation("TicketAssignedTo", fields: [assignedToId], references: [id])
+  assignedToId String? @map("assigned_to_id")
+  assignedTo   User?   @relation("TicketAssignedTo", fields: [assignedToId], references: [id])
 
   createdAt DateTime @map("created_at")
   updatedAt DateTime @map("updated_at")
   attached  String?
 
-  priority Priority @default(MEDIUM)
+  priority   Priority @default(MEDIUM)
+  isArchived Boolean  @default(false)
 
   // audits Audit[]
 }
@@ -160,19 +160,18 @@ model Audit {
   changedAt DateTime @default(now())
 
   // Entity info (polymorphic handled via strings)
-  entity    String   // "User" | "Department" | "Category" | "Ticket"
-  entityId  String   // ID of the changed entity
+  entity   String // "User" | "Department" | "Category" | "Ticket"
+  entityId String // ID of the changed entity
 
-  field     String
-  oldValue  String?
-  newValue  String?
+  field    String
+  oldValue String?
+  newValue String?
 
   // Who made the change
   userId String
-  user   User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   // Optional linking if you want to query by relation directly
-
 
   @@index([entity, entityId])
   @@index([changedAt])

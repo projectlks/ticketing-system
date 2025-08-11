@@ -12,6 +12,8 @@ import TableHead from "@/components/TableHead";
 import Swal from 'sweetalert2';
 import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
+import Loading from "@/components/Loading";
+import { useRouter } from "next/navigation";
 
 export type UserWithRelations = User & {
     creator?: {
@@ -22,6 +24,12 @@ export type UserWithRelations = User & {
         name: string | null;
         email: string | null;
     } | null;
+    assignedTickets?: {
+        id: string;
+        title: string;
+        status: string;
+        priority: string;
+    }[] | null;
 };
 
 export default function Page() {
@@ -34,6 +42,9 @@ export default function Page() {
     const take = 10;
     const [updateID, setUpdateID] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
+
+
+    const router = useRouter();
 
 
 
@@ -115,6 +126,8 @@ export default function Page() {
 
     return (
         <>
+
+            {isFetching && <Loading />}
             <div className="w-full min-h-full bg-white pb-10 rounded-lg">
                 <Header
                     title="Users"
@@ -169,12 +182,12 @@ export default function Page() {
 
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu isBottom={index >= accounts.length - 2} option={{
-                                                        // view: true,
+                                                        view: true,
                                                         edit: true,
                                                         delete: true
                                                     }} onDelete={() => handleDelete(account.id)}
                                                         onEdit={() => handleEdit(account.id)}
-                                                    //  onView={() => handleView(account.id)} 
+                                                        onView={() => router.push(`/main/accounts/view/${account.id}`)}
                                                     />
                                                 </td>
                                             </tr>
@@ -182,35 +195,35 @@ export default function Page() {
                                     </tbody>
                                 </table>
 
-                                
+
                             </div>
 
                             <div className="flex justify-end gap-2 mt-4">
 
-                                    <Button
-                                        click={() => setPage((prev) => Math.max(1, prev - 1))}
-                                        disabled={page === 1 || isFetching}
-                                        buttonLabel={
-                                            <>
-                                                <ArrowLongLeftIcon className="w-4 h-4" />
-                                                <span> Prev</span>
-                                            </>
-                                        }
-                                    />
+                                <Button
+                                    click={() => setPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={page === 1 || isFetching}
+                                    buttonLabel={
+                                        <>
+                                            <ArrowLongLeftIcon className="w-4 h-4" />
+                                            <span> Prev</span>
+                                        </>
+                                    }
+                                />
 
-                                    <Button
-                                        click={() => setPage((prev) => prev + 1)}
-                                        disabled={accounts.length < take || isFetching}
-                                        buttonLabel={
-                                            <>
-                                                <span>Next </span>
-                                                <ArrowLongRightIcon className="w-4 h-4" />
-                                            </>
-                                        }
-                                    />
+                                <Button
+                                    click={() => setPage((prev) => prev + 1)}
+                                    disabled={accounts.length < take || isFetching}
+                                    buttonLabel={
+                                        <>
+                                            <span>Next </span>
+                                            <ArrowLongRightIcon className="w-4 h-4" />
+                                        </>
+                                    }
+                                />
 
 
-                                </div>
+                            </div>
                         </div>
                     ) : (
                         <p className="text-base text-center text-gray-500">No accounts found.</p>

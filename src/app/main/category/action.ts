@@ -46,6 +46,7 @@ export async function getCategory(id: string): Promise<CategoryWithRelations | n
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
+      tickets: { select: { id: true, title: true, status: true } },
     },
   });
 }
@@ -114,8 +115,8 @@ export async function updateCategory(
   const updaterId = await getCurrentUserId();
 
   if (!updaterId) {
-  throw new Error("No logged-in user found for updateCategory");
-}
+    throw new Error("No logged-in user found for updateCategory");
+  }
 
   // 1️⃣ Get existing category to compare changes
   const existingCategory = await prisma.category.findUnique({
@@ -142,7 +143,7 @@ export async function updateCategory(
 
   // 3️⃣ Create audit logs if something changed
   // const audits: Promise<any>[] = [];
-  
+
   if (existingCategory.name !== name) {
 
     await prisma.audit.create({
@@ -156,7 +157,7 @@ export async function updateCategory(
         // categoryId: id,
       },
     });
-    
+
   }
 
 
@@ -164,3 +165,16 @@ export async function updateCategory(
   return { success: true, data };
 }
 
+
+export async function getCategoryAuditLogs(id: string) {
+  return await prisma.audit.findMany({
+    where: {
+      entity: "Category",
+      entityId: id,
+    },
+    orderBy: { changedAt: "desc" },
+    include: {
+      user: { select: { name: true, email: true } }, // who made the change
+    },
+  });
+}

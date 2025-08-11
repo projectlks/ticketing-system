@@ -4,9 +4,10 @@
 
 
 
-import DepartmentView from './DepartmentView';
-import { getDepartment, getDepartmentAuditLogs } from '../../action';
+// import DepartmentView from './AccountView';
+import { getAccount, getAccountAuditLogs } from '../../action';
 import BackBtn from '@/components/BackBtn';
+import AccountView from './AccountView';
 
 
 interface PageProps {
@@ -18,12 +19,12 @@ export default async function DepartmentPage({ params }: PageProps) {
 
   if (!params.id) return null;
 
-  const audit = await getDepartmentAuditLogs(params.id);
+  const audit = await getAccountAuditLogs(params.id);
 
-  const department = await getDepartment(params.id);
+  const account = await getAccount(params.id);
 
-  if (!department) {
-    return <p className="p-6 text-center text-red-500">Department not found.</p>;
+  if (!account) {
+    return <p className="p-6 text-center text-red-500">Account not found.</p>;
   }
 
 
@@ -36,13 +37,13 @@ export default async function DepartmentPage({ params }: PageProps) {
 
         <div>
 
-          <h1 className="text-2xl font-semibold tracking-tight">Department</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
           <p className="mt-1 text-sm text-muted-foreground">Review details and recent changes.</p>
         </div>
       </header>
 
 
-      <DepartmentView department={department} auditLog={audit} />
+      <AccountView account={account} auditLog={audit} />
 
     </div>
   );

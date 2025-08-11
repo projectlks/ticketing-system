@@ -4,9 +4,9 @@
 
 
 
-import DepartmentView from './DepartmentView';
-import { getDepartment, getDepartmentAuditLogs } from '../../action';
+import { getCategory, getCategoryAuditLogs } from '../../action';
 import BackBtn from '@/components/BackBtn';
+import CategoryView from './CategoryView';
 
 
 interface PageProps {
@@ -18,12 +18,12 @@ export default async function DepartmentPage({ params }: PageProps) {
 
   if (!params.id) return null;
 
-  const audit = await getDepartmentAuditLogs(params.id);
+  const audit = await getCategoryAuditLogs(params.id);
 
-  const department = await getDepartment(params.id);
+  const category = await getCategory(params.id);
 
-  if (!department) {
-    return <p className="p-6 text-center text-red-500">Department not found.</p>;
+  if (!category) {
+    return <p className="p-6 text-center text-red-500">Category not found.</p>;
   }
 
 
@@ -36,13 +36,13 @@ export default async function DepartmentPage({ params }: PageProps) {
 
         <div>
 
-          <h1 className="text-2xl font-semibold tracking-tight">Department</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Category</h1>
           <p className="mt-1 text-sm text-muted-foreground">Review details and recent changes.</p>
         </div>
       </header>
 
 
-      <DepartmentView department={department} auditLog={audit} />
+      <CategoryView category={category} auditLog={audit} />
 
     </div>
   );

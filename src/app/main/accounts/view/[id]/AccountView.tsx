@@ -1,24 +1,24 @@
 import AuditLogList from "@/components/AuditLogList";
-import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import { Audit } from "@prisma/client";
-import { DepartmentWithRelations } from "../../page";
 import ViewContext from "@/components/ViewContext";
+import { UserWithRelations } from "../../page";
 
-export type DepartmentViewProps = {
-    department: DepartmentWithRelations;
+export type AccountViewProps = {
+    account: UserWithRelations;
     auditLog?: Audit[];
     title?: string;
+
 };
 
-export function DepartmentView({
-    department,
+export function AccountView({
+    account,
     auditLog,
-    title = "View Department",
-}: DepartmentViewProps) {
+    title = "View Account",
+}: AccountViewProps) {
     return (
         <section
             className="grid gap-6 md:grid-cols-2"
-            aria-label="Department details"
+            aria-label="Account details"
         >
             {/* Card Container */}
             <div className="h-fit md:sticky top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
@@ -38,12 +38,10 @@ export function DepartmentView({
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                                 <h3 className="text-xl font-semibold leading-none">
-                                    {department.name}
+                                    {account.name}
                                 </h3>
 
-                                <p className="mt-3 text-sm text-muted-foreground">
-                                    {department.description ?? "—"}
-                                </p>
+
                             </div>
                         </div>
 
@@ -51,56 +49,45 @@ export function DepartmentView({
                         <div className="border-t border-gray-200" />
 
                         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <ViewContext label="User ID" value={account.id} />
+                            <ViewContext label="Name" value={account.name} />
+                            <ViewContext label="Email" value={account.email} />
+                            <ViewContext label="Role" value={account.role} />
+                            <ViewContext label="Is Archived" value={account.isArchived ? "Yes" : "No"} />
 
-
-                            <ViewContext
-                                label="Department Contact"
-                                value={department.contact ?? "—"}
-                                type="tel"
-                            />
-                            <ViewContext
-                                label="Department Email"
-                                value={department.email ?? "—"}
-                                type="email"
-                            />
-                            <ViewContext
-                                label="Manager Name"
-                                value={department.manager?.name ?? "—"}
-                            />
-                            <ViewContext
-                                label="Manager Email"
-                                value={department.manager?.email ?? "—"}
-                                type="email"
-                            />
-                            <ViewContext
-                                label="Created By"
-                                value={department.creator?.name ?? "—"}
-                            />
-                            <ViewContext
-                                label="Last Updated By"
-                                value={department.updater?.name ?? "—"}
-                            />
                             <ViewContext
                                 label="Created At"
-                                value={new Date(department.createdAt).toLocaleString("en-US", {
+                                value={new Date(account.createdAt).toLocaleString("en-US", {
                                     timeZone: "Asia/Yangon",
                                 })}
                             />
-                            <ViewContext
-                                label="Last Updated At"
-                                value={new Date(department.updatedAt).toLocaleString("en-US", {
-                                    timeZone: "Asia/Yangon",
-                                })}
-                            />
-                            <ViewContext
-                                label="Ticket Count"
-                                value={`${department.tickets?.length ?? 0} Ticket${department.tickets?.length === 1 ? '' : 's'}`}
-                            />
+                            <ViewContext label="Created By" value={account.creator?.name || "-"} />
 
                             <ViewContext
-                                label="Archived"
-                                value={department.isArchived ? "Yes" : "No"}
+                                label="Last Updated At"
+                                value={new Date(account.updatedAt).toLocaleString("en-US", {
+                                    timeZone: "Asia/Yangon",
+                                })}
                             />
+                            <ViewContext label="Updated By" value={account.updater?.name || "-"} />
+
+                            {/* Assigned Tickets Section */}
+                            <div className="col-span-2">
+                                <h3 className="text-lg font-semibold  mb-2">Assigned Tickets</h3>
+                                {account.assignedTickets && account.assignedTickets.length > 0 ? (
+                                    <ul className="list-disc list-inside space-y-1">
+                                        {account.assignedTickets.map((ticket) => (
+                                            <li key={ticket.id} className="text-sm">
+                                                <strong>{ticket.title}</strong> - Status: {ticket.status}, Priority: {ticket.priority}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-gray-500">No tickets assigned.</p>
+                                )}
+                            </div>
+
+
                         </dl>
                     </div>
                 </div>
@@ -124,4 +111,4 @@ export function DepartmentView({
     );
 }
 
-export default DepartmentView;
+export default AccountView;

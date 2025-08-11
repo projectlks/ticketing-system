@@ -76,6 +76,8 @@ export async function getDepartment(id: string): Promise<DepartmentWithRelations
     include: {
       creator: { select: { name: true, email: true } },
       manager: { select: { name: true, email: true } },
+      tickets: { select: { id: true, title: true, status: true } },
+      updater: { select: { name: true, email: true } },
     },
   });
 }

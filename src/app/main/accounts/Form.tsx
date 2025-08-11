@@ -10,6 +10,7 @@ import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from 're
 import { createAccount, getAccount, updateAccount } from './action';
 import Swal from 'sweetalert2';
 import { UserWithRelations } from './page';
+import Loading from '@/components/Loading';
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
@@ -204,6 +205,8 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
 
     return (
         <>
+
+        {loading && <Loading />}
             <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
                 <div
                     className="w-full h-full fixed top-0 left-0 bg-black opacity-20"

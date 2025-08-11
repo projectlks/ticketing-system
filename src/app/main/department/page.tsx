@@ -13,6 +13,7 @@ import Swal from 'sweetalert2';
 import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import Loading from "@/components/Loading";
 
 export type DepartmentWithRelations = Department & {
     creator?: {
@@ -27,6 +28,11 @@ export type DepartmentWithRelations = Department & {
         name: string | null;
         email: string | null;
     } | null;
+    tickets?: {
+        id: string;
+        title: string;
+        status: string;
+    }[] | null;
 };
 
 export default function Page() {
@@ -123,6 +129,8 @@ export default function Page() {
 
     return (
         <>
+
+        {isFetching && <Loading />}
             <div className="max-w-full min-h-full  overflow-x-auto bg-white pb-10 rounded-lg">
                 <Header
                     title="Departments"
