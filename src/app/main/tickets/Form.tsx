@@ -8,6 +8,8 @@ import { createTicket, getTicket, updateTicket } from './action';
 import { TicketWithRelations } from './page';
 import { getAllCategoryIdAndName, getAllDepartmentIdAndName } from '@/libs/action';
 import SelectBox from '@/components/SelectBox';
+import ImageInput from './ImageInput';
+import { prisma } from '@/libs/prisma';
 
 interface TicketFormProps {
     setShowForm: (value: boolean) => void;
@@ -18,10 +20,9 @@ interface TicketFormProps {
 const emptyForm = {
     title: '',
     description: '',
+    departmentId: '',
     categoryId: '',
-    channelId: '',
     priority: 'MEDIUM',
-    status: 'OPEN',
 };
 
 export default function TicketForm({
@@ -34,6 +35,11 @@ export default function TicketForm({
     const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+    const [images, setImages] = useState<File[]>([]);
+
+
+    const [existingImages, setExistingImages] = useState<{ id: string; url: string }[]>([]);
+    // const [newImages, setNewImages] = useState<File[]>([]);
 
     useEffect(() => {
         // Fetch categories and departments once
@@ -54,10 +60,12 @@ export default function TicketForm({
                         title: data.title ?? '',
                         description: data.description ?? '',
                         categoryId: data.categoryId ?? '',
-                        channelId: data.channelId ?? '',
+                        departmentId: data.departmentId ?? '',
                         priority: data.priority ?? 'MEDIUM',
-                        status: data.status ?? 'OPEN',
                     });
+
+
+                    setExistingImages(data.images || [])
                 }
             });
         } else {
@@ -93,50 +101,160 @@ export default function TicketForm({
         if (!form.title.trim()) newErrors.title = 'Title is required';
         if (!form.description.trim()) newErrors.description = 'Description is required';
         if (!form.categoryId) newErrors.categoryId = 'Category is required';
-        if (!form.channelId.trim()) newErrors.channelId = 'Channel is required';
         if (!form.priority) newErrors.priority = 'Priority is required';
-        if (!form.status) newErrors.status = 'Status is required';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    //   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+
+    const uploadImages = async (files: FileList | File[]) => {
+        const formData = new FormData();
+        Array.from(files).forEach((file) => {
+            formData.append('file', file);
+        });
+
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await res.json();
+        return data.urls as string[]; // returned URLs from your upload API
+    };
+
+
+
+    // const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     //     e.preventDefault();
 
     //     if (!validate()) return;
 
     //     setLoading(true);
 
+
+
+
+
     //     try {
-    //       const formData = new FormData();
-    //       Object.entries(form).forEach(([key, value]) => {
-    //         formData.append(key, value);
-    //       });
 
-    //       // If you want to add an image upload:
-    //       // formData.append('image', selectedFile);
+    //         const resss = await uploadImages(images)
 
-    //       if (updateID) {
-    //         const { success, data } = await updateTicket(formData, updateID);
-    //         if (success) {
-    //           setTickets((prev) => prev.map((t) => (t.id === updateID ? data : t)));
-    //           Swal.fire('Success', 'Ticket updated successfully!', 'success');
+    //         console.log(resss, 'images uploaded');
+
+
+    //         const formData = new FormData();
+    //         Object.entries(form).forEach(([key, value]) => {
+    //             formData.append(key, value);
+    //         });
+
+
+    //         const imgsLinks = await uploadImages(images)
+
+    //         console.log(imgsLinks, 'images uploaded');
+
+
+    //         if (updateID) {
+    //             const { success, data } = await updateTicket(formData, updateID);
+    //             if (success) {
+    //                 setTickets((prev) => prev.map((t) => (t.id === updateID ? data : t)));
+    //                 Swal.fire('Success', 'Ticket updated successfully!', 'success');
+    //             }
+    //         } else {
+    //             const { success, data } = await createTicket(formData);
+    //             if (success) {
+    //                 setTickets((prev) => [data, ...prev]);
+    //                 Swal.fire('Success', 'Ticket created successfully!', 'success');
+    //             }
     //         }
-    //       } else {
-    //         const { success, data } = await createTicket(formData);
-    //         if (success) {
-    //           setTickets((prev) => [data, ...prev]);
-    //           Swal.fire('Success', 'Ticket created successfully!', 'success');
-    //         }
-    //       }
-    //       setShowForm(false);
-    //     } catch (error: any) {
-    //       Swal.fire('Error', error.message || 'Failed to save ticket', 'error');
+    //         setShowForm(false);
+    //     } catch (error) {
+    //         const message = error instanceof Error ? error.message : 'Something went wrong.';
+    //         setErrors((prev) => ({ ...prev, response: message }));
+    //         Swal.fire({
+    //             title: 'Error',
+    //             text: message,
+    //             icon: 'error',
+    //             confirmButtonColor: '#ef4444',
+    //             customClass: {
+    //                 popup: 'rounded-lg p-6',
+    //                 confirmButton: 'bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600',
+    //             },
+    //         });
     //     } finally {
-    //       setLoading(false);
+    //         setLoading(false);
     //     }
-    //   };
+    // };
+
+
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        if (!validate()) return;
+
+        setLoading(true);
+
+        try {
+            // 1. Upload images and get their URLs
+            const imageUrls = await uploadImages(images);
+            // console.log(imageUrls, "images uploaded");
+
+            // 2. Create FormData and append form fields
+            const formData = new FormData();
+            Object.entries(form).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
+
+            // 3. Append image URLs as JSON string (your backend should parse this accordingly)
+
+
+            // 4. Call your create or update API function with FormData
+            let response;
+            if (updateID) {
+
+                formData.append("newImages", JSON.stringify(imageUrls));
+                formData.append('existingImageIds', JSON.stringify(existingImages.map(i => i.id)))
+                response = await updateTicket(formData, updateID);
+            } else {
+
+                formData.append("images", JSON.stringify(imageUrls));
+                response = await createTicket(formData);
+            }
+
+            // 5. If success, update local tickets state and notify user
+            if (response.success) {
+
+
+
+                if (updateID) {
+                    setTickets((prev) =>
+                        prev.map((ticket) => (ticket.id === updateID ? response.data : ticket))
+                    );
+                    Swal.fire("Success", "Ticket updated successfully!", "success");
+                } else {
+                    setTickets((prev) => [response.data, ...prev]);
+                    Swal.fire("Success", "Ticket created successfully!", "success");
+                }
+                setShowForm(false);
+                // setUpdateID(null);
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Something went wrong.";
+            Swal.fire({
+                title: "Error",
+                text: message,
+                icon: "error",
+                confirmButtonColor: "#ef4444",
+                customClass: {
+                    popup: "rounded-lg p-6",
+                    confirmButton: "bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600",
+                },
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -147,14 +265,16 @@ export default function TicketForm({
                 role="dialog"
             >
                 <div
-                    className="w-full h-full fixed top-0 left-0 bg-black opacity-20"
+                    className="w-full h-full  fixed top-0 left-0 bg-black opacity-20"
                     onClick={handleCancel}
                     aria-hidden="true"
                 />
 
+
+
                 <form
-                    //   onSubmit={handleSubmit}
-                    className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 bg-white z-50"
+                    onSubmit={handleSubmit}
+                    className="w-[90%] md:w-[700px] rounded-2xl  zoom-in border border-gray-200  bg-white z-50"
                     onClick={(e) => e.stopPropagation()}
                     noValidate
                 >
@@ -167,7 +287,7 @@ export default function TicketForm({
                         </p>
                     </div>
 
-                    <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
+                    <section className="p-5 space-y-6 border-t max-h-[80vh] overflow-y-auto border-gray-100 sm:p-6">
                         {/* Title */}
                         <div>
                             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
@@ -202,7 +322,7 @@ export default function TicketForm({
                                 placeholder="Enter ticket description"
                                 value={form.description}
                                 onChange={handleChange}
-                                className={`w-full rounded-lg border px-4 py-2 text-gray-800 text-sm resize-none ${errors.description ? 'border-red-600' : 'border-gray-300'
+                                className={`w-full rounded-lg border ${errors.description ? "border-red-500" : "border-gray-300"} bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50
                                     }`}
                                 aria-invalid={!!errors.description}
                                 aria-describedby={errors.description ? 'description-error' : undefined}
@@ -213,6 +333,18 @@ export default function TicketForm({
                                 </p>
                             )}
                         </div>
+                        {/* Department */}
+                        <SelectBox
+                            label="Department"
+                            id="departmentId"
+                            name="departmentId"
+                            value={form.departmentId}
+                            options={departments}  // departments is [{ id, name }]
+                            onChange={handleChange}
+                            error={errors.departmentId}
+                            placeholder="Select Department"
+                        />
+
 
 
                         {/* Category */}
@@ -248,6 +380,9 @@ export default function TicketForm({
 
 
 
+                        <ImageInput images={images} setImages={setImages} existingImages={existingImages} setExistingImages={setExistingImages} />
+
+
 
 
                         {/* Buttons */}
@@ -270,6 +405,7 @@ export default function TicketForm({
                         </div>
                     </section>
                 </form>
+
             </section>
         </>
     );

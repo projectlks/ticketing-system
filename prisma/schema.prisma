@@ -24,6 +24,13 @@ enum Priority {
   URGENT
 }
 
+enum Status {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 // ======================
 // User model
 // ======================
@@ -121,6 +128,7 @@ model Category {
 // ======================
 // Ticket model
 // ======================
+
 model Ticket {
   id          String @id @default(cuid())
   ticketId    String @map("ticket_id")
@@ -136,8 +144,8 @@ model Ticket {
   requesterId String @map("requester_id")
   requester   User   @relation("TicketRequester", fields: [requesterId], references: [id])
 
-
-  status String @default("OPEN") @map("status") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  status Status @default(OPEN) @map("status")
+  // OPEN, IN_PROGRESS, RESOLVED, CLOSED
 
   assignedToId String? @map("assigned_to_id")
   assignedTo   User?   @relation("TicketAssignedTo", fields: [assignedToId], references: [id])
@@ -149,8 +157,22 @@ model Ticket {
   priority   Priority @default(MEDIUM)
   isArchived Boolean  @default(false)
 
+  images TicketImage[] // One-to-many relation: one ticket has many images
+
   // audits Audit[]
 }
+
+model TicketImage {
+  id       String @id @default(cuid())
+  url      String
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+
+
 
 // ======================
 // Audit model

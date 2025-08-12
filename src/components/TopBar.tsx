@@ -43,7 +43,7 @@ export default function TopBar() {
                             e.stopPropagation();
                             setOpenSidebar(!openSidebar);
                         }}
-                        className="flex items-center justify-center w-10 h-10 text-gray-500 border-gray-200 rounded-lg z-[99999] hover:bg-gray-100 lg:h-11 lg:w-11 lg:border"
+                        className="flex items-center justify-center w-10 h-10 text-gray-500 border-gray-200 rounded-lg  hover:bg-gray-100 lg:h-11 lg:w-11 lg:border"
                         aria-label="Toggle Sidebar"
                     >
                         <Bars3Icon className="w-6 h-6 lg:block" />

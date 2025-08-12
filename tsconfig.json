@@ -28,6 +28,6 @@
   "**/*.tsx",
   ".next/types/**/*.ts",
   "src/types/next-auth.d.ts"
-],
+, "prisma/seed.js"],
   "exclude": ["node_modules"]
 }

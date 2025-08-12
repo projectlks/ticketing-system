@@ -4,7 +4,6 @@ import Header from "@/components/Header";
 import { useEffect, useState } from "react";
 import Portal from "@/components/Portal";
 import Form from "./Form";
-
 import TableBody from "@/components/TableBody";
 import DotMenu from "@/components/DotMenu";
 import TableHead from "@/components/TableHead";
@@ -17,21 +16,20 @@ import { Ticket } from "@prisma/client";
 import { deleteTicket, getAllTickets } from "./action";
 
 export type TicketWithRelations = Ticket & {
-    creator?: {
-        name: string | null;
-        email: string | null;
-    } | null;
-    updater?: {
-        name: string | null;
-        email: string | null;
-    } | null;
-    assignedTickets?: {
+    assignedTo: {
         id: string;
-        title: string;
-        status: string;
-        priority: string;
-    }[] | null;
-};
+        name: string;
+        email: string;
+    } | null;
+
+    requester: {
+        id: string;
+        name: string;
+        email: string;
+    } | null;
+}
+
+
 
 export default function Page() {
 
@@ -115,6 +113,52 @@ export default function Page() {
         setShowForm(true);
     };
 
+
+
+
+
+
+    type StatusType = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+
+    const statusColors: Record<StatusType | "DEFAULT", { bg: string; borderAndText: string }> = {
+        OPEN: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
+        IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
+        RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
+        CLOSED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
+        DEFAULT: { bg: "bg-gray-500", borderAndText: "border-red-500 text-red-500" },
+    };
+
+    function getStatusColor(
+        status: string,
+        type: "bg" | "borderAndText" = "bg"
+    ): string {
+        const key = status as StatusType;
+        return statusColors[key]?.[type] ?? statusColors.DEFAULT[type];
+    }
+
+
+
+    type PriorityType = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
+    const priorityColors: Record<PriorityType | "DEFAULT", { bg: string; borderAndText: string }> = {
+        LOW: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
+        MEDIUM: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
+        HIGH: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
+        URGENT: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
+        DEFAULT: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
+    };
+
+    function getPriorityColor(priority: string, type: "bg" | "borderAndText" = "bg"): string {
+        if (priority in priorityColors) {
+            return priorityColors[priority as keyof typeof priorityColors][type];
+        }
+        return priorityColors.DEFAULT[type];
+    }
+
+
+
+
+
     return (
         <>
             {isFetching && <Loading />}
@@ -135,11 +179,13 @@ export default function Page() {
                                     <thead>
                                         <tr className="border-b border-gray-100">
                                             <TableHead data="No." />
+                                            <TableHead data="Ticket ID" />
                                             <TableHead data="Title" />
+                                            <TableHead data="Description" />
                                             <TableHead data="Status" />
                                             <TableHead data="Priority" />
                                             <TableHead data="Created At" />
-                                            <TableHead data="Updated At" />
+                                            <TableHead data="Requester" />
                                             <TableHead data="Assigned To" />
                                             <TableHead data="Actions" />
                                         </tr>
@@ -151,27 +197,68 @@ export default function Page() {
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
+                                                <TableBody data={ticket.ticketId} />
                                                 <TableBody data={ticket.title} />
-                                                <TableBody data={ticket.status} />
-                                                <TableBody data={ticket.priority} />
+                                                <TableBody data={ticket.description} />
+                                                {/* <TableBody data={ticket.status} /> */}
+                                                <td className="px-5  py-4 sm:px-6">
+
+
+                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(ticket.status, "borderAndText")} space-x-2  border-[1px]`}>
+
+
+                                                        <span className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}>
+
+                                                        </span>
+                                                        <p className=" text-xs truncate">
+                                                            {ticket.status}
+                                                        </p>
+                                                    </div>
+                                                </td>
+
+
+                                                {/* <TableBody data={ticket.priority} /> */}
+
+                                                <td className="px-5  py-4 sm:px-6">
+
+
+                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority, "borderAndText")} space-x-2  border-[1px]`}>
+
+
+                                                        <span className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority)}`}>
+
+                                                        </span>
+                                                        <p className=" text-xs truncate">
+                                                            {ticket.priority}
+                                                        </p>
+                                                    </div>
+                                                </td>
                                                 <TableBody
                                                     data={new Date(ticket.createdAt).toLocaleString("en-US", {
                                                         timeZone: "Asia/Yangon",
                                                     })}
                                                 />
-                                                <TableBody
-                                                    data={new Date(ticket.updatedAt).toLocaleString("en-US", {
-                                                        timeZone: "Asia/Yangon",
-                                                    })}
-                                                />
-                                                {/* <td className="px-5 py-4 sm:px-6">
+
+
+                                                <td className="px-5 py-4 sm:px-6">
+                                                    <p className="text-gray-500 truncate">
+                                                        {ticket.requester ? ticket.requester.name || "-" : "-"}
+                                                    </p>
+                                                    <p className="text-gray-500 text-xs truncate">
+                                                        {ticket.requester ? ticket.requester.email || "-" : "-"}
+                                                    </p>
+                                                </td>
+
+                                                <td className="px-5 py-4 sm:px-6">
                                                     <p className="text-gray-500 truncate">
                                                         {ticket.assignedTo ? ticket.assignedTo.name || "-" : "-"}
                                                     </p>
                                                     <p className="text-gray-500 text-xs truncate">
                                                         {ticket.assignedTo ? ticket.assignedTo.email || "-" : "-"}
                                                     </p>
-                                                </td> */}
+                                                </td>
+
+
 
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu
