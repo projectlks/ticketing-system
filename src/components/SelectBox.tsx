@@ -1,3 +1,5 @@
+"use client"
+
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import React, { useRef } from 'react';
 
@@ -54,7 +56,7 @@ export default function SelectBox({
                     className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none
           ${error ? 'border-red-600' : 'border-gray-300'}`}
                 >
-                    <option value="" disabled>{placeholder}</option>
+                    <option value="" defaultChecked disabled>{placeholder}</option>
                     {options.map((option) => (
                         <option key={option.id} value={option.id}>
                             {showEmail && option.email ? `${option.name} (${option.email})` : option.name}

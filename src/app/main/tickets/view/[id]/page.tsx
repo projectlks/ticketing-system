@@ -7,6 +7,7 @@
 import TicketView from './TicketView';
 import { getTicketDetail, getTicketAuditLogs } from '../../action';
 import BackBtn from '@/components/BackBtn';
+import { getUserIdsandEmail } from '@/libs/action';
 
 
 interface PageProps {
@@ -21,6 +22,8 @@ export default async function DepartmentPage({ params }: PageProps) {
   const audit = await getTicketAuditLogs(params.id);
 
   const ticket = await getTicketDetail(params.id);
+
+  const user = await getUserIdsandEmail()
 
   if (!ticket) {
     return <p className="p-6 text-center text-red-500">Department not found.</p>;
@@ -42,7 +45,7 @@ export default async function DepartmentPage({ params }: PageProps) {
       </header>
 
 
-      <TicketView ticket={ticket} auditLog={audit} />
+      <TicketView ticket={ticket} auditLog={audit} users={user} />
 
     </div>
   );

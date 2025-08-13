@@ -125,66 +125,6 @@ export default function TicketForm({
 
 
 
-    // const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    //     e.preventDefault();
-
-    //     if (!validate()) return;
-
-    //     setLoading(true);
-
-
-
-
-
-    //     try {
-
-    //         const resss = await uploadImages(images)
-
-    //         console.log(resss, 'images uploaded');
-
-
-    //         const formData = new FormData();
-    //         Object.entries(form).forEach(([key, value]) => {
-    //             formData.append(key, value);
-    //         });
-
-
-    //         const imgsLinks = await uploadImages(images)
-
-    //         console.log(imgsLinks, 'images uploaded');
-
-
-    //         if (updateID) {
-    //             const { success, data } = await updateTicket(formData, updateID);
-    //             if (success) {
-    //                 setTickets((prev) => prev.map((t) => (t.id === updateID ? data : t)));
-    //                 Swal.fire('Success', 'Ticket updated successfully!', 'success');
-    //             }
-    //         } else {
-    //             const { success, data } = await createTicket(formData);
-    //             if (success) {
-    //                 setTickets((prev) => [data, ...prev]);
-    //                 Swal.fire('Success', 'Ticket created successfully!', 'success');
-    //             }
-    //         }
-    //         setShowForm(false);
-    //     } catch (error) {
-    //         const message = error instanceof Error ? error.message : 'Something went wrong.';
-    //         setErrors((prev) => ({ ...prev, response: message }));
-    //         Swal.fire({
-    //             title: 'Error',
-    //             text: message,
-    //             icon: 'error',
-    //             confirmButtonColor: '#ef4444',
-    //             customClass: {
-    //                 popup: 'rounded-lg p-6',
-    //                 confirmButton: 'bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600',
-    //             },
-    //         });
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
 
 
 

@@ -9,11 +9,14 @@ import DotMenu from "@/components/DotMenu";
 import TableHead from "@/components/TableHead";
 import Swal from "sweetalert2";
 import Button from "@/components/Button";
-import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
+import {
+    ArrowLongRightIcon, ArrowLongLeftIcon, AdjustmentsVerticalIcon
+} from "@heroicons/react/24/outline";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
 import { Ticket } from "@prisma/client";
 import { deleteTicket, getAllTickets } from "./action";
+import MultiFilter from "./multiFilter";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: {
@@ -43,33 +46,59 @@ export default function Page() {
     const take = 10;
     const [updateID, setUpdateID] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
+    const [filters, setFilters] = useState<{ key: string; value: string }[]>([]);
+
 
     const router = useRouter();
 
-    const fetchTickets = async (currentPage: number) => {
-        try {
-            const { data, total } = await getAllTickets(currentPage, searchQuery);
-            const totalPages = Math.ceil(total / take);
+    // const fetchTickets = async (currentPage: number) => {
+    //     try {
+    //         // filters: { key: string; value: string }[]
+    //         const prismaFilters: Record<string, string> = {};
+    //         filters.forEach(f => {
+    //             prismaFilters[f.key] = f.value;
+    //         });
 
-            if (currentPage > totalPages && totalPages > 0) {
-                setPage(totalPages);
-                return;
-            } else {
-                setTickets(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch tickets:", error);
-        }
-    };
+    //         alert(prismaFilters)
+
+    //         const { data, total } = await getAllTickets(currentPage, searchQuery, prismaFilters);
+    //         const totalPages = Math.ceil(total / take);
+
+    //         if (currentPage > totalPages && totalPages > 0) {
+    //             setPage(totalPages);
+    //             return;
+    //         } else {
+    //             setTickets(data);
+    //         }
+    //     } catch (error) {
+    //         console.error("Failed to fetch tickets:", error);
+    //     }
+    // };
+
+    // useEffect(() => {
+    //     setIsFetching(true);
+    //     const delayDebounce = setTimeout(() => {
+    //         fetchTickets(page).finally(() => setIsFetching(false));
+    //     }, 300);
+
+    //     return () => clearTimeout(delayDebounce);
+    // }, [searchQuery, page, filters]);
+
 
     useEffect(() => {
         setIsFetching(true);
-        const delayDebounce = setTimeout(() => {
+        const timeout = setTimeout(() => {
             fetchTickets(page).finally(() => setIsFetching(false));
         }, 300);
 
-        return () => clearTimeout(delayDebounce);
-    }, [searchQuery, page]);
+        return () => clearTimeout(timeout);
+    }, [searchQuery, page, filters]);
+
+    // call fetchTickets
+    const fetchTickets = async (currentPage: number) => {
+        const { data, total } = await getAllTickets(currentPage, searchQuery, filters);
+        setTickets(data);
+    };
 
     useEffect(() => {
         setPage(1);
@@ -165,11 +194,14 @@ export default function Page() {
             <div className="w-full min-h-full bg-white pb-10 rounded-lg">
                 <Header
                     title="Tickets"
-                    placeholder="Search by title or status"
+                    placeholder="Search by title or description"
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
-                />
+                >
+
+                    <MultiFilter filters={filters} setFilters={setFilters} />
+                </Header>
 
                 <div className="p-5">
                     {tickets.length > 0 ? (
@@ -194,7 +226,8 @@ export default function Page() {
                                         {tickets.map((ticket, index) => (
                                             <tr
                                                 key={ticket.id}
-                                                className="border-b border-gray-100 hover:bg-gray-50"
+                                                className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
+                                                    }`}
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={ticket.ticketId} />

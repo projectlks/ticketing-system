@@ -1,7 +1,12 @@
 import AuditLogList from "@/components/AuditLogList";
-import { Audit } from "@prisma/client";
+import { Audit, Comment } from "@prisma/client";
 import ViewContext from "@/components/ViewContext";
 import Image from "next/image";
+import AssignBox from "./AssignBox";
+import CommentBox from "./CommentBox";
+import { getCommentWithTicketId } from "../../action";
+// import { useState } from "react";
+// import SelectBox from "@/components/SelectBox";
 
 export type TicketWithRelations = {
     id: string;
@@ -12,6 +17,9 @@ export type TicketWithRelations = {
     priority: string;
     createdAt: Date;
     updatedAt: Date;
+    assignedToId?: string | null;
+
+
 
     category: {
         id: string;
@@ -45,13 +53,34 @@ export type TicketViewProps = {
     ticket: TicketWithRelations;
     auditLog?: Audit[];
     title?: string;
+    users: {
+        id: string;
+        email: string;
+        name: string;
+    }[]
 };
 
-export function TicketView({
+
+// Define a CommentWithRelations type
+export type CommentWithRelations = Comment & {
+    commenter?: {
+        id: string | null
+        name: string | null;
+        email: string | null;
+    } | null;
+}
+
+export async function TicketView({
     ticket,
     auditLog,
     title = "View Ticket",
+    users
 }: TicketViewProps) {
+
+    const commets: CommentWithRelations[] = await getCommentWithTicketId(ticket.id)
+
+
+
     return (
         <section className="grid gap-6 md:grid-cols-3" aria-label="Ticket details">
             {/* Left side: Ticket details */}
@@ -80,7 +109,14 @@ export function TicketView({
                             <ViewContext label="Category" value={ticket.category?.name || "-"} />
                             <ViewContext label="Department" value={ticket.department?.name || "-"} />
                             <ViewContext label="Requester" value={ticket.requester?.name || "-"} />
-                            <ViewContext label="Assigned To" value={ticket.assignedTo?.name || "-"} />
+
+                            {/* Assign User Select Box */}
+
+
+
+                            <AssignBox users={users} ticket={{ id: ticket.id, assignedToId: ticket.assignedToId || "", assignedTo: ticket.assignedTo }} />
+
+
 
                             {/* Display ticket images URLs */}
                             <div className="col-span-2">
@@ -107,6 +143,13 @@ export function TicketView({
 
                                 </div>
                             </div>
+
+                            <div className="border-t col-span-2 my-[50px] border-gray-200" />
+
+
+                            {/* comment  */}
+
+                            <CommentBox ticketId={ticket.id} commets={commets} />
                         </dl>
                     </div>
                 </div>

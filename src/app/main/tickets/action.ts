@@ -1,28 +1,31 @@
 "use server";
 
 import { prisma } from "@/libs/prisma";
-import z from "zod";
+import z, { boolean } from "zod";
 import { getCurrentUserId } from "@/libs/action";
 import { AuditChange } from "@/libs/action";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import { Prisma } from "@prisma/client";
 import { TicketWithRelations } from "./page";
+import { CommentWithRelations } from "./view/[id]/TicketView";
 
 
-// Validation schema for ticket creation
 const TicketSchema = z.object({
-  title: z.string().min(1),
-  description: z.string(),
+  title: z.string().min(1, "Title cannot be empty"),
+  description: z.string().min(1, "Title cannot be empty"),
   categoryId: z.string(),
   departmentId: z.string(),
   assignedToId: z.string().nullable().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
-  //  images: z.array(z.string()).optional()
-
+  // images: z.array(z.string()).optional()
 });
 
-
+const CommentSchema = z.object({
+  content: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  ticketId: z.string()
+});
 
 
 async function generateTicketId(): Promise<string> {
@@ -201,17 +204,88 @@ export async function getTicket(id: string) {
 
 // Get All Tickets (with pagination and optional search/filter)
 
+// export async function getAllTickets(
+//   page = 1,
+//   searchQuery = "",
+//   filters: Record<string, unknown> = {}
+// ) {
+//   const take = 10;
+//   const skip = (page - 1) * take;
+//   const trimmedQuery = searchQuery.trim();
+
+//   const where = {
+//     ...filters,
+//     ...(trimmedQuery && {
+//       OR: [
+//         { title: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+//         { description: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+//       ],
+//     }),
+//   };
+
+//   const total = await prisma.ticket.count({ where });
+
+//   const data = await prisma.ticket.findMany({
+//     where,
+//     skip,
+//     take,
+//     orderBy: { createdAt: "desc" },
+//     include: {
+//       category: true,
+//       department: true,
+//       requester: { select: { id: true, name: true, email: true } },
+//       assignedTo: { select: { id: true, name: true, email: true } },
+//     },
+//   });
+
+//   return { data, total };
+// }
+
+
+
+// import { Prisma } from "@prisma/client";
+// import prisma from "@/libs/prisma"; // မင်း prisma import path အရ adjust လုပ်ပါ
 export async function getAllTickets(
   page = 1,
   searchQuery = "",
-  filters: Record<string, unknown> = {}
+  filters: { key: string; value: string }[] = []
 ) {
   const take = 10;
   const skip = (page - 1) * take;
   const trimmedQuery = searchQuery.trim();
 
-  const where = {
-    ...filters,
+  const prismaFilters: Prisma.TicketWhereInput = {};
+
+  // Map filters to Prisma enum / query
+  filters.forEach(f => {
+    if (f.key === "Assigned") {
+      if (f.value === "Assigned") prismaFilters.assignedToId = { not: null };
+      else if (f.value === "Not Assigned") prismaFilters.assignedToId = null;
+    }
+
+    if (f.key === "Status") {
+      const statusMap: Record<string, Prisma.TicketWhereInput["status"]> = {
+        Open: "OPEN",
+        "In Progress": "IN_PROGRESS",
+        Resolved: "RESOLVED",
+        Closed: "CLOSED",
+      };
+      prismaFilters.status = statusMap[f.value] || undefined;
+    }
+
+    if (f.key === "Priority") {
+      const priorityMap: Record<string, Prisma.TicketWhereInput["priority"]> = {
+        Low: "LOW",
+        Medium: "MEDIUM",
+        High: "HIGH",
+        Urgent: "URGENT",
+      };
+      prismaFilters.priority = priorityMap[f.value] || undefined;
+    }
+  });
+
+  const where: Prisma.TicketWhereInput = {
+    ...prismaFilters,
     ...(trimmedQuery && {
       OR: [
         { title: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
@@ -221,7 +295,6 @@ export async function getAllTickets(
   };
 
   const total = await prisma.ticket.count({ where });
-
   const data = await prisma.ticket.findMany({
     where,
     skip,
@@ -237,7 +310,6 @@ export async function getAllTickets(
 
   return { data, total };
 }
-
 export async function updateTicket(
   formData: FormData,
   id: string
@@ -388,6 +460,7 @@ export async function getTicketDetail(id: string) {
       priority: true,
       createdAt: true,
       updatedAt: true,
+      assignedToId: true,
       category: {
         select: { id: true, name: true },
       },
@@ -407,3 +480,129 @@ export async function getTicketDetail(id: string) {
   });
 }
 
+
+
+export async function ticketAssign(
+  ticketId: string,
+  assignedToId: string | null
+): Promise<void> {
+  const updaterId = await getCurrentUserId();
+  if (!updaterId) throw new Error("No logged-in user found");
+
+  // ရှိပြီးသား ticket data ကို ရှာမယ်
+  const currentTicket = await prisma.ticket.findUniqueOrThrow({
+    where: { id: ticketId },
+    include: {
+      assignedTo: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  // ပြောင်းလဲမှုရှိမရှိ စစ်မယ်
+  const oldAssignedTo = currentTicket.assignedTo;
+  if (oldAssignedTo?.id === assignedToId) {
+    // ပြောင်းမှုမရှိရင် update လုပ်စရာမလို
+    return;
+  }
+
+  // Update ticket assignedToId
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: {
+      assignedToId: assignedToId,
+      status: "IN_PROGRESS",  // assign လုပ်တိုင်း status ပြောင်းချင်ရင်
+      updatedAt: new Date(),
+    },
+  });
+
+  // အသစ် assignedTo info ရှာဖို့
+  const newAssignedTo = assignedToId
+    ? await prisma.user.findUnique({
+      where: { id: assignedToId },
+      select: { name: true, email: true },
+    })
+    : null;
+
+  // oldValue, newValue ကို "name (email)" format ပြောင်း
+  const oldValue = oldAssignedTo
+    ? `${oldAssignedTo.name} ( ${oldAssignedTo.email} )`
+    : "";
+
+  const newValue = newAssignedTo
+    ? `${newAssignedTo.name} (${newAssignedTo.email} )`
+    : "";
+
+  // Audit log ထည့်မယ်
+  await prisma.audit.create({
+    data: {
+      entity: "Ticket",
+      entityId: ticketId,
+      field: "assignedToId",
+      oldValue,
+      newValue,
+      userId: updaterId,
+      changedAt: new Date(),
+    },
+  });
+}
+
+
+export async function uploadComment(input: {
+  content?: string | null;
+  imageUrl?: string | null;
+  ticketId: string;
+}): Promise<{ success: boolean; data: CommentWithRelations }> {
+  const { content, imageUrl, ticketId } = CommentSchema.parse(input);
+
+  const currentUserId = await getCurrentUserId();
+  if (!currentUserId) throw new Error("No logged-in user found");
+
+  const comment = await prisma.comment.create({
+    data: {
+      content: content || "",
+      imageUrl: imageUrl || "",
+      ticketId,
+      commenterId: currentUserId,
+    },
+    include: {
+      commenter: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  return {
+    success: true,
+    data: comment,
+  };
+}
+
+
+export async function getCommentWithTicketId(ticketId: string): Promise<CommentWithRelations[]> {
+  return await prisma.comment.findMany({
+    where: {
+      ticketId
+    },
+    include: {
+      commenter: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+}

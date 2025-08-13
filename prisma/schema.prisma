@@ -68,7 +68,8 @@ model User {
   assignedTickets Ticket[] @relation("TicketAssignedTo")
 
   // Audits
-  audits Audit[]
+  audits   Audit[]
+  comments Comment[]
 }
 
 // ======================
@@ -157,7 +158,8 @@ model Ticket {
   priority   Priority @default(MEDIUM)
   isArchived Boolean  @default(false)
 
-  images TicketImage[] // One-to-many relation: one ticket has many images
+  images   TicketImage[] // One-to-many relation: one ticket has many images
+  comments Comment[]
 
   // audits Audit[]
 }
@@ -171,8 +173,19 @@ model TicketImage {
   createdAt DateTime @default(now())
 }
 
+model Comment {
+  id       String  @id @default(cuid())
+  content  String
+  imageUrl String? // new field for single image URL
 
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
 
+  commenterId String
+  commenter   User   @relation(fields: [commenterId], references: [id])
+
+  createdAt DateTime @default(now())
+}
 
 // ======================
 // Audit model
