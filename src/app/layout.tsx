@@ -18,10 +18,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// const session = await getServerSession(authOptions);
+
+
+
 // Update title and description here:
 export const metadata: Metadata = {
-  title: "Ticketing System",
-description: "A modern and efficient ticketing system for managing customer support and service requests."
+  description: "A modern and efficient ticketing system for managing customer support and service requests."
 };
 
 export default async function RootLayout({
@@ -36,6 +39,11 @@ export default async function RootLayout({
       <head>
         {/* Add favicon link here */}
         <link rel="icon" href="/logo.png" />
+        <title>
+          {session?.user?.name
+            ? `${session.user.name} – Ticketing System`
+            : "Ticketing System"}
+        </title>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <Providers session={session}>

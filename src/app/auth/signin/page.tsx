@@ -90,7 +90,7 @@ export default function SignInPage() {
         response: res.error,
       }));
     } else if (res?.ok) {
-      window.location.href = "/";
+      window.location.href = "/main/dashboard";
     }
   };
 

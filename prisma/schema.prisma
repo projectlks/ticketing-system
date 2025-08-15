@@ -64,8 +64,9 @@ model User {
   updatedCategories Category[] @relation("CategoryUpdaters")
 
   // Tickets
-  requestTickets  Ticket[] @relation("TicketRequester")
-  assignedTickets Ticket[] @relation("TicketAssignedTo")
+  requestTickets  Ticket[]      @relation("TicketRequester")
+  assignedTickets Ticket[]      @relation("TicketAssignedTo")
+  likes           CommentLike[] // references User via CommentLike
 
   // Audits
   audits   Audit[]
@@ -175,16 +176,39 @@ model TicketImage {
 
 model Comment {
   id       String  @id @default(cuid())
-  content  String
-  imageUrl String? // new field for single image URL
+  content  String?
+  imageUrl String? // optional single image URL
 
+  // Ticket relationship
   ticketId String
   ticket   Ticket @relation(fields: [ticketId], references: [id])
 
+  // User relationship
   commenterId String
   commenter   User   @relation(fields: [commenterId], references: [id])
 
+  // Self-referential relationship
+  parentId String?
+  parent   Comment?  @relation("CommentToSubComments", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentToSubComments")
+
+  // Likes
+  likes CommentLike[] // list of users who liked this comment
+
   createdAt DateTime @default(now())
+}
+
+model CommentLike {
+  id        String  @id @default(cuid())
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId]) // prevent duplicate likes
 }
 
 // ======================
@@ -207,6 +231,8 @@ model Audit {
   user   User   @relation(fields: [userId], references: [id])
 
   // Optional linking if you want to query by relation directly
+
+    actionType String? @ignore
 
   @@index([entity, entityId])
   @@index([changedAt])

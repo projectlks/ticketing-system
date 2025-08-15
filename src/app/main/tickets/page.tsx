@@ -50,39 +50,36 @@ export default function Page() {
 
 
     const router = useRouter();
+    // call fetchTickets
+    const fetchTickets = async (currentPage: number) => {
+        // const { data, total } = await getAllTickets(currentPage, searchQuery, filters);
+        // setTickets(data);
 
-    // const fetchTickets = async (currentPage: number) => {
-    //     try {
-    //         // filters: { key: string; value: string }[]
-    //         const prismaFilters: Record<string, string> = {};
-    //         filters.forEach(f => {
-    //             prismaFilters[f.key] = f.value;
-    //         });
 
-    //         alert(prismaFilters)
+        try {
+            // filters: { key: string; value: string }[]
+            const prismaFilters: Record<string, string> = {};
+            filters.forEach(f => {
+                prismaFilters[f.key] = f.value;
+            });
 
-    //         const { data, total } = await getAllTickets(currentPage, searchQuery, prismaFilters);
-    //         const totalPages = Math.ceil(total / take);
 
-    //         if (currentPage > totalPages && totalPages > 0) {
-    //             setPage(totalPages);
-    //             return;
-    //         } else {
-    //             setTickets(data);
-    //         }
-    //     } catch (error) {
-    //         console.error("Failed to fetch tickets:", error);
-    //     }
-    // };
+            const { data, total } = await getAllTickets(currentPage, searchQuery, filters);
+            const totalPages = Math.ceil(total / take);
 
-    // useEffect(() => {
-    //     setIsFetching(true);
-    //     const delayDebounce = setTimeout(() => {
-    //         fetchTickets(page).finally(() => setIsFetching(false));
-    //     }, 300);
+            if (currentPage > totalPages && totalPages > 0) {
+                setPage(totalPages);
+                return;
+            } else {
+                setTickets(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch tickets:", error);
+        }
+    };
 
-    //     return () => clearTimeout(delayDebounce);
-    // }, [searchQuery, page, filters]);
+
+
 
 
     useEffect(() => {
@@ -94,11 +91,7 @@ export default function Page() {
         return () => clearTimeout(timeout);
     }, [searchQuery, page, filters]);
 
-    // call fetchTickets
-    const fetchTickets = async (currentPage: number) => {
-        const { data, total } = await getAllTickets(currentPage, searchQuery, filters);
-        setTickets(data);
-    };
+
 
     useEffect(() => {
         setPage(1);

@@ -5,6 +5,7 @@ import Image from "next/image";
 import AssignBox from "./AssignBox";
 import CommentBox from "./CommentBox";
 import { getCommentWithTicketId } from "../../action";
+import StatusBox from "./StatusBox";
 // import { useState } from "react";
 // import SelectBox from "@/components/SelectBox";
 
@@ -49,6 +50,13 @@ export type TicketWithRelations = {
     }[];
 };
 
+enum Status {
+  OPEN = "OPEN",
+  IN_PROGRESS = "IN_PROGRESS",
+  RESOLVED = "RESOLVED",
+  CLOSED = "CLOSED",
+}
+
 export type TicketViewProps = {
     ticket: TicketWithRelations;
     auditLog?: Audit[];
@@ -64,11 +72,20 @@ export type TicketViewProps = {
 // Define a CommentWithRelations type
 export type CommentWithRelations = Comment & {
     commenter?: {
-        id: string | null
+        id: string | null;
         name: string | null;
         email: string | null;
     } | null;
-}
+    replies?: CommentWithRelations[]; // ✅ required replies array
+    likes?: {
+        id: string; // CommentLike id
+        user: {
+            id: string;
+            name: string;
+            email: string;
+        };
+    }[];
+};
 
 export async function TicketView({
     ticket,
@@ -115,6 +132,9 @@ export async function TicketView({
 
 
                             <AssignBox users={users} ticket={{ id: ticket.id, assignedToId: ticket.assignedToId || "", assignedTo: ticket.assignedTo }} />
+                            {/* <AssignBox users={users} ticket={{ id: ticket.id, assignedToId: ticket.assignedToId || "", assignedTo: ticket.assignedTo }} /> */}
+
+                            <StatusBox ticket={{ id: ticket.id, status: ticket.status as Status }} />
 
 
 
@@ -149,7 +169,7 @@ export async function TicketView({
 
                             {/* comment  */}
 
-                            <CommentBox ticketId={ticket.id} commets={commets} />
+                            <CommentBox ticketId={ticket.id} comments={commets} />
                         </dl>
                     </div>
                 </div>

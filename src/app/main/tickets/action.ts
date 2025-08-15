@@ -1,14 +1,14 @@
 "use server";
 
 import { prisma } from "@/libs/prisma";
-import z, { boolean } from "zod";
+import z from "zod";
 import { getCurrentUserId } from "@/libs/action";
 import { AuditChange } from "@/libs/action";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-import { Prisma } from "@prisma/client";
+import { Prisma, Status } from "@prisma/client";
 import { TicketWithRelations } from "./page";
-import { CommentWithRelations } from "./view/[id]/TicketView";
+// import { CommentWithRelations } from "./view/[id]/TicketView";
 
 
 const TicketSchema = z.object({
@@ -24,7 +24,8 @@ const TicketSchema = z.object({
 const CommentSchema = z.object({
   content: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
-  ticketId: z.string()
+  ticketId: z.string(),
+  parentId: z.string().nullable().optional(),
 });
 
 
@@ -141,7 +142,6 @@ export async function createTicket(
   const images = imagesJson ? JSON.parse(imagesJson) as string[] : [];
 
 
-  console.log(images)
 
   const data = TicketSchema.parse(raw);
   const currentUserId = await getCurrentUserId();
@@ -556,8 +556,9 @@ export async function uploadComment(input: {
   content?: string | null;
   imageUrl?: string | null;
   ticketId: string;
+  parentId?: string
 }): Promise<{ success: boolean; data: CommentWithRelations }> {
-  const { content, imageUrl, ticketId } = CommentSchema.parse(input);
+  const { content, imageUrl, ticketId, parentId } = CommentSchema.parse(input);
 
   const currentUserId = await getCurrentUserId();
   if (!currentUserId) throw new Error("No logged-in user found");
@@ -567,6 +568,7 @@ export async function uploadComment(input: {
       content: content || "",
       imageUrl: imageUrl || "",
       ticketId,
+      parentId: parentId || null,
       commenterId: currentUserId,
     },
     include: {
@@ -577,6 +579,8 @@ export async function uploadComment(input: {
           email: true,
         },
       },
+
+      replies: true
     },
   });
 
@@ -587,22 +591,108 @@ export async function uploadComment(input: {
 }
 
 
+
+type CommentWithRelations = Prisma.CommentGetPayload<{
+  include: {
+    commenter: {
+      select: { id: true; name: true; email: true }
+    };
+    replies: true;
+  };
+}>;
+
 export async function getCommentWithTicketId(ticketId: string): Promise<CommentWithRelations[]> {
-  return await prisma.comment.findMany({
-    where: {
-      ticketId
-    },
+  // Get all comments for the ticket including commenter and likes
+  const allComments = await prisma.comment.findMany({
+    where: { ticketId },
     include: {
-      commenter: {
-        select: {
-          id: true,
-          name: true,
-          email: true
-        }
-      }
+      commenter: { select: { id: true, name: true, email: true } },
+      likes: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: 'desc' } }, // include users who liked
     },
-    orderBy: {
-      createdAt: 'desc'
-    }
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Group comments by parentId for quick lookup
+  const commentMap = new Map<string | null, CommentWithRelations[]>();
+  for (const comment of allComments) {
+    const parentList = commentMap.get(comment.parentId ?? null) || [];
+    parentList.push({ ...comment, replies: [] });
+    commentMap.set(comment.parentId ?? null, parentList);
+  }
+
+  // Recursively attach replies
+  function attachReplies(parentId: string | null): CommentWithRelations[] {
+    return (commentMap.get(parentId) || []).map(comment => ({
+      ...comment,
+      replies: attachReplies(comment.id),
+    }));
+  }
+
+  // Return only top-level comments with nested replies
+  return attachReplies(null);
+}
+
+// action.ts
+interface LikeCommentParams {
+  commentId: string;
+}
+
+export async function likeComment({ commentId }: LikeCommentParams) {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error("User not authenticated");
+
+  const existingLike = await prisma.commentLike.findUnique({
+    where: { commentId_userId: { commentId, userId } },
+  });
+
+  if (existingLike) {
+    await prisma.commentLike.delete({ where: { commentId_userId: { commentId, userId } } });
+    return { liked: false };
+  } else {
+    await prisma.commentLike.create({ data: { commentId, userId } });
+    return { liked: true };
+  }
+}
+
+export async function ticketStatusUpdate(
+  ticketId: string,
+  newStatus: Status // ✅ type-safe enum
+): Promise<void> {
+  const updaterId = await getCurrentUserId();
+  if (!updaterId) throw new Error("No logged-in user found");
+
+  // Fetch current ticket
+  const currentTicket = await prisma.ticket.findUniqueOrThrow({
+    where: { id: ticketId },
+    select: {
+      status: true,
+    },
+  });
+
+  // Skip if no change
+  if (currentTicket.status === newStatus) {
+    return;
+  }
+
+  // Update status
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: {
+      status: newStatus, // ✅ enum-safe
+      updatedAt: new Date(),
+    },
+  });
+
+  // Audit log
+  await prisma.audit.create({
+    data: {
+      entity: "Ticket",
+      entityId: ticketId,
+      field: "status",
+      oldValue: currentTicket.status,
+      newValue: newStatus,
+      userId: updaterId,
+      changedAt: new Date(),
+    },
   });
 }

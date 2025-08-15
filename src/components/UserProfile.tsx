@@ -5,6 +5,9 @@ import {
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { signOut, useSession } from "next-auth/react";
+import Avatar from "./Avatar";
+import { useRouter } from "next/navigation";
+// import { useRouter } from "next/";
 
 type Props = {
   menuToggle: boolean;
@@ -31,11 +34,12 @@ export default function UserMenu({ menuToggle }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const router = useRouter()
+
   return (
     <div
-      className={`${
-        menuToggle ? "flex" : "hidden"
-      } flex-col lg:flex lg:flex-row items-center justify-between w-full gap-4 px-5 py-4 shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+      className={`${menuToggle ? "flex" : "hidden"
+        } flex-col lg:flex lg:flex-row items-center justify-between w-full gap-4 px-5 py-4 shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
     >
       {/* User profile dropdown */}
       <div className="relative" ref={dropdownRef}>
@@ -46,9 +50,11 @@ export default function UserMenu({ menuToggle }: Props) {
           aria-expanded={dropdownOpen}
         >
           <span className="relative mr-3 overflow-hidden rounded-full h-11 w-11">
-            <span className="flex items-center justify-center w-full h-full text-2xl text-gray-100 bg-blue-500 rounded-full z-10 select-none">
+            {/* <span className="flex items-center justify-center w-full h-full text-2xl text-gray-100 bg-blue-500 rounded-full z-10 select-none">
               {session?.user?.name?.charAt(0).toUpperCase() ?? "?"}
-            </span>
+            </span> */}
+
+            <Avatar name={session?.user?.name} />
           </span>
           <span className="hidden mr-1 text-sm font-medium sm:inline-block">
             {session?.user?.name ?? "Loading..."}
@@ -78,7 +84,7 @@ export default function UserMenu({ menuToggle }: Props) {
               </li>
             </ul>
             <button
-              onClick={() => signOut()}
+              onClick={() =>{ signOut(); router.push("/auth/signin")}}
               className="flex items-center justify-center w-full gap-3 px-3 py-2 mt-3 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100"
             >
               <ArrowRightOnRectangleIcon className="w-6 h-6" />

@@ -78,7 +78,7 @@ export default function AssignBox({ users, ticket }: Props) {
             />
 
             <SelectBox
-                label="Change Assigned User"
+                label=" Assigned User"
                 id="assignUser"
                 name="assignUser"
                 value={ticketData.assignedTo?.id || ""}

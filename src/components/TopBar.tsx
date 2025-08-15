@@ -1,32 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Bars3Icon, SpeakerWaveIcon } from "@heroicons/react/24/outline"; // or /solid
 import UserProfile from "./UserProfile";
 import Image from "next/image";
-import { signOut } from "next-auth/react";
 
-export default function TopBar() {
-    const [openSidebar, setOpenSidebar] = useState(false);
+interface Props {
+    openSidebar: boolean
+    setOpenSidebar: Dispatch<SetStateAction<boolean>>
+
+
+}
+
+export default function TopBar({ setOpenSidebar, openSidebar }: Props) {
     const [menuToggle, setMenuToggle] = useState(false);
 
-    // Example user data, replace with your actual auth/user data
-    const user = {
-        name: "Mg Linkar",
-        email: "mg.linkar@example.com",
-    };
 
-    // Define logout function
-    const handleLogout = () => {
-        console.log("User logged out");
 
-        signOut();
-    };
 
-    // Define edit profile function
-    const handleEditProfile = () => {
-        console.log("Edit profile clicked");
-    };
+
 
     return (
         <div className="w-full h-19 bg-white border-b border-gray-200 ">
@@ -71,9 +63,6 @@ export default function TopBar() {
 
                 {/* right side user menu */}
                 <UserProfile
-                    // user={user}
-                    // onLogout={handleLogout}
-                    // onEditProfile={handleEditProfile}
                     menuToggle={menuToggle}
                     setMenuToggle={setMenuToggle}
                 />
