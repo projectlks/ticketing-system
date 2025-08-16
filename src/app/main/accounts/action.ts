@@ -219,7 +219,7 @@ export async function updateAccount(
 export async function getAccountAuditLogs(accountId: string) {
   return await prisma.audit.findMany({
     where: {
-      entity: "Account",
+      entity: "User",
       entityId: accountId,
     },
     orderBy: { changedAt: "desc" },

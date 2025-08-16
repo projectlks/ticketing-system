@@ -42,7 +42,10 @@ export default function DotMenu({ isBottom, option, onDelete, onEdit, onView }: 
     return (
         <div className="relative" ref={menuRef}>
             <button
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={(e) =>{ 
+                          e.stopPropagation(); // 🚫 prevent parent click
+                    
+                    setShowMenu(!showMenu)}}
                 className="w-8 h-8 rounded-full cursor-pointer hover:bg-gray-100 flex justify-center items-center"
             >
                 <EllipsisVerticalIcon className="w-6 h-6" />

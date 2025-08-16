@@ -130,7 +130,7 @@ export default function Page() {
     return (
         <>
 
-        {isFetching && <Loading />}
+            {isFetching && <Loading />}
             <div className="max-w-full min-h-full  overflow-x-auto bg-white pb-10 rounded-lg">
                 <Header
                     title="Departments"
@@ -155,15 +155,17 @@ export default function Page() {
                                             <TableHead data="Department Contact" />
                                             {/* <TableHead data="Email" /> */}
                                             {/* <TableHead data="Role" /> */}
-                                            <TableHead data="Created At" />
-                                            <TableHead data="Updated At" />
-                                            <TableHead data="Creator" />
+                                            {/* <TableHead data="Created At" />
+                                            <TableHead data="Updated At" /> */}
+                                            {/* <TableHead data="Creator" /> */}
                                             <TableHead data="Actions" />
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {departments.map((department, index) => (
                                             <tr
+
+                                                onClick={() => router.push(`/main/department/view/${department.id}`)}
                                                 key={department.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
@@ -188,11 +190,11 @@ export default function Page() {
 
                                                 {/* <TableBody data={department.email} /> */}
                                                 {/* <TableBody data={department.role} /> */}
-                                                <TableBody data={new Date(department.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-                                                <TableBody data={new Date(department.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+                                                {/* <TableBody data={new Date(department.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+                                                <TableBody data={new Date(department.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} /> */}
 
 
-                                                <td className={`px-5 py-4 sm:px-6 `}>
+                                                {/* <td className={`px-5 py-4 sm:px-6 `}>
                                                     <p className="text-gray-500 truncate">{department.creator
                                                         ? department.creator.name || "-"
                                                         : "-"}</p>
@@ -202,7 +204,7 @@ export default function Page() {
                                                             ? department.creator.email || "-"
                                                             : "-"}
                                                     </p>
-                                                </td>
+                                                </td> */}
 
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu isBottom={index >= departments.length - 2} option={{
@@ -211,7 +213,7 @@ export default function Page() {
                                                         delete: true
                                                     }} onDelete={() => handleDelete(department.id)}
                                                         onEdit={() => handleEdit(department.id)}
-                                                     onView={() => router.push(`/main/department/view/${department.id}`)} 
+                                                        onView={() => router.push(`/main/department/view/${department.id}`)}
                                                     />
                                                 </td>
                                             </tr>
@@ -219,36 +221,36 @@ export default function Page() {
                                     </tbody>
                                 </table>
 
-                                
+
                             </div>
 
 
                             <div className="flex justify-end gap-2 mt-4">
 
-                                    <Button
-                                        click={() => setPage((prev) => Math.max(1, prev - 1))}
-                                        disabled={page === 1 || isFetching}
-                                        buttonLabel={
-                                            <>
-                                                <ArrowLongLeftIcon className="w-4 h-4" />
-                                                <span> Prev</span>
-                                            </>
-                                        }
-                                    />
+                                <Button
+                                    click={() => setPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={page === 1 || isFetching}
+                                    buttonLabel={
+                                        <>
+                                            <ArrowLongLeftIcon className="w-4 h-4" />
+                                            <span> Prev</span>
+                                        </>
+                                    }
+                                />
 
-                                    <Button
-                                        click={() => setPage((prev) => prev + 1)}
-                                        disabled={departments.length < take || isFetching}
-                                        buttonLabel={
-                                            <>
-                                                <span>Next </span>
-                                                <ArrowLongRightIcon className="w-4 h-4" />
-                                            </>
-                                        }
-                                    />
+                                <Button
+                                    click={() => setPage((prev) => prev + 1)}
+                                    disabled={departments.length < take || isFetching}
+                                    buttonLabel={
+                                        <>
+                                            <span>Next </span>
+                                            <ArrowLongRightIcon className="w-4 h-4" />
+                                        </>
+                                    }
+                                />
 
 
-                                </div>
+                            </div>
                         </div>
                     ) : (
                         <p className="text-base text-center text-gray-500">No Department found.</p>

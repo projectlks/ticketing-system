@@ -206,7 +206,7 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
     return (
         <>
 
-        {loading && <Loading />}
+            {loading && <Loading />}
             <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
                 <div
                     className="w-full h-full fixed top-0 left-0 bg-black opacity-20"
