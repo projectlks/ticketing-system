@@ -9,7 +9,8 @@ interface HeaderProps {
     click: () => void
     setSearchQuery: ((query: string) => void)
     searchQuery: string
-    children ?: ReactNode
+    children?: ReactNode
+    showNewBtn?: boolean
 }
 
 export default function Header({
@@ -19,16 +20,17 @@ export default function Header({
     click,
     setSearchQuery,
     searchQuery = '',
-
-    children
-
+    children,
+    showNewBtn = false
 }: HeaderProps) {
 
     return (
         <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 justify-between items-center">
             <div className="flex items-center space-x-2">
 
-                <Button click={click} buttonLabel={buttonLabel} />
+                {
+                    showNewBtn && (<Button click={click} buttonLabel={buttonLabel} />)
+                }
                 <h1 className="text-sm text-gray-800">{title}</h1>
             </div>
 

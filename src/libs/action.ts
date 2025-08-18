@@ -1,65 +1,64 @@
-"use server"
+"use server";
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 import { prisma } from "./prisma";
 
+// ====================
+// User Utilities
+// ====================
 
-// ===== Utils =====
-export async function getCurrentUserId() {
-  const data = await getServerSession(authOptions);
-  return data?.user?.id;
+export async function getCurrentUserId(): Promise<string | undefined> {
+  const session = await getServerSession(authOptions);
+  return session?.user?.id;
 }
-
 
 export async function getUserIdsandEmail(): Promise<{ id: string; email: string; name: string }[]> {
-  const users = await prisma.user.findMany({
+  return prisma.user.findMany({
     where: { isArchived: false },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-    },
+    select: { id: true, email: true, name: true },
+    orderBy: { createdAt: "desc" }, // sorted by newest first
   });
-
-  return users;
 }
 
+// ====================
+// Department Utilities
+// ====================
 
-export async function getAllDepartmentIdAndName() {
-  const departments = await prisma.department.findMany({
+export async function getAllDepartmentIdAndName(): Promise<{ id: string; name: string }[]> {
+  return prisma.department.findMany({
     where: { isArchived: false },
-    select: {
-      id: true,
-      name: true,
-    },
+    select: { id: true, name: true },
+    orderBy: { createdAt: "desc" }, // newest first
   });
-
-  return departments;
 }
 
-export async function getJobPositionsByDepartment(departmentId: string) {
+export async function getJobPositionsByDepartment(departmentId: string): Promise<{ id: string; title: string }[]> {
   return prisma.jobPosition.findMany({
     where: { departmentId },
     select: { id: true, title: true },
+    orderBy: { createdAt: "desc" }, // newest first
   });
 }
 
-export async function getAllCategoryIdAndName() {
-  const categories = await prisma.category.findMany({
-    where: { isArchived: false },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
+// ====================
+// Category Utilities
+// ====================
 
-  return categories;
-};
+export async function getAllCategoryIdAndName(): Promise<{ id: string; name: string }[]> {
+  return prisma.category.findMany({
+    where: { isArchived: false },
+    select: { id: true, name: true },
+    orderBy: { createdAt: "desc" }, // newest first
+  });
+}
+
+// ====================
+// Audit Utilities
+// ====================
 
 export interface AuditChange {
   field: string;
   oldValue: string;
   newValue: string;
 }
-

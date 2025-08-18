@@ -115,8 +115,8 @@ export default function Page() {
 
 
 
-    const handleEdit = (id: string) => {
-
+    const handleEdit = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+        e.stopPropagation()
         setUpdateID(id);
         setShowForm(true);
     }
@@ -152,6 +152,7 @@ export default function Page() {
                                     <tbody>
                                         {categories.map((category, index) => (
                                             <tr
+                                                onClick={() => router.push(`/main/category/view/${category.id}`)}
                                                 key={category.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
@@ -179,9 +180,10 @@ export default function Page() {
                                                     <DotMenu isBottom={index >= categories.length - 2} option={{
                                                         view: true,
                                                         edit: true,
-                                                        delete: true
-                                                    }} onDelete={() => handleDelete(category.id)}
-                                                        onEdit={() => handleEdit(category.id)}
+                                                        // delete: true
+                                                    }}
+                                                        //  onDelete={() => handleDelete(category.id)}
+                                                        onEdit={(e) => handleEdit(e, category.id)}
                                                         onView={() => router.push(`/main/category/view/${category.id}`)}
                                                     />
                                                 </td>

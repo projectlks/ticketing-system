@@ -130,7 +130,8 @@ export default function Page() {
         }
     };
 
-    const handleEdit = (id: string) => {
+    const handleEdit = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+        e.stopPropagation()
         setUpdateID(id);
         setShowForm(true);
     };
@@ -218,6 +219,7 @@ export default function Page() {
                                     <tbody>
                                         {tickets.map((ticket, index) => (
                                             <tr
+                                             onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                 key={ticket.id}
                                                 className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
                                                     }`}
@@ -292,10 +294,10 @@ export default function Page() {
                                                         option={{
                                                             view: true,
                                                             edit: true,
-                                                            delete: true,
+                                                            // delete: true,
                                                         }}
-                                                        onDelete={() => handleDelete(ticket.id)}
-                                                        onEdit={() => handleEdit(ticket.id)}
+                                                        // onDelete={() => handleDelete(ticket.id)}
+                                                        onEdit={(e) => handleEdit(e, ticket.id)}
                                                         onView={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                     />
                                                 </td>

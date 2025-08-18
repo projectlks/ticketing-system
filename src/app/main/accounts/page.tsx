@@ -14,6 +14,7 @@ import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export type UserWithRelations = User & {
     creator?: {
@@ -32,7 +33,7 @@ export type UserWithRelations = User & {
     }[] | null;
     jobPosition?: {
         id: string;
-        title: string;
+        name: string;
     } | null;
 };
 
@@ -122,12 +123,14 @@ export default function Page() {
 
 
 
-    const handleEdit = (id: string) => {
-
+    const handleEdit = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+        e.stopPropagation();
         setUpdateID(id);
         setShowForm(true);
     }
 
+
+    const { data } = useSession()
     return (
         <>
 
@@ -139,6 +142,7 @@ export default function Page() {
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
+                    showNewBtn={["ADMIN", "SUPER_ADMIN"].includes(data?.user.role ?? "")}
                 />
 
                 <div className="p-5">
@@ -161,7 +165,7 @@ export default function Page() {
                                     <tbody>
                                         {accounts.map((account, index) => (
                                             <tr
-                                                // onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
+                                                onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
                                                 key={account.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
@@ -189,9 +193,11 @@ export default function Page() {
                                                     <DotMenu isBottom={index >= accounts.length - 2} option={{
                                                         view: true,
                                                         edit: true,
-                                                        delete: true
-                                                    }} onDelete={() => handleDelete(account.id)}
-                                                        onEdit={() => handleEdit(account.id)}
+                                                        // delete: true
+                                                    }}
+
+                                                        // onDelete={() => handleDelete(account.id)}
+                                                        onEdit={(e) => handleEdit(e, account.id)}
                                                         onView={() => router.push(`/main/accounts/view/${account.id}`)}
                                                     />
                                                 </td>

@@ -132,7 +132,7 @@ model Department {
 // ======================
 model JobPosition {
   id    String @id @default(uuid()) // UUID for uniqueness
-  title String
+  name String
 
   // Department relation
   department   Department @relation(fields: [departmentId], references: [id])

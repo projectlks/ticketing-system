@@ -14,8 +14,9 @@ const FormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["REQUESTER", "AGENT", "ADMIN", "SUPER_ADMIN"]),
-  department: z.string()
+  role: z.enum(["REQUESTER", "AGENT", "ADMIN"]),
+  department: z.string(),
+  jobPositionId: z.string()
 });
 
 const FormSchemaUpdate = FormSchema.omit({
@@ -33,10 +34,12 @@ export async function createAccount(
     email: formData.get("email"),
     password: formData.get("password"),
     role: formData.get("role"),
-    department: formData.get("department")
+    department: formData.get("department"),
+   jobPositionId: formData.get("job_position")?.toString() || undefined
+
   };
 
-  const { name, email, password, role, department } = FormSchema.parse(raw);
+  const { name, email, password, role, department, jobPositionId } = FormSchema.parse(raw);
 
   // Check if user exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -56,6 +59,7 @@ export async function createAccount(
       password: hashedPassword,
       role,
       department,
+      jobPositionId: jobPositionId,
       creatorId: creatorId,
     },
   });
@@ -152,7 +156,9 @@ export async function updateAccount(
     name: formData.get("name"),
     email: formData.get("email"),
     role: formData.get("role"),
-    department: formData.get("department")
+    department: formData.get("department"),
+    jobPositionId: formData.get("job_position")?.toString() || undefined
+
   };
 
   const updateData = FormSchemaUpdate.parse(updateDataRaw);

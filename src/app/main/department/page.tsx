@@ -14,6 +14,7 @@ import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
+import { useSession } from "next-auth/react";
 
 export type DepartmentWithRelations = Department & {
     creator?: {
@@ -129,11 +130,15 @@ export default function Page() {
 
 
 
-    const handleEdit = (id: string) => {
-
+    const handleEdit = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+        e.stopPropagation();
         setUpdateID(id);
         setShowForm(true);
     }
+
+    const { data: session } = useSession(); // ✅ Correct way for client components
+
+    // alert(session)
 
     return (
         <>
@@ -146,6 +151,7 @@ export default function Page() {
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
+                    showNewBtn={session?.user.role === "SUPER_ADMIN"}
                 />
 
                 <div className="p-5">
@@ -161,11 +167,7 @@ export default function Page() {
                                             <TableHead data="Manager" />
                                             <TableHead data="Department Email" />
                                             <TableHead data="Department Contact" />
-                                            {/* <TableHead data="Email" /> */}
-                                            {/* <TableHead data="Role" /> */}
-                                            {/* <TableHead data="Created At" />
-                                            <TableHead data="Updated At" /> */}
-                                            {/* <TableHead data="Creator" /> */}
+
                                             <TableHead data="Actions" />
                                         </tr>
                                     </thead>
@@ -173,7 +175,7 @@ export default function Page() {
                                         {departments.map((department, index) => (
                                             <tr
 
-                                                // onClick={() => router.push(`/main/department/view/${department.id}`)}
+                                                onClick={() => router.push(`/main/department/view/${department.id}`)}
                                                 key={department.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
@@ -196,32 +198,15 @@ export default function Page() {
                                                 <TableBody data={department.email || "-"} />
                                                 <TableBody data={department.contact || "-"} />
 
-                                                {/* <TableBody data={department.email} /> */}
-                                                {/* <TableBody data={department.role} /> */}
-                                                {/* <TableBody data={new Date(department.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-                                                <TableBody data={new Date(department.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} /> */}
-
-
-                                                {/* <td className={`px-5 py-4 sm:px-6 `}>
-                                                    <p className="text-gray-500 truncate">{department.creator
-                                                        ? department.creator.name || "-"
-                                                        : "-"}</p>
-
-                                                    <p className="text-gray-500 text-xs truncate">
-                                                        {department.creator
-                                                            ? department.creator.email || "-"
-                                                            : "-"}
-                                                    </p>
-                                                </td> */}
-
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu isBottom={index >= departments.length - 2} option={{
                                                         view: true,
                                                         edit: true,
-                                                        delete: true
-                                                    }} onDelete={() => handleDelete(department.id)}
-                                                        onEdit={() => handleEdit(department.id)}
-                                                        onView={() => router.push(`/main/department/view/${department.id}`)}
+                                                        delete: false
+                                                    }}
+                                                        //  onDelete={() => handleDelete(department.id)}
+                                                        onEdit={(e) => handleEdit(e, department.id)}
+                                                        onView={() => { router.push(`/main/department/view/${department.id}`) }}
                                                     />
                                                 </td>
                                             </tr>
@@ -269,9 +254,6 @@ export default function Page() {
             {showForm && (
                 <Portal>
                     <Form setShowForm={setShowForm} setDepartments={setDepartments} updateID={updateID} setUpdateID={setUpdateID} />
-
-
-
                 </Portal>
             )}
         </>

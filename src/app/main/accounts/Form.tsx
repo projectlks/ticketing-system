@@ -1,11 +1,7 @@
 'use client';
 
 import Input from '@/components/Input';
-import {
-    EyeIcon,
-    ChevronDownIcon,
-    EyeSlashIcon,
-} from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { createAccount, getAccount, updateAccount } from './action';
 import Swal from 'sweetalert2';
@@ -15,9 +11,9 @@ import { getAllDepartmentIdAndName, getJobPositionsByDepartment } from '@/libs/a
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
-    setAccounts: Dispatch<SetStateAction<UserWithRelations[]>>
+    setAccounts: Dispatch<SetStateAction<UserWithRelations[]>>;
     updateID: string | null;
-    setUpdateID: Dispatch<SetStateAction<string | null>>
+    setUpdateID: Dispatch<SetStateAction<string | null>>;
 }
 
 export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }: AccountCreateFormProps) {
@@ -25,8 +21,8 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         name: '',
         email: '',
         password: '',
-        department: "",
-        job_position: "",
+        department: '',
+        job_position: '',
         response: null as string | null,
     });
 
@@ -36,38 +32,37 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         name: '',
         email: '',
         password: '',
-        department: "",
-        job_position: "",
+        department: '',
+        job_position: '',
         role: 'REQUESTER',
     };
 
     const [form, setForm] = useState(emptyForm);
     const [initialForm, setInitialForm] = useState(emptyForm);
-    // 🔹 Department state
-    const [departments, setDepartments] = useState<{ id: string, name: string }[]>([]);
+
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
     const [jobPositions, setJobPositions] = useState<{ id: string; title: string }[]>([]);
 
+    const selectRef = useRef<HTMLSelectElement>(null);
 
+    // Load account data if updating
     useEffect(() => {
         if (updateID) {
             const getData = async () => {
                 const accountData = await getAccount(updateID);
 
-                // Normalize properties to string with defaults:
                 const normalizedData = {
                     name: accountData?.name ?? '',
                     email: accountData?.email ?? '',
-                    password: '', // password usually not sent back
+                    password: '',
                     role: accountData?.role ?? 'REQUESTER',
-                    department: accountData?.department ?? "",
-                    job_position: accountData?.jobPosition?.title ?? "",
-
+                    department: accountData?.department ?? '',
+                    job_position: accountData?.jobPosition?.id ?? '', // ✅ Use ID
                 };
 
                 setForm(normalizedData);
                 setInitialForm(normalizedData);
             };
-
             getData();
         } else {
             setForm(emptyForm);
@@ -75,8 +70,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         }
     }, [updateID]);
 
-
-    // 🔹 Fetch departments
+    // Fetch departments
     useEffect(() => {
         const getDepartment = async () => {
             const data = await getAllDepartmentIdAndName();
@@ -85,42 +79,40 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         getDepartment();
     }, []);
 
-
-    // fetch job positions when department changes
+    // Fetch job positions based on selected department
     useEffect(() => {
         if (form.department) {
             const getJobs = async () => {
                 const data = await getJobPositionsByDepartment(form.department);
                 setJobPositions(data);
+
+                // If current job_position not in new department, reset it
+                if (!data.some((job) => job.id === form.job_position)) {
+                    setForm((prev) => ({ ...prev, job_position: '' }));
+                }
             };
             getJobs();
         } else {
             setJobPositions([]);
+            setForm((prev) => ({ ...prev, job_position: '' }));
         }
     }, [form.department]);
 
 
-    const selectRef = useRef<HTMLSelectElement>(null);
-
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+
+
         setForm((prev) => ({ ...prev, [name]: value }));
         setErrors((prev) => ({ ...prev, [name]: '', response: null }));
     };
 
-    // Check if form has unsaved changes
-    const isFormDirty = () => {
-        return (
-            form.name.trim() !== initialForm.name.trim() ||
-            form.email.trim() !== initialForm.email.trim() ||
-            form.password.trim() !== initialForm.password.trim() ||
-            form.role !== initialForm.role
-        );
-    };
+    const isFormDirty = () =>
+        form.name.trim() !== initialForm.name.trim() ||
+        form.email.trim() !== initialForm.email.trim() ||
+        form.password.trim() !== initialForm.password.trim() ||
+        form.role !== initialForm.role;
 
-    // Confirm cancel if form dirty
     const handleCancel = () => {
         if (isFormDirty()) {
             Swal.fire({
@@ -140,21 +132,20 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
             }).then((result) => {
                 if (result.isConfirmed) {
                     setShowForm(false);
-                    setUpdateID(null)
+                    setUpdateID(null);
                 }
             });
         } else {
             setShowForm(false);
-            setUpdateID(null)
+            setUpdateID(null);
         }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        setErrors({ name: '', email: '', password: '', department: "", job_position: "", response: null });
+        setErrors({ name: '', email: '', password: '', department: '', job_position: '', response: null });
 
-        // Validate form
         let isValid = true;
         const newErrors = { name: '', email: '', password: '', department: '', job_position: '', response: null };
 
@@ -169,7 +160,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
             newErrors.email = 'Please enter a valid email.';
             isValid = false;
         }
-        if (!updateID) { // only validate password on create
+        if (!updateID) {
             if (!form.password.trim()) {
                 newErrors.password = 'Password is required.';
                 isValid = false;
@@ -178,9 +169,12 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                 isValid = false;
             }
         }
-        // 🔹 Department required check
         if (!form.department.trim()) {
             newErrors.department = 'Department is required.';
+            isValid = false;
+        }
+        if (!String(form.job_position).trim()) {
+            newErrors.job_position = 'Job Position is required.';
             isValid = false;
         }
 
@@ -195,10 +189,8 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         try {
             if (updateID) {
                 const { success, data } = await updateAccount(formData, updateID);
-
                 if (success) {
                     setAccounts((prev) => prev.map((item) => (item.id === updateID ? data : item)));
-
                     Swal.fire({
                         title: 'Success',
                         text: 'Account updated successfully!',
@@ -211,11 +203,9 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                     });
                 }
             } else {
-                const { success, data }: { success: boolean, data: UserWithRelations } = await createAccount(formData);
-
+                const { success, data }: { success: boolean; data: UserWithRelations } = await createAccount(formData);
                 if (success) {
-                    setAccounts((prev: UserWithRelations[]) => [data, ...prev]);
-
+                    setAccounts((prev) => [data, ...prev]);
                     Swal.fire({
                         title: 'Success',
                         text: 'Account created successfully!',
@@ -251,7 +241,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
 
     return (
         <>
-
             {loading && <Loading />}
             <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
                 <div
@@ -268,18 +257,15 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                 >
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
                         <h1 className="text-2xl text-gray-800 font-bold mb-3 mt-5">
-                            {updateID ? "Update Account" : "Add New Account"}
+                            {updateID ? 'Update Account' : 'Add New Account'}
                         </h1>
                         <p className="text-gray-500 text-sm font-semibold">
-                            Effortlessly manage your accounts: {updateID ? "update existing details" : "add a new account"}.
+                            Effortlessly manage your accounts: {updateID ? 'update existing details' : 'add a new account'}.
                         </p>
                     </div>
 
                     <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
-                        {/* Name */}
-
                         <Input
-
                             id="name"
                             name="name"
                             placeholder="Enter user name"
@@ -288,20 +274,11 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                             error={!!errors.name}
                             aria-invalid={!!errors.name}
                             aria-describedby={errors.name ? 'name-error' : undefined}
-                            label='User name'
-                            require={true}
+                            label="User name"
+                            require
                             disable={loading}
                             errorMessage={errors.name}
-
-
-
-
                         />
-
-
-
-
-                        {/* Email */}
 
                         <Input
                             id="email"
@@ -313,38 +290,29 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                             error={!!errors.email}
                             aria-invalid={!!errors.email}
                             aria-describedby={errors.email ? 'email-error' : undefined}
-                            label='Email'
-                            require={true}
+                            label="Email"
+                            require
                             disable={loading}
                             errorMessage={errors.email}
-
                         />
 
-
-                        {/* Password */}
-                        {
-                            !updateID && (
-
-                                <Input
-                                    id="password"
-                                    name="password"
-                                    type={'password'}
-                                    placeholder="Enter your password"
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    error={!!errors.password}
-                                    aria-invalid={!!errors.password}
-                                    aria-describedby={errors.password ? 'password-error' : undefined}
-                                    label='Password'
-                                    require={true}
-                                    disable={loading}
-                                    errorMessage={errors.password}
-
-
-                                />
-
-                            )
-                        }
+                        {!updateID && (
+                            <Input
+                                id="password"
+                                name="password"
+                                type="password"
+                                placeholder="Enter your password"
+                                value={form.password}
+                                onChange={handleChange}
+                                error={!!errors.password}
+                                aria-invalid={!!errors.password}
+                                aria-describedby={errors.password ? 'password-error' : undefined}
+                                label="Password"
+                                require
+                                disable={loading}
+                                errorMessage={errors.password}
+                            />
+                        )}
 
                         {/* Role */}
                         <div>
@@ -363,7 +331,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     <option value="REQUESTER">Requester</option>
                                     <option value="AGENT">Agent</option>
                                     <option value="ADMIN">Admin</option>
-                                    {/* <option value="SUPER_ADMIN">Super Admin</option> */}
                                 </select>
                                 <span
                                     onClick={() => {
@@ -377,8 +344,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                             </div>
                         </div>
 
-
-                        {/* department */}
+                        {/* Department */}
                         <div>
                             <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1.5">
                                 Department <span className="text-red-500">*</span>
@@ -391,41 +357,39 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     onChange={handleChange}
                                     className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                 >
-                                    <option value="" disabled>Select Department</option>
+                                    <option value="" disabled>
+                                        Select Department
+                                    </option>
                                     {departments.map((dept) => (
-                                        <option key={dept.id} value={dept.id}>
+                                        <option key={dept.id} value={dept.id} >
                                             {dept.name}
                                         </option>
                                     ))}
                                 </select>
-                                <span
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
-                                >
+                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
                                     <ChevronDownIcon className="w-5 h-5" />
                                 </span>
                             </div>
-                            {errors.department && (
-                                <p className="text-red-500 text-xs mt-1">{errors.department}</p>
-                            )}
+                            {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
                         </div>
 
-                        {/* // job position select */}
+                        {/* Job Position */}
                         <div>
                             <label htmlFor="jobPosition" className="block text-sm font-medium text-gray-700 mb-1.5">
                                 Job Position
                             </label>
                             <div className="relative">
                                 <select
-                                    id="jobPosition"
-                                    name="jobPosition"
-                                    value={form.job_position || ""}
+                                    id="job_position"
+                                    name="job_position"
+                                    value={form.job_position}
                                     onChange={handleChange}
                                     className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
-                                    disabled={!form.department} // disable until department is selected
+                                    disabled={!form.department}
                                 >
-                                    <option value="">Select Job Position</option>
+                                    <option value="" disabled>Select Job Position</option>
                                     {jobPositions.map((job) => (
-                                        <option key={job.id} value={job.id}>
+                                        <option key={job.id} value={job.id}  >
                                             {job.title}
                                         </option>
                                     ))}
@@ -434,17 +398,16 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     <ChevronDownIcon className="w-5 h-5" />
                                 </span>
                             </div>
+                            {errors.job_position && <p className="text-red-500 text-xs mt-1">{errors.job_position}</p>}
+
                         </div>
 
-
-                        {/* General Error */}
                         {errors.response && (
                             <p className="text-red-500 text-xs mb-4" role="alert" aria-live="assertive">
                                 {errors.response}
                             </p>
                         )}
 
-                        {/* Buttons */}
                         <div className="mt-6 flex justify-end space-x-3">
                             <button
                                 type="button"
@@ -456,18 +419,10 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading
-                                    ? 'bg-indigo-300 cursor-not-allowed'
-                                    : 'bg-indigo-500 hover:bg-indigo-600'
+                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'
                                     }`}
                             >
-                                {loading
-                                    ? updateID
-                                        ? 'Updating...'
-                                        : 'Creating...'
-                                    : updateID
-                                        ? 'Update Account'
-                                        : 'Create Account'}
+                                {loading ? (updateID ? 'Updating...' : 'Creating...') : updateID ? 'Update Account' : 'Create Account'}
                             </button>
                         </div>
                     </section>
