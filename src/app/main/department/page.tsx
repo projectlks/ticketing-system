@@ -33,6 +33,14 @@ export type DepartmentWithRelations = Department & {
         title: string;
         status: string;
     }[] | null;
+    positions?: {
+        id: string;
+        title: string;
+        creator?: {
+            name: string | null;
+            email: string | null;
+        } | null;
+    }[] | null;
 };
 
 export default function Page() {
@@ -165,7 +173,7 @@ export default function Page() {
                                         {departments.map((department, index) => (
                                             <tr
 
-                                                onClick={() => router.push(`/main/department/view/${department.id}`)}
+                                                // onClick={() => router.push(`/main/department/view/${department.id}`)}
                                                 key={department.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
@@ -260,7 +268,7 @@ export default function Page() {
 
             {showForm && (
                 <Portal>
-                    <Form setShowForm={setShowForm} setDepartments={setDepartments} updateID={updateID} />
+                    <Form setShowForm={setShowForm} setDepartments={setDepartments} updateID={updateID} setUpdateID={setUpdateID} />
 
 
 

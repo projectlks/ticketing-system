@@ -17,11 +17,11 @@ export function AccountView({
 }: AccountViewProps) {
     return (
         <section
-            className="grid gap-6 md:grid-cols-2"
+            className="grid gap-6 md:grid-cols-3"
             aria-label="Account details"
         >
             {/* Card Container */}
-            <div className="h-fit md:sticky top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
+            <div className="h-fit md:sticky col-span-2 top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
                 {/* Card Header */}
                 {/* < className="pb-4 px-6 pt-6"> */}
                 <div className=" gap-2 pb-4 px-6 pt-6" >

@@ -38,6 +38,13 @@ export async function getAllDepartmentIdAndName() {
   return departments;
 }
 
+export async function getJobPositionsByDepartment(departmentId: string) {
+  return prisma.jobPosition.findMany({
+    where: { departmentId },
+    select: { id: true, title: true },
+  });
+}
+
 export async function getAllCategoryIdAndName() {
   const categories = await prisma.category.findMany({
     where: { isArchived: false },

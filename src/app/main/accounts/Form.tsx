@@ -11,44 +11,59 @@ import { createAccount, getAccount, updateAccount } from './action';
 import Swal from 'sweetalert2';
 import { UserWithRelations } from './page';
 import Loading from '@/components/Loading';
+import { getAllDepartmentIdAndName, getJobPositionsByDepartment } from '@/libs/action';
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
     setAccounts: Dispatch<SetStateAction<UserWithRelations[]>>
     updateID: string | null;
+    setUpdateID: Dispatch<SetStateAction<string | null>>
 }
 
-export default function Form({ setShowForm, setAccounts, updateID }: AccountCreateFormProps) {
+export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }: AccountCreateFormProps) {
     const [errors, setErrors] = useState({
         name: '',
         email: '',
         password: '',
+        department: "",
+        job_position: "",
         response: null as string | null,
     });
 
-    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const emptyForm = {
         name: '',
         email: '',
         password: '',
+        department: "",
+        job_position: "",
         role: 'REQUESTER',
     };
 
     const [form, setForm] = useState(emptyForm);
     const [initialForm, setInitialForm] = useState(emptyForm);
+    // 🔹 Department state
+    const [departments, setDepartments] = useState<{ id: string, name: string }[]>([]);
+    const [jobPositions, setJobPositions] = useState<{ id: string; title: string }[]>([]);
+
+
     useEffect(() => {
         if (updateID) {
             const getData = async () => {
                 const accountData = await getAccount(updateID);
+
                 // Normalize properties to string with defaults:
                 const normalizedData = {
                     name: accountData?.name ?? '',
                     email: accountData?.email ?? '',
                     password: '', // password usually not sent back
                     role: accountData?.role ?? 'REQUESTER',
+                    department: accountData?.department ?? "",
+                    job_position: accountData?.jobPosition?.title ?? "",
+
                 };
+
                 setForm(normalizedData);
                 setInitialForm(normalizedData);
             };
@@ -59,6 +74,30 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
             setInitialForm(emptyForm);
         }
     }, [updateID]);
+
+
+    // 🔹 Fetch departments
+    useEffect(() => {
+        const getDepartment = async () => {
+            const data = await getAllDepartmentIdAndName();
+            setDepartments(data);
+        };
+        getDepartment();
+    }, []);
+
+
+    // fetch job positions when department changes
+    useEffect(() => {
+        if (form.department) {
+            const getJobs = async () => {
+                const data = await getJobPositionsByDepartment(form.department);
+                setJobPositions(data);
+            };
+            getJobs();
+        } else {
+            setJobPositions([]);
+        }
+    }, [form.department]);
 
 
     const selectRef = useRef<HTMLSelectElement>(null);
@@ -101,21 +140,23 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
             }).then((result) => {
                 if (result.isConfirmed) {
                     setShowForm(false);
+                    setUpdateID(null)
                 }
             });
         } else {
             setShowForm(false);
+            setUpdateID(null)
         }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        setErrors({ name: '', email: '', password: '', response: null });
+        setErrors({ name: '', email: '', password: '', department: "", job_position: "", response: null });
 
         // Validate form
         let isValid = true;
-        const newErrors = { name: '', email: '', password: '', response: null };
+        const newErrors = { name: '', email: '', password: '', department: '', job_position: '', response: null };
 
         if (!form.name.trim()) {
             newErrors.name = 'Name is required.';
@@ -136,6 +177,11 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
                 newErrors.password = 'Password must be at least 8 characters.';
                 isValid = false;
             }
+        }
+        // 🔹 Department required check
+        if (!form.department.trim()) {
+            newErrors.department = 'Department is required.';
+            isValid = false;
         }
 
         if (!isValid) {
@@ -231,88 +277,72 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
 
                     <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
                         {/* Name */}
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                User name
-                            </label>
-                            <Input
-                                id="name"
-                                name="name"
-                                placeholder="Enter user name"
-                                value={form.name}
-                                onChange={handleChange}
-                                error={!!errors.name}
-                                aria-invalid={!!errors.name}
-                                aria-describedby={errors.name ? 'name-error' : undefined}
-                            />
-                            {errors.name && (
-                                <p id="name-error" className="text-red-600 text-sm mt-1" role="alert">
-                                    {errors.name}
-                                </p>
-                            )}
-                        </div>
+
+                        <Input
+
+                            id="name"
+                            name="name"
+                            placeholder="Enter user name"
+                            value={form.name}
+                            onChange={handleChange}
+                            error={!!errors.name}
+                            aria-invalid={!!errors.name}
+                            aria-describedby={errors.name ? 'name-error' : undefined}
+                            label='User name'
+                            require={true}
+                            disable={loading}
+                            errorMessage={errors.name}
+
+
+
+
+                        />
+
+
+
 
                         {/* Email */}
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Email
-                            </label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="Enter user email"
-                                value={form.email}
-                                onChange={handleChange}
-                                error={!!errors.email}
-                                aria-invalid={!!errors.email}
-                                aria-describedby={errors.email ? 'email-error' : undefined}
-                            />
-                            {errors.email && (
-                                <p id="email-error" className="text-red-600 text-sm mt-1" role="alert">
-                                    {errors.email}
-                                </p>
-                            )}
-                        </div>
+
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="Enter user email"
+                            value={form.email}
+                            onChange={handleChange}
+                            error={!!errors.email}
+                            aria-invalid={!!errors.email}
+                            aria-describedby={errors.email ? 'email-error' : undefined}
+                            label='Email'
+                            require={true}
+                            disable={loading}
+                            errorMessage={errors.email}
+
+                        />
+
 
                         {/* Password */}
                         {
                             !updateID && (
-                                <div>
-                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Password
-                                    </label>
-                                    <div className="relative">
-                                        <Input
-                                            id="password"
-                                            name="password"
-                                            type={showPassword ? 'text' : 'password'}
-                                            placeholder="Enter your password"
-                                            value={form.password}
-                                            onChange={handleChange}
-                                            error={!!errors.password}
-                                            aria-invalid={!!errors.password}
-                                            aria-describedby={errors.password ? 'password-error' : undefined}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500"
-                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                        >
-                                            {showPassword ? (
-                                                <EyeSlashIcon className="w-5 h-5" />
-                                            ) : (
-                                                <EyeIcon className="w-5 h-5" />
-                                            )}
-                                        </button>
-                                    </div>
-                                    {errors.password && (
-                                        <p id="password-error" className="text-red-600 text-sm mt-1" role="alert">
-                                            {errors.password}
-                                        </p>
-                                    )}
-                                </div>
+
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type={'password'}
+                                    placeholder="Enter your password"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    error={!!errors.password}
+                                    aria-invalid={!!errors.password}
+                                    aria-describedby={errors.password ? 'password-error' : undefined}
+                                    label='Password'
+                                    require={true}
+                                    disable={loading}
+                                    errorMessage={errors.password}
+
+
+                                />
+
                             )
                         }
 
@@ -346,6 +376,66 @@ export default function Form({ setShowForm, setAccounts, updateID }: AccountCrea
                                 </span>
                             </div>
                         </div>
+
+
+                        {/* department */}
+                        <div>
+                            <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Department <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <select
+                                    id="department"
+                                    name="department"
+                                    value={form.department}
+                                    onChange={handleChange}
+                                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
+                                >
+                                    <option value="" disabled>Select Department</option>
+                                    {departments.map((dept) => (
+                                        <option key={dept.id} value={dept.id}>
+                                            {dept.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span
+                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+                                >
+                                    <ChevronDownIcon className="w-5 h-5" />
+                                </span>
+                            </div>
+                            {errors.department && (
+                                <p className="text-red-500 text-xs mt-1">{errors.department}</p>
+                            )}
+                        </div>
+
+                        {/* // job position select */}
+                        <div>
+                            <label htmlFor="jobPosition" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Job Position
+                            </label>
+                            <div className="relative">
+                                <select
+                                    id="jobPosition"
+                                    name="jobPosition"
+                                    value={form.job_position || ""}
+                                    onChange={handleChange}
+                                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
+                                    disabled={!form.department} // disable until department is selected
+                                >
+                                    <option value="">Select Job Position</option>
+                                    {jobPositions.map((job) => (
+                                        <option key={job.id} value={job.id}>
+                                            {job.title}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                                    <ChevronDownIcon className="w-5 h-5" />
+                                </span>
+                            </div>
+                        </div>
+
 
                         {/* General Error */}
                         {errors.response && (

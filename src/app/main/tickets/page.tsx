@@ -337,7 +337,7 @@ export default function Page() {
 
             {showForm && (
                 <Portal>
-                    <Form setShowForm={setShowForm} setTickets={setTickets} updateID={updateID} />
+                    <Form setShowForm={setShowForm} setTickets={setTickets} updateID={updateID} setUpdateID={setUpdateID} />
                     <></>
                 </Portal>
             )}

@@ -30,6 +30,10 @@ export type UserWithRelations = User & {
         status: string;
         priority: string;
     }[] | null;
+    jobPosition?: {
+        id: string;
+        title: string;
+    } | null;
 };
 
 export default function Page() {
@@ -157,6 +161,7 @@ export default function Page() {
                                     <tbody>
                                         {accounts.map((account, index) => (
                                             <tr
+                                                // onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
                                                 key={account.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >
@@ -233,7 +238,7 @@ export default function Page() {
 
             {showForm && (
                 <Portal>
-                    <Form setShowForm={setShowForm} setAccounts={setAccounts} updateID={updateID} />
+                    <Form setShowForm={setShowForm} setAccounts={setAccounts} updateID={updateID} setUpdateID={setUpdateID} />
                 </Portal>
             )}
         </>

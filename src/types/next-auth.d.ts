@@ -1,30 +1,34 @@
+// types/next-auth.d.ts
 import NextAuth from "next-auth";
 
 declare module "next-auth" {
   interface Session {
     user: {
-      id: string; 
-      name: string;
-      email: string;
-      image?: string | null;
+      id: string;                // required to identify user
+      name: string | null;
+      email: string | null;
+      image?: string | null;     // NextAuth default avatar field
       role: string;
+      picture?: string | null;   // optional, custom profile URL
     };
   }
 
   interface User {
-    id: string;           // Also needed in User type, used by JWT and session
-    name: string;
-    email: string;
-    password?: string;    // Optional if present on your User model
+    id: string;
+    name: string | null;
+    email: string | null;
+    password?: string;          // optional, only for credentials login
     role: string;
+    profileUrl?: string | null; // optional, your stored avatar
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id: string;           // Carry it through JWT
-    name: string;
-    email: string;
+    id: string;
+    name: string | null;
+    email: string | null;
     role: string;
+    picture?: string | null;   // optional, carry profile URL through JWT
   }
 }

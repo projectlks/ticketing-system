@@ -26,9 +26,9 @@ const DepartmentFormSchemaUpdate = DepartmentFormSchema.partial().refine(
 // ===== Create Department =====
 
 export async function createDepartment(
-  formData: FormData
+  formData: FormData,
+  jobPositions: { title: string }[]
 ): Promise<{ success: boolean; data: DepartmentWithRelations }> {
-  // Extract raw values safely, default optional strings to empty string if null
   const raw = {
     name: formData.get('name'),
     description: formData.get('description') ?? '',
@@ -37,18 +37,13 @@ export async function createDepartment(
     managerId: formData.get('managerId'),
   };
 
-  // Validate required fields exist and parse with schema
-  // Note: If 'name' or 'managerId' is null, schema parse will throw
   const parsed = DepartmentFormSchema.parse(raw);
 
   const creatorId = await getCurrentUserId();
-  if (!creatorId) {
-    throw new Error('User must be logged in to create a department');
-  }
+  if (!creatorId) throw new Error('User must be logged in to create a department');
 
-
-  // Create department record in DB
-  const data = await prisma.department.create({
+  // Create department
+  const department = await prisma.department.create({
     data: {
       name: parsed.name,
       description: parsed.description,
@@ -60,11 +55,32 @@ export async function createDepartment(
     include: {
       creator: { select: { name: true, email: true } },
       manager: { select: { name: true, email: true } },
-      // Add other relations if needed
     },
   });
 
-  return { success: true, data };
+  // Create job positions
+  if (jobPositions.length > 0) {
+    const jobPositionsData = jobPositions.map((job) => ({
+      departmentId: department.id,
+      title: job.title,
+    }));
+
+    await prisma.jobPosition.createMany({ data: jobPositionsData });
+  }
+
+  // Return department including job positions
+  const dataWithJobs = await prisma.department.findUnique({
+    where: { id: department.id },
+    include: {
+      creator: { select: { name: true, email: true } },
+      manager: { select: { name: true, email: true } },
+      // jobPositions: true, // include newly added job positions
+    },
+  });
+
+  if (!dataWithJobs) throw new Error('Department not found after creation');
+
+  return { success: true, data: dataWithJobs };
 }
 
 
@@ -78,6 +94,9 @@ export async function getDepartment(id: string): Promise<DepartmentWithRelations
       manager: { select: { name: true, email: true } },
       tickets: { select: { id: true, title: true, status: true } },
       updater: { select: { name: true, email: true } },
+      positions: { select: { id: true, title: true } }, // ✅ Include Job Positions
+
+
     },
   });
 }
@@ -185,7 +204,8 @@ export async function deleteDepartment(id: string) {
 // ===== Update Department with Audit =====
 export async function updateDepartment(
   formData: FormData,
-  id: string
+  id: string,
+  jobPositions: { title: string }[]
 ): Promise<{ success: boolean; data: DepartmentWithRelations; changes: AuditChange[] }> {
   const updateDataRaw = {
     name: formData.get("name")?.toString() ?? "",
@@ -235,6 +255,29 @@ export async function updateDepartment(
         manager: { select: { name: true, email: true } },
       },
     });
+
+
+    // Fetch current job positions for this department
+    const currentPositions = await prisma.jobPosition.findMany({
+      where: { departmentId: id },
+    });
+
+    // Titles currently in DB
+    const currentTitles = currentPositions.map(p => p.title);
+    const uiTitles = jobPositions.map(j => j.title);
+
+
+    // 2️⃣ Add new positions from UI
+    const titlesToAdd = uiTitles.filter(title => !currentTitles.includes(title));
+    if (titlesToAdd.length > 0) {
+      await prisma.jobPosition.createMany({
+        data: titlesToAdd.map(title => ({
+          title,
+          departmentId: id,
+          creatorId: updaterId,
+        })),
+      });
+    }
 
     // Save audit logs (example: to Audit table)
     if (changes.length > 0) {

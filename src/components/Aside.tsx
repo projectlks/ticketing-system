@@ -3,6 +3,7 @@
 import { Dispatch, SetStateAction, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 import {
   Squares2X2Icon,
@@ -22,19 +23,19 @@ const navItems = [
         name: "Dashboard",
         href: "/main/dashboard",
         icon: Squares2X2Icon,
-        activeCheck: (route: string) => route === "main.dashboard",
+        activeCheck: (route: string) => route === "/main/dashboard",
       },
       {
         name: "Department",
         href: "/main/department",
         icon: BuildingStorefrontIcon,
-        activeCheck: (route: string) => route.startsWith("main.department"),
+        activeCheck: (route: string) => route.startsWith("/main/department"),
       },
       {
         name: "Tickets",
         href: "/main/tickets",
         icon: TicketIcon,
-        activeCheck: (route: string) => route.startsWith("main.tickets"),
+        activeCheck: (route: string) => route.startsWith("/main/tickets"),
         badge: (count: number) =>
           count > 0 && (
             <span
@@ -50,7 +51,7 @@ const navItems = [
         href: "/main/report",
         icon: ChartBarIcon,
         activeCheck: (route: string) =>
-          ["admin.report.tickets", "admin.report"].includes(route),
+          ["/main/report", "/main/report/tickets"].includes(route),
       },
     ],
   },
@@ -61,42 +62,48 @@ const navItems = [
         name: "Accounts",
         href: "/main/accounts",
         icon: UserGroupIcon,
-        activeCheck: (route: string) => route.startsWith("admin.agent"),
+        activeCheck: (route: string) => route.startsWith("/main/accounts"),
       },
       {
         name: "Category",
         href: "/main/category",
         icon: AdjustmentsHorizontalIcon,
-        activeCheck: (route: string) => route.startsWith("category"),
+        activeCheck: (route: string) => route.startsWith("/main/category"),
       },
     ],
   },
 ];
 
 interface Props {
-  openSidebar: boolean,
-  setOpenSidebar: Dispatch<SetStateAction<boolean>>
+  openSidebar: boolean;
+  setOpenSidebar: Dispatch<SetStateAction<boolean>>;
 }
 
-export default function Sidebar({
-  openSidebar,
-  setOpenSidebar
-
-
-}: Props) {
-  // const [openSidebar, setOpenSidebar] = useState(false);
+export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
   const [selectedDropdown, setSelectedDropdown] = useState("");
-  const [active, setActive] = useState("")
+  const pathname = usePathname();
 
   const toggleDropdown = (name: string) => {
     setSelectedDropdown(selectedDropdown === name ? "" : name);
+
+
   };
 
+  // :class="openSidebar ? 'translate-x-0 lg:w-[0px] lg:px-0 ' : '-translate-x-full'"
+
   return (
+    // <aside
+    //   onClick={() => setOpenSidebar(false)}
+    //   className={`${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0 bg-red-600 " : "-translate-x-full bg-red-950 "
+    //     } sidebar fixed top-0 left-0 flex h-screen min-w-[300px] w-[300px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all 
+    //     z-50 duration-300 lg:static lg:translate-x-0`}
+    // >
+
     <aside
       onClick={() => setOpenSidebar(false)}
-      className={`${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0" : "-translate-x-full"
-        } sidebar fixed top-0 left-0 flex h-screen  min-w-[300px] w-[300px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0 -translate-x-full`}
+      className={`sidebar fixed top-0 left-0 flex h-screen w-[300px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0 -translate-x-full
+        ${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0  " : "-translate-x-full"} 
+        lg:static lg:translate-x-0`}
     >
       {/* Logo */}
       <div className="flex items-center pt-8 space-x-3 pb-7">
@@ -111,12 +118,12 @@ export default function Sidebar({
             <div className="w-full text-xs text-gray-600 mb-2">{section}</div>
             <div className="space-y-2">
               {items.map(({ name, href, icon: Icon, activeCheck, badge }) => {
-                // const active = activeCheck(currentRouteName);
+                const isActive = activeCheck(pathname);
                 return (
                   <Link
                     key={name}
                     href={href}
-                    className={`group h-[40px] flex items-center space-x-3 py-2 px-3 rounded-lg transition-colors duration-200 ${active
+                    className={`group h-[40px] flex items-center space-x-3 py-2 px-3 rounded-lg transition-colors duration-200 ${isActive
                       ? "bg-[#ecf3ff] text-blue-600"
                       : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff]"
                       }`}
@@ -140,9 +147,9 @@ export default function Sidebar({
           <div className="space-y-1">
             <div
               onClick={() => toggleDropdown("settings")}
-              className={`group h-[40px] flex items-center justify-between space-x-3 cursor-pointer py-2 px-3 rounded-lg hover:bg-[#ecf3ff] transition-colors duration-200 {currentRouteName === "admin.account_setting"
+              className={`group h-[40px] flex items-center justify-between space-x-3 cursor-pointer py-2 px-3 rounded-lg transition-colors duration-200 ${pathname === "/main/profile"
                 ? "bg-[#ecf3ff] text-blue-600"
-                : "text-gray-700 hover:text-blue-600"
+                : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff]"
                 }`}
             >
               <div className="flex items-center space-x-3">
@@ -171,10 +178,10 @@ export default function Sidebar({
               <ul className="flex flex-col gap-1 mt-2 pl-9">
                 <li>
                   <Link
-                    href="/admin/account_setting"
-                    className={`block text-sm py-2.5 px-3 rounded  hover:bg-[#ecf3ff] transition  === "admin.account_setting"
-                        ? "bg-[#ecf3ff] text-blue-600"
-                        : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff]"
+                    href="/main/profile"
+                    className={`block text-sm py-2.5 px-3 rounded transition ${pathname === "/main/profile"
+                      ? "bg-[#ecf3ff] text-blue-600"
+                      : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff]"
                       }`}
                   >
                     Account Setting

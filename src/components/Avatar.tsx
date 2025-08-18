@@ -1,24 +1,40 @@
 import React from "react";
+import Image from "next/image";
 
 interface AvatarProps {
     name?: string | null;
     size?: number; // optional size in px
     className?: string; // optional extra classes
+    profileUrl?: string | null; // optional profile image URL
 }
 
 const stringToColor = (str: string) => {
-    // Simple hash function to convert string to a color
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const color = `hsl(${hash % 360}, 60%, 50%)`; // unique hue, fixed saturation/lightness
-    return color;
+    return `hsl(${hash % 360}, 60%, 50%)`;
 };
 
-const Avatar: React.FC<AvatarProps> = ({ name, size = 40, className = "" }) => {
+const Avatar: React.FC<AvatarProps> = ({ name, size = 40, className = "", profileUrl }) => {
     const char = name?.charAt(0).toUpperCase() ?? "?";
     const bgColor = stringToColor(char);
+
+    if (profileUrl) {
+        return (
+            <div
+                className={`relative overflow-hidden rounded-full ${className}`}
+                style={{ width: size, height: size }}
+            >
+                <Image
+                    src={profileUrl}
+                    alt={name || "User Avatar"}
+                    fill
+                    className="object-cover rounded-full"
+                />
+            </div>
+        );
+    }
 
     return (
         <span

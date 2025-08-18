@@ -35,24 +35,43 @@ enum Status {
 // User model
 // ======================
 model User {
-  id         String   @id @default(cuid())
-  name       String
-  email      String   @unique
-  password   String
-  role       Role     @default(REQUESTER)
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+  role     Role   @default(REQUESTER)
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   isArchived Boolean  @default(false)
+  profileUrl String?
+
+  // HR fields
+  employee_id        String?
+  department         String?
+  manager            String?
+  status             String?
+  work_mobile        String?
+  personal_phone     String?
+  address            String?
+  personal_email     String?
+  language           String?
+  emergency_contact  String?
+  emergency_phone    String?
+  nationality        String?
+  identification_no  String?
+  passport_no        String?
+  date_of_birth      DateTime?
+  marital_status     String?
+  number_of_children Int?
 
   // Relations: created/updated users
-  creatorId String?
-  creator   User?   @relation("CreatedUsers", fields: [creatorId], references: [id])
-
-  updaterId String?
-  updater   User?   @relation("UpdatedUsers", fields: [updaterId], references: [id])
-
-  createdUsers User[] @relation("CreatedUsers")
-  updatedUsers User[] @relation("UpdatedUsers")
+  creatorId    String?
+  creator      User?   @relation("CreatedUsers", fields: [creatorId], references: [id])
+  updaterId    String?
+  updater      User?   @relation("UpdatedUsers", fields: [updaterId], references: [id])
+  createdUsers User[]  @relation("CreatedUsers")
+  updatedUsers User[]  @relation("UpdatedUsers")
 
   // Departments
   createdDepartments Department[] @relation("DepartmentCreators")
@@ -63,12 +82,17 @@ model User {
   createdCategories Category[] @relation("CategoryCreators")
   updatedCategories Category[] @relation("CategoryUpdaters")
 
+  // Job Positions
+  jobPositionId       String?
+  jobPosition         JobPosition?  @relation(fields: [jobPositionId], references: [id]) // assigned position
+  createdJobPositions JobPosition[] @relation("JobPositionCreator") // positions created by this user
+
   // Tickets
   requestTickets  Ticket[]      @relation("TicketRequester")
   assignedTickets Ticket[]      @relation("TicketAssignedTo")
   likes           CommentLike[] // references User via CommentLike
 
-  // Audits
+  // Audits & Comments
   audits   Audit[]
   comments Comment[]
 }
@@ -96,11 +120,31 @@ model Department {
   updatedAt  DateTime @updatedAt
   isArchived Boolean  @default(false)
 
-  tickets Ticket[] @relation("DepartmentTickets")
-  // audits  Audit[]
+  tickets   Ticket[]      @relation("DepartmentTickets")
+  positions JobPosition[]
 
   @@index([isArchived])
   @@map("department")
+}
+
+// ======================
+// JobPosition model
+// ======================
+model JobPosition {
+  id    String @id @default(uuid()) // UUID for uniqueness
+  title String
+
+  // Department relation
+  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId String
+
+  // Users assigned to this job position (many-to-many)
+  users User[]
+
+  // Creator of this JobPosition (optional)
+  creatorId String?
+  creator   User?    @relation("JobPositionCreator", fields: [creatorId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 // ======================
@@ -121,7 +165,6 @@ model Category {
   isArchived Boolean  @default(false)
 
   tickets Ticket[] @relation("CategoryTickets")
-  // audits  Audit[]
 
   @@index([isArchived])
   @@map("category")
@@ -130,74 +173,73 @@ model Category {
 // ======================
 // Ticket model
 // ======================
-
 model Ticket {
   id          String @id @default(cuid())
   ticketId    String @map("ticket_id")
   title       String @db.VarChar(100)
   description String
 
-  categoryId String   @map("category_id")
+  categoryId String
   category   Category @relation("CategoryTickets", fields: [categoryId], references: [id])
 
-  departmentId String     @map("department_id")
+  departmentId String
   department   Department @relation("DepartmentTickets", fields: [departmentId], references: [id])
 
-  requesterId String @map("requester_id")
+  requesterId String
   requester   User   @relation("TicketRequester", fields: [requesterId], references: [id])
 
-  status Status @default(OPEN) @map("status")
-  // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  status Status @default(OPEN)
 
-  assignedToId String? @map("assigned_to_id")
+  assignedToId String?
   assignedTo   User?   @relation("TicketAssignedTo", fields: [assignedToId], references: [id])
 
-  createdAt DateTime @map("created_at")
-  updatedAt DateTime @map("updated_at")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   attached  String?
 
   priority   Priority @default(MEDIUM)
   isArchived Boolean  @default(false)
 
-  images   TicketImage[] // One-to-many relation: one ticket has many images
+  images   TicketImage[]
   comments Comment[]
-
-  // audits Audit[]
 }
 
+// ======================
+// TicketImage model
+// ======================
 model TicketImage {
-  id       String @id @default(cuid())
-  url      String
-  ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id])
-
+  id        String   @id @default(cuid())
+  url       String
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
   createdAt DateTime @default(now())
 }
 
+// ======================
+// Comment model
+// ======================
 model Comment {
   id       String  @id @default(cuid())
   content  String?
-  imageUrl String? // optional single image URL
+  imageUrl String?
 
-  // Ticket relationship
   ticketId String
   ticket   Ticket @relation(fields: [ticketId], references: [id])
 
-  // User relationship
   commenterId String
   commenter   User   @relation(fields: [commenterId], references: [id])
 
-  // Self-referential relationship
   parentId String?
   parent   Comment?  @relation("CommentToSubComments", fields: [parentId], references: [id])
   replies  Comment[] @relation("CommentToSubComments")
 
-  // Likes
-  likes CommentLike[] // list of users who liked this comment
-
-  createdAt DateTime @default(now())
+  likes     CommentLike[]
+  createdAt DateTime      @default(now())
 }
 
+// ======================
+// CommentLike model
+// ======================
 model CommentLike {
   id        String  @id @default(cuid())
   commentId String
@@ -208,7 +250,7 @@ model CommentLike {
 
   createdAt DateTime @default(now())
 
-  @@unique([commentId, userId]) // prevent duplicate likes
+  @@unique([commentId, userId])
 }
 
 // ======================
@@ -218,21 +260,17 @@ model Audit {
   id        String   @id @default(cuid())
   changedAt DateTime @default(now())
 
-  // Entity info (polymorphic handled via strings)
-  entity   String // "User" | "Department" | "Category" | "Ticket"
-  entityId String // ID of the changed entity
+  entity   String
+  entityId String
 
   field    String
   oldValue String?
   newValue String?
 
-  // Who made the change
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  // Optional linking if you want to query by relation directly
-
-    actionType String? @ignore
+  actionType String? @ignore
 
   @@index([entity, entityId])
   @@index([changedAt])

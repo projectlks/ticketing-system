@@ -1,7 +1,7 @@
 'use client';
 
 import Input from '@/components/Input';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import { DepartmentWithRelations } from './page';
@@ -9,11 +9,13 @@ import { createDepartment, getDepartment, updateDepartment } from './action';
 import { getUserIdsandEmail } from '@/libs/action';
 import Loading from '@/components/Loading';
 import SelectBox from '@/components/SelectBox';
+import Button from '@/components/Button';
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
     setDepartments: Dispatch<SetStateAction<DepartmentWithRelations[]>>;
     updateID: string | null;
+    setUpdateID: Dispatch<SetStateAction<string | null>>
 }
 
 const emptyForm = {
@@ -24,13 +26,35 @@ const emptyForm = {
     managerId: '',
 };
 
-export default function Form({ setShowForm, setDepartments, updateID }: AccountCreateFormProps) {
+export default function Form({ setShowForm, setDepartments, updateID, setUpdateID }: AccountCreateFormProps) {
     const [form, setForm] = useState(emptyForm);
     const [errors, setErrors] = useState({ ...emptyForm, response: null as string | null });
     const [loading, setLoading] = useState(false);
     const [userIdsAndEmails, setUserIdsAndEmails] = useState<{ id: string; email: string; name: string }[]>([]);
     const initialFormRef = useRef(emptyForm);
-    const selectRef = useRef<HTMLSelectElement>(null);
+    // State for job positions
+    const [jobPositions, setJobPositions] = useState<{ id?: string; title: string }[]>([]);
+    const [newJobTitle, setNewJobTitle] = useState("");
+
+    // Add new job
+    const addJobPosition = () => {
+        if (!newJobTitle.trim()) return;
+        setJobPositions(prev => [{ title: newJobTitle.trim() }, ...prev]);
+        setNewJobTitle("");
+    };
+
+    // Remove job
+    const removeJobPositionField = (index: number) => {
+        setJobPositions(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // Update job title inline
+    const updateJobTitle = (index: number, newTitle: string) => {
+        setJobPositions(prev => prev.map((job, i) => i === index ? { ...job, title: newTitle } : job));
+    };
+
+
+
 
     // Fetch manager list
     useEffect(() => {
@@ -70,6 +94,11 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
                     managerId: departmentData.managerId || '',
                 };
                 setForm(mappedData);
+                // ✅ Map existing job positions
+                setJobPositions(
+                    departmentData.positions?.map((job) => ({ title: job.title })) || []
+                );
+                console.log(departmentData.positions)
                 initialFormRef.current = mappedData;
             };
             getData();
@@ -86,6 +115,7 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
         setErrors((prev) => ({ ...prev, [name]: '', response: null }));
+        // setUpdateID(null)
     };
 
     // Check unsaved changes
@@ -111,10 +141,12 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
             }).then((result) => {
                 if (result.isConfirmed) {
                     setShowForm(false);
+                    setUpdateID(null)
                 }
             });
         } else {
             setShowForm(false);
+            setUpdateID(null)
         }
     };
 
@@ -133,13 +165,41 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
     };
 
     // Submit handler
+
+
+
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         setErrors({ ...emptyForm, response: null });
 
+        // Validate main form fields
         const { isValid, newErrors } = validateForm(form);
-        if (!isValid) {
+
+        // Validate job positions
+        let hasEmptyJob = false;
+        const updatedJobs = jobPositions.map((job) => {
+            if (!job.title.trim()) {
+                hasEmptyJob = true;
+            }
+            return { ...job, title: job.title.trim() };
+        });
+
+        if (!isValid || hasEmptyJob) {
+            setJobPositions(updatedJobs); // trim titles
+            if (hasEmptyJob) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Please fill in all job titles before submitting.',
+                    icon: 'error',
+                    confirmButtonColor: '#ef4444',
+                    customClass: {
+                        popup: 'rounded-lg p-6',
+                        confirmButton: 'bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600',
+                    },
+                });
+            }
             setErrors(newErrors);
             setLoading(false);
             return;
@@ -150,7 +210,7 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
 
         try {
             if (updateID) {
-                const { success, data } = await updateDepartment(formData, updateID);
+                const { success, data } = await updateDepartment(formData, updateID, updatedJobs);
                 if (success) {
                     setDepartments((prev) => prev.map((item) => (item.id === updateID ? data : item)));
                     Swal.fire({
@@ -165,7 +225,7 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
                     });
                 }
             } else {
-                const { success, data } = await createDepartment(formData);
+                const { success, data } = await createDepartment(formData, updatedJobs);
                 if (success) {
                     setDepartments((prev) => [data, ...prev]);
                     Swal.fire({
@@ -199,6 +259,11 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
         }
     };
 
+
+
+
+
+
     return (
 
 
@@ -214,7 +279,7 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
 
                 <form
                     onSubmit={handleSubmit}
-                    className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 bg-white z-50"
+                    className="w-[90%] md:w-[600px] rounded-2xl border  border-gray-200 bg-white z-50"
                     onClick={(e) => e.stopPropagation()}
                     noValidate
                 >
@@ -227,23 +292,22 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
                         </p>
                     </div>
 
-                    <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
+                    <section className="p-5 space-y-6 border-t max-h-[75vh] overflow-y-auto border-gray-100 sm:p-6">
                         {/* Name */}
-                        <div>
-                            <label htmlFor="name" className="block mb-1.5 text-sm font-medium text-gray-700">
-                                Name <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="name"
-                                name="name"
-                                placeholder="Enter department name"
-                                value={form.name}
-                                onChange={handleChange}
-                                error={!!errors.name}
-                            // disabled={loading}
-                            />
-                            {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
-                        </div>
+
+                        <Input
+                            id="name"
+                            name="name"
+                            placeholder="Enter department name"
+                            value={form.name}
+                            onChange={handleChange}
+                            error={!!errors.name}
+                            disable={loading}
+                            label='Name'
+                            require={true}
+                            errorMessage={errors.name}
+                        />
+
 
                         {/* Description */}
                         <div>
@@ -263,38 +327,38 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
                         </div>
 
                         {/* Contact */}
-                        <div>
-                            <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Contact Number
-                            </label>
-                            <Input
-                                id="contact"
-                                name="contact"
-                                placeholder="Enter contact number"
-                                value={form.contact}
-                                onChange={handleChange}
-                                error={!!errors.contact}
-                            // disabled={loading}
-                            />
-                            {errors.contact && <p className="text-red-600 text-sm mt-1">{errors.contact}</p>}
-                        </div>
+
+
+
+                        <Input
+                            id="contact"
+                            name="contact"
+                            placeholder="Enter contact number"
+                            value={form.contact}
+                            onChange={handleChange}
+                            error={!!errors.contact}
+                            label='  Contact Number'
+                            disable={loading}
+                            require={true}
+                            errorMessage={errors.contact}
+                        />
+
 
                         {/* Email */}
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Email
-                            </label>
-                            <Input
-                                id="email"
-                                name="email"
-                                placeholder="Enter email"
-                                value={form.email}
-                                onChange={handleChange}
-                                error={!!errors.email}
-                            // disabled={loading}
-                            />
-                            {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
-                        </div>
+
+                        <Input
+                            id="email"
+                            name="email"
+                            placeholder="Enter email"
+                            value={form.email}
+                            onChange={handleChange}
+                            error={!!errors.email}
+                            disable={loading}
+                            require={true}
+                            errorMessage={errors.email}
+                            label='  Email'
+                        />
+
 
                         {/* Manager */}
 
@@ -310,8 +374,118 @@ export default function Form({ setShowForm, setDepartments, updateID }: AccountC
                             showEmail={true}
                         />
 
+                        {/* job position */}
+                        {/* <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Job Positions
+                            </label>
+
+                            <div className="flex space-x-2 items-center mb-3">
+                                <input
+                                    type="text"
+                                    placeholder="Job title"
+                                    value={newJobTitle}
+                                    onChange={(e) => setNewJobTitle(e.target.value)}
+                                    className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                                />
+                                <Button
+                                    click={() => {
+                                        if (newJobTitle.trim() === "") return;
+                                        setJobPositions((prev) => [{ title: newJobTitle.trim() }, ...prev]);
+                                        setNewJobTitle(""); // clear input
+                                    }}
+                                    buttonLabel="Add"
+                                />
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {jobPositions.map((job, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="flex items-center space-x-2 bg-gray-100 border border-gray-300 rounded-full px-3 py-1 pr-1 text-sm relative"
+                                    >
+                                        <span>{job.title}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeJobPositionField(idx)}
+                                            className="text-red-500 hidden hover:text-red-700 cursor-pointer hover:bg-red-300 rounded-full p-1"
+                                        >
+                                            <XMarkIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
 
 
+                        </div> */}
+
+
+                        {/* Job Positions */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Job Positions
+                            </label>
+
+                            {/* Input for adding new job */}
+                            <div className="flex space-x-2 items-center mb-3">
+                                <input
+                                    type="text"
+                                    placeholder="Job title"
+                                    value={newJobTitle}
+                                    onChange={(e) => setNewJobTitle(e.target.value)}
+                                    className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                                />
+
+                                <Button click={addJobPosition} buttonLabel="Add" disabled={!newJobTitle.trim()} />
+
+                            </div>
+
+                            {/* Job list */}
+                            {jobPositions.length > 0 && (
+                                <div className="flex flex-col gap-2 mt-2 border border-gray-300 rounded-xl p-3">
+                                    {jobPositions.map((job, idx) => (
+                                        <div key={job.id ?? idx} className="flex flex-col">
+                                            <div className="flex items-center w-fit space-x-2 bg-gray-100 border border-gray-300 rounded-full px-3 py-1 pr-1 text-sm relative">
+                                                {/* Inline editable title */}
+                                                <input
+                                                    type="text"
+                                                    value={job.title}
+                                                    onChange={(e) => updateJobTitle(idx, e.target.value)}
+                                                    onBlur={() => {
+                                                        // Trim the value
+                                                        const trimmed = job.title.trim();
+                                                        if (trimmed === "") return; // leave error visible
+                                                        updateJobTitle(idx, trimmed);
+                                                    }}
+                                                    className={`bg-transparent border-none text-sm text-gray-800 focus:outline-none w-auto min-w-[10px] ${job.title.trim() === "" ? "border-b-2 border-red-500" : ""
+                                                        }`}
+                                                />
+
+                                                {/* Delete button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeJobPositionField(idx)}
+                                                    className="text-red-500 hover:text-red-700 cursor-pointer hover:bg-red-300 rounded-full p-1"
+                                                >
+                                                    <XMarkIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            {/* Inline error message */}
+                                            {job.title.trim() === "" && (
+                                                <span className="text-red-500 text-xs mt-1 ml-1">
+                                                    Job title cannot be empty
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+
+
+
+                        </div>
 
 
                         {/* General Error */}

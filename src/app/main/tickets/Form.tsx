@@ -9,12 +9,13 @@ import { TicketWithRelations } from './page';
 import { getAllCategoryIdAndName, getAllDepartmentIdAndName } from '@/libs/action';
 import SelectBox from '@/components/SelectBox';
 import ImageInput from './ImageInput';
-import { prisma } from '@/libs/prisma';
 
 interface TicketFormProps {
     setShowForm: (value: boolean) => void;
     setTickets: Dispatch<SetStateAction<TicketWithRelations[]>>;
     updateID: string | null;
+    setUpdateID: Dispatch<SetStateAction<string | null>>
+
 }
 
 const emptyForm = {
@@ -29,6 +30,7 @@ export default function TicketForm({
     setShowForm,
     setTickets,
     updateID,
+    setUpdateID
 }: TicketFormProps) {
     const [form, setForm] = useState(emptyForm);
     const [loading, setLoading] = useState(false);
@@ -94,6 +96,7 @@ export default function TicketForm({
                 setShowForm(false);
             }
         });
+        setUpdateID(null)
     };
 
     const validate = () => {
@@ -229,26 +232,23 @@ export default function TicketForm({
 
                     <section className="p-5 space-y-6 border-t max-h-[80vh] overflow-y-auto border-gray-100 sm:p-6">
                         {/* Title */}
-                        <div>
-                            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                                Title
-                            </label>
-                            <Input
-                                id="title"
-                                name="title"
-                                placeholder="Enter ticket title"
-                                value={form.title}
-                                onChange={handleChange}
-                                error={!!errors.title}
-                                aria-invalid={!!errors.title}
-                                aria-describedby={errors.title ? 'title-error' : undefined}
-                            />
-                            {errors.title && (
-                                <p id="title-error" className="text-red-600 text-sm mt-1">
-                                    {errors.title}
-                                </p>
-                            )}
-                        </div>
+
+                        <Input
+                            id="title"
+                            name="title"
+                            placeholder="Enter ticket title"
+                            value={form.title}
+                            onChange={handleChange}
+                            error={!!errors.title}
+                            aria-invalid={!!errors.title}
+                            aria-describedby={errors.title ? 'title-error' : undefined}
+                            label='Title'
+                            errorMessage={errors.title ? errors.title : ""}
+                            disable={loading}
+                            require={true}
+                        />
+
+
 
                         {/* Description */}
                         <div>

@@ -11,9 +11,8 @@ export default function Button({ buttonLabel, click, disabled }: ButtonProps) {
     <button
       onClick={click}
       type="button"
-      className={`rounded h-[33px] text-sm px-2.5 text-gray-100 cursor-pointer bg-indigo-500 hover:bg-indigo-600 shadow-md flex items-center space-x-1 ${
-        disabled ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
+      className={`rounded h-[33px] text-sm px-2.5 text-gray-100 cursor-pointer bg-indigo-500 hover:bg-indigo-600 shadow-md flex items-center space-x-1 ${disabled ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
       disabled={disabled}
     >
       {buttonLabel}

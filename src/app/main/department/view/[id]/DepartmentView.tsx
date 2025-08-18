@@ -1,5 +1,4 @@
 import AuditLogList from "@/components/AuditLogList";
-import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import { Audit } from "@prisma/client";
 import { DepartmentWithRelations } from "../../page";
 import ViewContext from "@/components/ViewContext";
@@ -17,11 +16,11 @@ export function DepartmentView({
 }: DepartmentViewProps) {
     return (
         <section
-            className="grid gap-6 md:grid-cols-2"
+            className="grid gap-6 md:grid-cols-3"
             aria-label="Department details"
         >
             {/* Card Container */}
-            <div className="h-fit md:sticky top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
+            <div className="h-fit md:sticky top-0 col-span-2 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
                 {/* Card Header */}
                 {/* < className="pb-4 px-6 pt-6"> */}
                 <div className=" gap-2 pb-4 px-6 pt-6" >
@@ -101,6 +100,17 @@ export function DepartmentView({
                                 label="Archived"
                                 value={department.isArchived ? "Yes" : "No"}
                             />
+
+                            <div className={`flex flex-col items-start gap-1.5 col-span-2 `}
+
+
+                            >
+                                <h3 className="text-xs tracking-wide text-muted-foreground">Job Position</h3>
+                                <div className="text-sm font-medium">
+
+                                    {department.positions?.map(job => (<p className="border border-gray-300 rounded-full px-3  py-1" key={job.id}>{job.title}</p>))}
+                                </div>
+                            </div>
                         </dl>
                     </div>
                 </div>

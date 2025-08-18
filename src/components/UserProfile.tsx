@@ -54,7 +54,7 @@ export default function UserMenu({ menuToggle }: Props) {
               {session?.user?.name?.charAt(0).toUpperCase() ?? "?"}
             </span> */}
 
-            <Avatar name={session?.user?.name} />
+            <Avatar name={session?.user?.name} profileUrl={session?.user.image} />
           </span>
           <span className="hidden mr-1 text-sm font-medium sm:inline-block">
             {session?.user?.name ?? "Loading..."}

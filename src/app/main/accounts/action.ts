@@ -15,6 +15,7 @@ const FormSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["REQUESTER", "AGENT", "ADMIN", "SUPER_ADMIN"]),
+  department: z.string()
 });
 
 const FormSchemaUpdate = FormSchema.omit({
@@ -32,9 +33,10 @@ export async function createAccount(
     email: formData.get("email"),
     password: formData.get("password"),
     role: formData.get("role"),
+    department: formData.get("department")
   };
 
-  const { name, email, password, role } = FormSchema.parse(raw);
+  const { name, email, password, role, department } = FormSchema.parse(raw);
 
   // Check if user exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -44,7 +46,7 @@ export async function createAccount(
 
   // Hash password and get creator ID
   const hashedPassword = await bcrypt.hash(password, 10);
-  // const creatorId = await getCurrentUserId();
+  const creatorId = await getCurrentUserId();
 
   // Create user
   await prisma.user.create({
@@ -53,7 +55,8 @@ export async function createAccount(
       email,
       password: hashedPassword,
       role,
-      // creatorId: creatorId,
+      department,
+      creatorId: creatorId,
     },
   });
 
@@ -77,6 +80,7 @@ export async function getAccount(id: string) {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
       assignedTickets: { select: { id: true, title: true, status: true, priority: true } }, // tickets assigned to this user
+      jobPosition: { select: { id: true, title: true } }, // <-- include job position
     },
   });
 }
@@ -148,6 +152,7 @@ export async function updateAccount(
     name: formData.get("name"),
     email: formData.get("email"),
     role: formData.get("role"),
+    department: formData.get("department")
   };
 
   const updateData = FormSchemaUpdate.parse(updateDataRaw);

@@ -1,7 +1,7 @@
 'use client';
 
 import Input from '@/components/Input';
-import React, { Dispatch, SetStateAction, useEffect,  useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { CategoryWithRelations } from './page';
 import { createCategory, getCategory, updateCategory } from './action';
@@ -11,9 +11,10 @@ interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
     setCategories: Dispatch<SetStateAction<CategoryWithRelations[]>>
     updateID: string | null;
+    setUpdateID: Dispatch<SetStateAction<string | null>>
 }
 
-export default function Form({ setShowForm, setCategories, updateID }: AccountCreateFormProps) {
+export default function Form({ setShowForm, setCategories, updateID, setUpdateID }: AccountCreateFormProps) {
     const [errors, setErrors] = useState({
         name: '',
         response: null as string | null,
@@ -84,28 +85,30 @@ export default function Form({ setShowForm, setCategories, updateID }: AccountCr
             }).then((result) => {
                 if (result.isConfirmed) {
                     setShowForm(false);
+                    setUpdateID(null)
                 }
             });
         } else {
             setShowForm(false);
+            setUpdateID(null)
         }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        setErrors({ name: '',  response: null });
+        setErrors({ name: '', response: null });
 
         // Validate form
         let isValid = true;
-        const newErrors = { name: '',  response: null };
+        const newErrors = { name: '', response: null };
 
         if (!form.name.trim()) {
             newErrors.name = 'Name is required.';
             isValid = false;
         }
-       
-  
+
+
 
         if (!isValid) {
             setErrors(newErrors);
@@ -135,9 +138,9 @@ export default function Form({ setShowForm, setCategories, updateID }: AccountCr
                     });
                 }
             }
-            
-            
-            
+
+
+
             else {
                 const { success, data }: { success: boolean, data: CategoryWithRelations } = await createCategory(formData);
 
@@ -180,7 +183,7 @@ export default function Form({ setShowForm, setCategories, updateID }: AccountCr
     return (
         <>
 
-        {loading && <Loading />}
+            {loading && <Loading />}
             <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
                 <div
                     className="w-full h-full fixed top-0 left-0 bg-black opacity-20"
@@ -205,26 +208,22 @@ export default function Form({ setShowForm, setCategories, updateID }: AccountCr
 
                     <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
                         {/* Name */}
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Category Name
-                            </label>
-                            <Input
-                                id="name"
-                                name="name"
-                                placeholder="Enter category name"
-                                value={form.name}
-                                onChange={handleChange}
-                                error={!!errors.name}
-                                aria-invalid={!!errors.name}
-                                aria-describedby={errors.name ? 'name-error' : undefined}
-                            />
-                            {errors.name && (
-                                <p id="name-error" className="text-red-600 text-sm mt-1" role="alert">
-                                    {errors.name}
-                                </p>
-                            )}
-                        </div>
+
+                        <Input
+                            id="name"
+                            name="name"
+                            placeholder="Enter category name"
+                            value={form.name}
+                            onChange={handleChange}
+                            error={!!errors.name}
+                            aria-invalid={!!errors.name}
+                            aria-describedby={errors.name ? 'name-error' : undefined}
+                            disable={loading}
+                            errorMessage={errors.name}
+                            label='Category Name'
+                            require={true}
+                        />
+
 
 
                         {/* General Error */}

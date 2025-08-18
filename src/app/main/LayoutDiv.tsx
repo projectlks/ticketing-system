@@ -10,7 +10,7 @@ export default function LayoutDiv({ children }: { children: React.ReactNode }) {
         <>
             <Aside openSidebar={openSidebar} setOpenSidebar={setOpenSidebar} />
 
-            <div className="flex-1 flex flex-col max-w-[calc(100%-300px)]">
+            <div className="flex-1 flex flex-col ">
                 <TopBar openSidebar={openSidebar} setOpenSidebar={setOpenSidebar} />
 
                 <div className="p-4 md:p-5 overflow-y-auto h-[calc(100%-76px)] overflow-x-auto bg-gray-100">
