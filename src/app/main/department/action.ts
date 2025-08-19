@@ -62,7 +62,7 @@ export async function createDepartment(
   if (jobPositions.length > 0) {
     const jobPositionsData = jobPositions.map((job) => ({
       departmentId: department.id,
-      title: job.title,
+      name: job.title,
     }));
 
     await prisma.jobPosition.createMany({ data: jobPositionsData });
@@ -94,7 +94,7 @@ export async function getDepartment(id: string): Promise<DepartmentWithRelations
       manager: { select: { name: true, email: true } },
       tickets: { select: { id: true, title: true, status: true } },
       updater: { select: { name: true, email: true } },
-      positions: { select: { id: true, title: true } }, // ✅ Include Job Positions
+      positions: { select: { id: true, name: true } }, // ✅ Include Job Positions
 
 
     },
@@ -263,7 +263,7 @@ export async function updateDepartment(
     });
 
     // Titles currently in DB
-    const currentTitles = currentPositions.map(p => p.title);
+    const currentTitles = currentPositions.map(p => p.name);
     const uiTitles = jobPositions.map(j => j.title);
 
 
@@ -271,8 +271,8 @@ export async function updateDepartment(
     const titlesToAdd = uiTitles.filter(title => !currentTitles.includes(title));
     if (titlesToAdd.length > 0) {
       await prisma.jobPosition.createMany({
-        data: titlesToAdd.map(title => ({
-          title,
+        data: titlesToAdd.map(name => ({
+          name,
           departmentId: id,
           creatorId: updaterId,
         })),

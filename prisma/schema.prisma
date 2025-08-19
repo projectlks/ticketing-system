@@ -131,7 +131,7 @@ model Department {
 // JobPosition model
 // ======================
 model JobPosition {
-  id    String @id @default(uuid()) // UUID for uniqueness
+  id   String @id @default(cuid()) // UUID for uniqueness
   name String
 
   // Department relation
@@ -145,11 +145,13 @@ model JobPosition {
   creatorId String?
   creator   User?    @relation("JobPositionCreator", fields: [creatorId], references: [id])
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ======================
 // Category model
 // ======================
+
 model Category {
   id   String @id @default(cuid())
   name String
@@ -164,7 +166,13 @@ model Category {
   updatedAt  DateTime @updatedAt
   isArchived Boolean  @default(false)
 
+  // 👇 Self relation to allow dynamic subcategories
+  parentId      String?
+  parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  subcategories Category[] @relation("CategoryHierarchy")
+
   tickets Ticket[] @relation("CategoryTickets")
+   subTickets    Ticket[]   @relation("SubcategoryTickets")    // tickets under this subcategory
 
   @@index([isArchived])
   @@map("category")
@@ -181,6 +189,9 @@ model Ticket {
 
   categoryId String
   category   Category @relation("CategoryTickets", fields: [categoryId], references: [id])
+
+  subcategoryId  String
+  subcategory    Category @relation("SubcategoryTickets", fields: [subcategoryId], references: [id])
 
   departmentId String
   department   Department @relation("DepartmentTickets", fields: [departmentId], references: [id])

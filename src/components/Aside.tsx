@@ -47,11 +47,11 @@ const navItems = [
           ),
       },
       {
-        name: "Report",
-        href: "/main/report",
+        name: "Reports",
+        href: "/main/reports",
         icon: ChartBarIcon,
         activeCheck: (route: string) =>
-          ["/main/report", "/main/report/tickets"].includes(route),
+          ["/main/report", "/main/reports"].includes(route),
       },
     ],
   },
@@ -92,12 +92,7 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
   // :class="openSidebar ? 'translate-x-0 lg:w-[0px] lg:px-0 ' : '-translate-x-full'"
 
   return (
-    // <aside
-    //   onClick={() => setOpenSidebar(false)}
-    //   className={`${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0 bg-red-600 " : "-translate-x-full bg-red-950 "
-    //     } sidebar fixed top-0 left-0 flex h-screen min-w-[300px] w-[300px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all 
-    //     z-50 duration-300 lg:static lg:translate-x-0`}
-    // >
+
 
     <aside
       onClick={() => setOpenSidebar(false)}

@@ -5,34 +5,36 @@ import z from "zod";
 import { getCurrentUserId } from "@/libs/action";
 import { CategoryWithRelations } from "./page";
 
-// ===== Validation Schema =====
+// ===== Validation =====
 const CategoryFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
 });
 
 // ===== Create Category =====
 export async function createCategory(
-  formData: FormData
+  formData: FormData,
+  subCategories: { id?: string; title: string }[]
 ): Promise<{ success: boolean; data: CategoryWithRelations }> {
-  const raw = {
-    name: formData.get("name"),
-  };
-
+  const raw = { name: formData.get("name") };
   const parsed = CategoryFormSchema.parse(raw);
 
   const creatorId = await getCurrentUserId();
-  if (!creatorId) {
-    throw new Error("User must be logged in to create a category");
-  }
+  if (!creatorId) throw new Error("User must be logged in to create a category");
 
   const data = await prisma.category.create({
     data: {
       name: parsed.name,
       creatorId,
+      subcategories: {
+        create: subCategories
+          .filter((sub) => sub.title.trim() !== "")
+          .map((sub) => ({ name: sub.title.trim(), creatorId })),
+      },
     },
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
+      subcategories: true,
     },
   });
 
@@ -41,17 +43,18 @@ export async function createCategory(
 
 // ===== Get Single Category =====
 export async function getCategory(id: string): Promise<CategoryWithRelations | null> {
-  return await prisma.category.findUnique({
+  return prisma.category.findUnique({
     where: { id },
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
       tickets: { select: { id: true, title: true, status: true } },
+      subcategories: { select: { id: true, name: true } },
     },
   });
 }
 
-// ===== Get All Categories (Paged, with optional search) =====
+// ===== Get All Parent Categories Only =====
 export async function getAllCategories(
   page: number = 1,
   searchQuery: string = ""
@@ -62,20 +65,13 @@ export async function getAllCategories(
 
   const where = {
     isArchived: false,
+    parentId: null, // only parent categories
     ...(trimmedQuery && {
-      OR: [
-        {
-          name: {
-            contains: trimmedQuery,
-            mode: "insensitive" as const,
-          },
-        },
-      ],
+      OR: [{ name: { contains: trimmedQuery, mode: "insensitive" as const } }],
     }),
   };
 
   const total = await prisma.category.count({ where });
-
   const data = await prisma.category.findMany({
     where,
     skip,
@@ -84,6 +80,7 @@ export async function getAllCategories(
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
+      subcategories: true, // include children
     },
   });
 
@@ -93,59 +90,42 @@ export async function getAllCategories(
 // ===== Soft Delete Category =====
 export async function deleteCategory(id: string) {
   const updaterId = await getCurrentUserId();
-
-  return await prisma.category.update({
+  return prisma.category.update({
     where: { id },
-    data: {
-      isArchived: true,
-      updaterId,
-    },
+    data: { isArchived: true, updaterId },
   });
 }
 
 // ===== Update Category =====
 export async function updateCategory(
   formData: FormData,
-  id: string
+  id: string,
+  subCategories: { id?: string; title: string }[] = []
 ): Promise<{ success: boolean; data: CategoryWithRelations }> {
-  const { name } = CategoryFormSchema.parse({
-    name: formData.get("name"),
-  });
-
+  const { name } = CategoryFormSchema.parse({ name: formData.get("name") });
   const updaterId = await getCurrentUserId();
+  if (!updaterId) throw new Error("No logged-in user found");
 
-  if (!updaterId) {
-    throw new Error("No logged-in user found for updateCategory");
-  }
-
-  // 1️⃣ Get existing category to compare changes
   const existingCategory = await prisma.category.findUnique({
     where: { id },
-    select: { name: true },
+    include: { subcategories: true },
   });
+  if (!existingCategory) throw new Error("Category not found");
 
-  if (!existingCategory) {
-    throw new Error("Category not found");
-  }
-
-  // 2️⃣ Update the category
+  // Update main category
   const data = await prisma.category.update({
     where: { id },
-    data: {
-      name,
-      updaterId,
-    },
+    data: { name, updaterId },
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
+      subcategories: true,
+      tickets: { select: { id: true, title: true, status: true } },
     },
   });
 
-  // 3️⃣ Create audit logs if something changed
-  // const audits: Promise<any>[] = [];
-
+  // Audit log
   if (existingCategory.name !== name) {
-
     await prisma.audit.create({
       data: {
         entity: "Category",
@@ -154,27 +134,40 @@ export async function updateCategory(
         oldValue: existingCategory.name,
         newValue: name,
         userId: updaterId,
-        // categoryId: id,
       },
     });
-
   }
 
+  // Sync subcategories
+  for (const sub of subCategories) {
+    const trimmedTitle = sub.title.trim();
+    if (!trimmedTitle) continue;
 
+    if (sub.id) {
+      // Update existing
+      const existingSub = existingCategory.subcategories.find(s => s.id === sub.id);
+      if (existingSub && existingSub.name !== trimmedTitle) {
+        await prisma.category.update({
+          where: { id: sub.id },
+          data: { name: trimmedTitle, updaterId },
+        });
+      }
+    } else {
+      // Create new subcategory
+      await prisma.category.create({
+        data: { name: trimmedTitle, creatorId: updaterId, parentId: id },
+      });
+    }
+  }
 
   return { success: true, data };
 }
 
-
+// ===== Get Audit Logs =====
 export async function getCategoryAuditLogs(id: string) {
-  return await prisma.audit.findMany({
-    where: {
-      entity: "Category",
-      entityId: id,
-    },
+  return prisma.audit.findMany({
+    where: { entity: "Category", entityId: id },
     orderBy: { changedAt: "desc" },
-    include: {
-      user: { select: { name: true, email: true } }, // who made the change
-    },
+    include: { user: { select: { name: true, email: true } } },
   });
 }

@@ -33,10 +33,10 @@ export async function getAllDepartmentIdAndName(): Promise<{ id: string; name: s
   });
 }
 
-export async function getJobPositionsByDepartment(departmentId: string): Promise<{ id: string; title: string }[]> {
+export async function getJobPositionsByDepartment(departmentId: string): Promise<{ id: string; name: string }[]> {
   return prisma.jobPosition.findMany({
     where: { departmentId },
-    select: { id: true, title: true },
+    select: { id: true, name: true },
     orderBy: { createdAt: "desc" }, // newest first
   });
 }
@@ -44,14 +44,18 @@ export async function getJobPositionsByDepartment(departmentId: string): Promise
 // ====================
 // Category Utilities
 // ====================
-
-export async function getAllCategoryIdAndName(): Promise<{ id: string; name: string }[]> {
+export async function getAllCategoryIdAndName(): Promise<{ id: string; name: string; subcategories: { id: string; name: string }[] }[]> {
   return prisma.category.findMany({
-    where: { isArchived: false },
-    select: { id: true, name: true },
+    where: { isArchived: false, parentId: null },
+    select: {
+      id: true,
+      name: true,
+      subcategories: { select: { id: true, name: true } }
+    },
     orderBy: { createdAt: "desc" }, // newest first
   });
 }
+
 
 // ====================
 // Audit Utilities

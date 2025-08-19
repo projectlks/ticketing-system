@@ -14,6 +14,7 @@ import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
+import { useSession } from "next-auth/react";
 
 export type CategoryWithRelations = Category & {
     creator?: {
@@ -29,6 +30,11 @@ export type CategoryWithRelations = Category & {
         title: string;
         status: string;
     }[] | null;
+        subcategories?: {
+        id: string;
+        name: string;
+    }[] | null; // Add this for subcategories
+
 };
 
 export default function Page() {
@@ -121,6 +127,9 @@ export default function Page() {
         setShowForm(true);
     }
 
+
+    const { data } = useSession()
+
     return (
         <>
 
@@ -132,6 +141,7 @@ export default function Page() {
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
+                    showNewBtn={data?.user.role === 'SUPER_ADMIN'}
                 />
 
                 <div className="p-5">

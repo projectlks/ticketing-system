@@ -23,6 +23,7 @@ const emptyForm = {
     description: '',
     departmentId: '',
     categoryId: '',
+    subcategoryId: '',
     priority: 'MEDIUM',
 };
 
@@ -35,7 +36,8 @@ export default function TicketForm({
     const [form, setForm] = useState(emptyForm);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
-    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+    const [categories, setCategories] = useState<{ id: string; name: string, subcategories?: { id: string; name: string }[]; }[]>([]);
+    const [subcategories, setSubcategories] = useState<{ id: string; name: string }[]>([]);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
     const [images, setImages] = useState<File[]>([]);
 
@@ -48,11 +50,23 @@ export default function TicketForm({
         const fetchData = async () => {
             const cats = await getAllCategoryIdAndName();
             const depts = await getAllDepartmentIdAndName();
+
             setCategories(cats);
             setDepartments(depts);
+
         };
         fetchData();
     }, []);
+    useEffect(() => {
+        const selectedCat = categories.find(c => c.id === form.categoryId);
+        setSubcategories(selectedCat?.subcategories || []);
+
+        // တစ်ခါလောက်သာ reset လုပ်ချင်ရင်
+        if (!updateID) {  // updateID မရှိရင် create mode
+            setForm(prev => ({ ...prev, subcategoryId: '' }));
+        }
+    }, [form.categoryId, categories, updateID]);
+
 
     useEffect(() => {
         if (updateID) {
@@ -63,6 +77,7 @@ export default function TicketForm({
                         description: data.description ?? '',
                         categoryId: data.categoryId ?? '',
                         departmentId: data.departmentId ?? '',
+                        subcategoryId: data.subcategoryId ?? '',
                         priority: data.priority ?? 'MEDIUM',
                     });
 
@@ -82,6 +97,23 @@ export default function TicketForm({
         setForm((prev) => ({ ...prev, [name]: value }));
         setErrors((prev) => ({ ...prev, [name]: null }));
     };
+
+
+    const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { value } = e.target;
+
+        // category value update
+        setForm(prev => ({
+            ...prev,
+            categoryId: value,
+            subcategoryId: '' // category ပြောင်းတိုင်း subcategory reset
+        }));
+
+        // subcategories update
+        const selectedCat = categories.find(c => c.id === value);
+        setSubcategories(selectedCat?.subcategories || []);
+    };
+
 
     const handleCancel = () => {
         Swal.fire({
@@ -104,6 +136,8 @@ export default function TicketForm({
         if (!form.title.trim()) newErrors.title = 'Title is required';
         if (!form.description.trim()) newErrors.description = 'Description is required';
         if (!form.categoryId) newErrors.categoryId = 'Category is required';
+        if (!form.departmentId) newErrors.departmentId = 'DepartmentId is required';
+        if (!form.subcategoryId) newErrors.subcategoryId = 'SubcategoryId is required';
         if (!form.priority) newErrors.priority = 'Priority is required';
 
         setErrors(newErrors);
@@ -286,19 +320,34 @@ export default function TicketForm({
                         />
 
 
+                        <div className='grid grid-cols-2 gap-3'>
 
-                        {/* Category */}
-                        <SelectBox
-                            label="Category"
-                            id="categoryId"
-                            name="categoryId"
-                            value={form.categoryId}
-                            options={categories}  // categories is [{ id, name }]
-                            onChange={handleChange}
-                            error={errors.categoryId}
-                            placeholder="Select Category"
-                        />
 
+                            {/* Category */}
+                            <SelectBox
+                                label="Category"
+                                id="categoryId"
+                                name="categoryId"
+                                value={form.categoryId}
+                                options={categories}  // categories is [{ id, name }]
+                                onChange={handleCategoryChange}
+                                error={errors.categoryId}
+                                placeholder="Select Category"
+                            />
+
+                            {/* setSubcategories */}
+                            <SelectBox
+                                label="Subcategory"
+                                id="subcategoryId"
+                                name="subcategoryId"
+                                value={form.subcategoryId}
+                                options={subcategories}  // setSubcategories state ကိုသုံး
+                                onChange={handleChange}
+                                error={errors.subcategoryId}
+                                placeholder="Select Subcategory"
+                                disabled={!form.categoryId}  // categoryId မရှိရင် ပိတ်ထားမယ်
+                            />
+                        </div>
                         {/* Priority */}
                         <SelectBox
                             label="Priority"

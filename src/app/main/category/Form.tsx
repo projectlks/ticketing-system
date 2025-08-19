@@ -6,6 +6,8 @@ import Swal from 'sweetalert2';
 import { CategoryWithRelations } from './page';
 import { createCategory, getCategory, updateCategory } from './action';
 import Loading from '@/components/Loading';
+import { XMarkIcon } from '@heroicons/react/24/outline';
+import Button from '@/components/Button';
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
@@ -21,6 +23,25 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
     });
 
     const [loading, setLoading] = useState(false);
+    const [newSubCategory, setNewSubCategory] = useState<string>("");
+    const [subCategories, setSubCategories] = useState<{ id?: string; title: string }[]>([]);
+
+    const addSubCategories = () => {
+        if (!newSubCategory.trim()) return;
+        setSubCategories(prev => [{ title: newSubCategory.trim() }, ...prev]);
+        setNewSubCategory("");
+    };
+
+    // Remove job
+    const removeSubCategories = (index: number) => {
+        setSubCategories(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // Update job title inline
+    const updateSubCategories = (index: number, newTitle: string) => {
+        setSubCategories(prev => prev.map((job, i) => i === index ? { ...job, title: newTitle } : job));
+    };
+
 
     const emptyForm = {
         name: '',
@@ -31,21 +52,36 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
     useEffect(() => {
         if (updateID) {
             const getData = async () => {
-                const accountData = await getCategory(updateID);
-                // Normalize properties to string with defaults:
+                const categories = await getCategory(updateID);
+
+                // Normalize properties to string with defaults
                 const normalizedData = {
-                    name: accountData?.name ?? '',
+                    name: categories?.name ?? '',
                 };
                 setForm(normalizedData);
                 setInitialForm(normalizedData);
+                console.log(categories?.subcategories)
+
+                // ✅ Correct property name
+                if (categories?.subcategories?.length) {
+                    const normalizedSubs = categories.subcategories.map(sub => ({
+                        id: sub.id,
+                        title: sub.name,
+                    }));
+                    setSubCategories(normalizedSubs);
+                } else {
+                    setSubCategories([]);
+                }
             };
 
             getData();
         } else {
             setForm(emptyForm);
             setInitialForm(emptyForm);
+            setSubCategories([]);
         }
     }, [updateID]);
+
 
 
     // const selectRef = useRef<HTMLSelectElement>(null);
@@ -142,7 +178,7 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
 
 
             else {
-                const { success, data }: { success: boolean, data: CategoryWithRelations } = await createCategory(formData);
+                const { success, data }: { success: boolean, data: CategoryWithRelations } = await createCategory(formData, subCategories);
 
                 if (success) {
                     setCategories((prev: CategoryWithRelations[]) => [data, ...prev]);
@@ -224,6 +260,72 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
                             require={true}
                         />
 
+                        {/* Job Positions */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Sub categories
+                            </label>
+
+                            {/* Input for adding new job */}
+                            <div className="flex space-x-2 items-center mb-3">
+                                <input
+                                    type="text"
+                                    placeholder="SubCategory name"
+                                    value={newSubCategory}
+                                    onChange={(e) => setNewSubCategory(e.target.value)}
+                                    className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                                />
+
+                                <Button click={addSubCategories} buttonLabel="Add" disabled={!newSubCategory?.trim()} />
+
+                            </div>
+
+                            {/* Job list */}
+                            {subCategories.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2 border border-gray-300 rounded-xl p-3">
+                                    {subCategories.map((job, idx) => (
+                                        <div key={job.id ?? idx} className="flex flex-col">
+                                            <div className="flex items-center w-fit space-x-2 bg-gray-100 border border-gray-300 rounded-full px-3 py-1 pr-1 text-sm relative">
+                                                {/* Inline editable title */}
+                                                <input
+                                                    type="text"
+                                                    value={job.title}
+                                                    onChange={(e) => updateSubCategories(idx, e.target.value)}
+                                                    onBlur={() => {
+                                                        // Trim the value
+                                                        const trimmed = job.title.trim();
+                                                        if (trimmed === "") return; // leave error visible
+                                                        updateSubCategories(idx, trimmed);
+                                                    }}
+                                                    className={`bg-transparent border-none text-sm text-gray-800 focus:outline-none w-auto min-w-[10px] ${job.title.trim() === "" ? "border-b-2 border-red-500" : ""
+                                                        }`}
+                                                />
+
+                                                {/* Delete button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSubCategories(idx)}
+                                                    className="text-red-500 hover:text-red-700 cursor-pointer hover:bg-red-300 rounded-full p-1"
+                                                >
+                                                    <XMarkIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            {/* Inline error message */}
+                                            {job.title.trim() === "" && (
+                                                <span className="text-red-500 text-xs mt-1 ml-1">
+                                                    subcategories name cannot be empty
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+
+
+
+                        </div>
 
 
                         {/* General Error */}

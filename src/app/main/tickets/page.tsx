@@ -192,6 +192,7 @@ export default function Page() {
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
+                    showNewBtn={true}
                 >
 
                     <MultiFilter filters={filters} setFilters={setFilters} />
@@ -219,7 +220,7 @@ export default function Page() {
                                     <tbody>
                                         {tickets.map((ticket, index) => (
                                             <tr
-                                             onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
+                                                onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                 key={ticket.id}
                                                 className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
                                                     }`}

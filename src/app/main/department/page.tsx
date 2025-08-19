@@ -36,7 +36,7 @@ export type DepartmentWithRelations = Department & {
     }[] | null;
     positions?: {
         id: string;
-        title: string;
+        name: string;
         creator?: {
             name: string | null;
             email: string | null;

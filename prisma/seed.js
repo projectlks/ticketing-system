@@ -14,7 +14,7 @@ async function main() {
       name: "Default Admin",
       email: "admin@example.com",
       password: hashedPassword,
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
       creatorId: null,
       updaterId: null,
     },

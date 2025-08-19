@@ -15,6 +15,7 @@ const TicketSchema = z.object({
   title: z.string().min(1, "Title cannot be empty"),
   description: z.string().min(1, "Title cannot be empty"),
   categoryId: z.string(),
+  subcategoryId: z.string(),
   departmentId: z.string(),
   assignedToId: z.string().nullable().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
@@ -51,81 +52,6 @@ async function generateTicketId(): Promise<string> {
   return ticketId;
 }
 
-// Create Ticket
-// export async function createTicket(
-//   formData: FormData
-// ): Promise<{ success: boolean; data: TicketWithRelations }> {
-//   const raw = {
-//     title: formData.get("title"),
-//     description: formData.get("description"),
-//     departmentId: formData.get("departmentId"),
-//     categoryId: formData.get("categoryId"),
-//     priority: formData.get("priority"),
-//     images: formData.get("images")
-//   };
-
-
-//   const images = formData.get("images")
-//   // Validation using your schema
-//   const data = TicketSchema.parse(raw);
-//   const currentUserId = await getCurrentUserId();
-
-
-//   // console.log(data)
-
-//   // console.log(formData)
-
-//   if (!currentUserId) {
-//     throw new Error("No logged-in user found for updateDepartment");
-//   }
-
-//   const ticketId = await generateTicketId();
-//   // TKT-2052025-0001
-//   const ticket = await prisma.ticket.create({
-//     data: {
-//       ...data,
-//       ticketId,
-//       createdAt: new Date(),
-//       updatedAt: new Date(),
-//       requesterId: currentUserId as string
-//     },
-//   });
-
-//   // Find the created ticket by ID
-//   const createdData = await prisma.ticket.findUnique({
-//     where: {
-//       id: ticket.id,
-//     },
-//     include: {
-//       assignedTo: { select: { id: true, name: true, email: true } },
-//       requester: { select: { id: true, name: true, email: true } },
-//     }
-//   });
-
-
-
-
-//   if (!createdData) {
-//     throw new Error("Ticket creation failed");
-//   }
-
-//   // 2️⃣ Save ticket images if provided
-//   if (images?.length) {
-//     const UrlData = data.images.map((url) => ({
-//       ticketId: ticket.id,
-//       url,
-//     }));
-
-//     await prisma.ticketImage.createMany({
-//       data: UrlData,
-//     });
-//   }
-
-
-//   await prisma.ticketImage.createMany()
-
-//   return { success: true, data: createdData };
-// }
 export async function createTicket(
   formData: FormData
 ): Promise<{ success: boolean; data: TicketWithRelations }> {
@@ -134,7 +60,9 @@ export async function createTicket(
     description: formData.get("description"),
     departmentId: formData.get("departmentId"),
     categoryId: formData.get("categoryId"),
+    subcategoryId: formData.get("subcategoryId"),
     priority: formData.get("priority"),
+
   };
 
   // Parse images from JSON string
@@ -202,48 +130,9 @@ export async function getTicket(id: string) {
   });
 }
 
-// Get All Tickets (with pagination and optional search/filter)
-
-// export async function getAllTickets(
-//   page = 1,
-//   searchQuery = "",
-//   filters: Record<string, unknown> = {}
-// ) {
-//   const take = 10;
-//   const skip = (page - 1) * take;
-//   const trimmedQuery = searchQuery.trim();
-
-//   const where = {
-//     ...filters,
-//     ...(trimmedQuery && {
-//       OR: [
-//         { title: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
-//         { description: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
-//       ],
-//     }),
-//   };
-
-//   const total = await prisma.ticket.count({ where });
-
-//   const data = await prisma.ticket.findMany({
-//     where,
-//     skip,
-//     take,
-//     orderBy: { createdAt: "desc" },
-//     include: {
-//       category: true,
-//       department: true,
-//       requester: { select: { id: true, name: true, email: true } },
-//       assignedTo: { select: { id: true, name: true, email: true } },
-//     },
-//   });
-
-//   return { data, total };
-// }
 
 
 
-// import { Prisma } from "@prisma/client";
 // import prisma from "@/libs/prisma"; // မင်း prisma import path အရ adjust လုပ်ပါ
 export async function getAllTickets(
   page = 1,
@@ -320,6 +209,7 @@ export async function updateTicket(
     description: formData.get("description"),
     departmentId: formData.get("departmentId"),
     categoryId: formData.get("categoryId"),
+    subcategoryId: formData.get("subcategoryId"),
     priority: formData.get("priority"),
   };
   const updateData = TicketSchema.parse(updateDataRaw);
