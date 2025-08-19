@@ -148,7 +148,7 @@ export default function Page() {
                 <Header
                     title="Departments"
                     placeholder="Search by Department name"
-                    click={() => setShowForm(true)}
+                    click={() => { if (session?.user.role === "SUPER_ADMIN") setShowForm(true) }}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
                     showNewBtn={session?.user.role === "SUPER_ADMIN"}

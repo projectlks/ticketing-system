@@ -96,7 +96,7 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
                 setForm(mappedData);
                 // ✅ Map existing job positions
                 setJobPositions(
-                    departmentData.positions?.map((job) => ({ title: job.title })) || []
+                    departmentData.positions?.map((job) => ({ title: job.name })) || []
                 );
                 console.log(departmentData.positions)
                 initialFormRef.current = mappedData;

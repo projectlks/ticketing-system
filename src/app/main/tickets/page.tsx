@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { Ticket } from "@prisma/client";
 import { deleteTicket, getAllTickets } from "./action";
 import MultiFilter from "./multiFilter";
+import { useSession } from "next-auth/react";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: {
@@ -50,10 +51,15 @@ export default function Page() {
 
 
     const router = useRouter();
+
+
     // call fetchTickets
     const fetchTickets = async (currentPage: number) => {
         // const { data, total } = await getAllTickets(currentPage, searchQuery, filters);
         // setTickets(data);
+
+
+
 
 
         try {
@@ -180,7 +186,7 @@ export default function Page() {
 
 
 
-
+    const { data } = useSession()
 
     return (
         <>
@@ -192,7 +198,7 @@ export default function Page() {
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
-                    showNewBtn={true}
+                    showNewBtn={data?.user.role === 'REQUESTER'}
                 >
 
                     <MultiFilter filters={filters} setFilters={setFilters} />

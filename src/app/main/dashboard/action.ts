@@ -1,10 +1,65 @@
 "use server";
 
-import { Priority, PrismaClient } from "@prisma/client";
-import { AuditWithRelations, TicketWithRelations } from "./page";
+import { PrismaClient, Prisma, Priority, Ticket, Role } from "@prisma/client";
+import { TicketWithRelations, AuditWithRelations } from "./page";
+
 const prisma = new PrismaClient();
 
-// Define status counts
+// Role-based where filter
+const getRoleWhere = (role: Role, userId?: string): Prisma.TicketWhereInput => {
+    if (role === "REQUESTER" && userId) return { requesterId: userId };
+    if (role === "AGENT" && userId) return { assignedToId: userId };
+    return {}; // SUPER_ADMIN & ADMIN
+};
+
+// Fetch tickets with optional filters
+interface TicketFilter {
+    from?: string;
+    to?: string;
+    role?: Role;
+    userId?: string;
+}
+
+export async function getAllTickets(filters?: TicketFilter) {
+    const { from, to, role, userId } = filters ?? {};
+
+    const where: Prisma.TicketWhereInput = {
+        isArchived: false,
+        ...getRoleWhere(role!, userId),
+    };
+
+    if (from || to) {
+        where.createdAt = {};
+        if (from) where.createdAt.gte = new Date(from);
+        if (to) where.createdAt.lte = new Date(to + "T23:59:59.999Z");
+    }
+
+    const total = await prisma.ticket.count({ where });
+
+    const data: TicketWithRelations[] = await prisma.ticket.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+            requester: { select: { id: true, name: true, email: true } },
+            assignedTo: { select: { id: true, name: true, email: true } },
+            category: true,
+            subcategory: true,
+            department: true,
+            images: true,
+            comments: {
+                include: {
+                    commenter: { select: { id: true, name: true, email: true } },
+                    likes: { include: { user: { select: { id: true, name: true } } } },
+                    replies: true,
+                },
+            },
+        },
+    });
+
+    return { data, total };
+}
+
+// Monthly stats
 interface StatusCounts {
     all: number;
     open: number;
@@ -13,10 +68,8 @@ interface StatusCounts {
     closed: number;
 }
 
-// Trend type
 type Trend = "up" | "down" | "same";
 
-// Full monthly stats type
 export interface MonthlyStats {
     thisMonth: StatusCounts;
     lastMonth: StatusCounts;
@@ -24,87 +77,50 @@ export interface MonthlyStats {
     trends: { [K in keyof StatusCounts]: Trend };
 }
 
-// Helper to calculate trend
 const getTrend = (thisMonth: number, lastMonth: number): Trend => {
     if (thisMonth > lastMonth) return "up";
     if (thisMonth < lastMonth) return "down";
     return "same";
 };
 
-// Main function
-export async function getMonthlyTicketStatsByStatus(): Promise<MonthlyStats> {
+export async function getMonthlyTicketStatsByStatus(role?: Role, userId?: string): Promise<MonthlyStats> {
     const now = new Date();
 
-    // Start and end of this month
     const thisMonthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
     const nextMonthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
-
-    // Start and end of last month
     const lastMonthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, 1));
-    // const thisMonthIndex = now.getMonth();
-    // const lastMonthIndex = thisMonthIndex - 1;
 
-    // Fetch all tickets for last and this month
     const tickets = await prisma.ticket.findMany({
         where: {
-            createdAt: {
-                gte: lastMonthStart,
-                lt: nextMonthStart,
-            },
+            createdAt: { gte: lastMonthStart, lt: nextMonthStart },
+            isArchived: false,
+            ...getRoleWhere(role!, userId),
         },
-        select: {
-            status: true,
-            createdAt: true,
-        },
+        select: { status: true, createdAt: true },
     });
 
-    // Helper to count tickets by month and status
     const countTickets = (monthStart: Date, monthEnd: Date): StatusCounts => {
-        const filtered = tickets.filter(
-            (t) => t.createdAt >= monthStart && t.createdAt < monthEnd
-        );
-
-        const counts: StatusCounts = {
+        const filtered = tickets.filter(t => t.createdAt >= monthStart && t.createdAt < monthEnd);
+        return {
             all: filtered.length,
-            open: filtered.filter((t) => t.status === "OPEN").length,
-            inProgress: filtered.filter((t) => t.status === "IN_PROGRESS").length,
-            resolved: filtered.filter((t) => t.status === "RESOLVED").length,
-            closed: filtered.filter((t) => t.status === "CLOSED").length,
+            open: filtered.filter(t => t.status === "OPEN").length,
+            inProgress: filtered.filter(t => t.status === "IN_PROGRESS").length,
+            resolved: filtered.filter(t => t.status === "RESOLVED").length,
+            closed: filtered.filter(t => t.status === "CLOSED").length,
         };
-
-        return counts;
     };
 
     const thisMonthCounts = countTickets(thisMonthStart, nextMonthStart);
     const lastMonthCounts = countTickets(lastMonthStart, thisMonthStart);
 
-    // Percentage change
     const percentChange: StatusCounts = {
-        all:
-            lastMonthCounts.all === 0
-                ? 100
-                : ((thisMonthCounts.all - lastMonthCounts.all) / lastMonthCounts.all) * 100,
-        open:
-            lastMonthCounts.open === 0
-                ? 100
-                : ((thisMonthCounts.open - lastMonthCounts.open) / lastMonthCounts.open) * 100,
-        inProgress:
-            lastMonthCounts.inProgress === 0
-                ? 100
-                : ((thisMonthCounts.inProgress - lastMonthCounts.inProgress) / lastMonthCounts.inProgress) *
-                100,
-        resolved:
-            lastMonthCounts.resolved === 0
-                ? 100
-                : ((thisMonthCounts.resolved - lastMonthCounts.resolved) / lastMonthCounts.resolved) *
-                100,
-        closed:
-            lastMonthCounts.closed === 0
-                ? 100
-                : ((thisMonthCounts.closed - lastMonthCounts.closed) / lastMonthCounts.closed) * 100,
+        all: lastMonthCounts.all === 0 ? 100 : ((thisMonthCounts.all - lastMonthCounts.all) / lastMonthCounts.all) * 100,
+        open: lastMonthCounts.open === 0 ? 100 : ((thisMonthCounts.open - lastMonthCounts.open) / lastMonthCounts.open) * 100,
+        inProgress: lastMonthCounts.inProgress === 0 ? 100 : ((thisMonthCounts.inProgress - lastMonthCounts.inProgress) / lastMonthCounts.inProgress) * 100,
+        resolved: lastMonthCounts.resolved === 0 ? 100 : ((thisMonthCounts.resolved - lastMonthCounts.resolved) / lastMonthCounts.resolved) * 100,
+        closed: lastMonthCounts.closed === 0 ? 100 : ((thisMonthCounts.closed - lastMonthCounts.closed) / lastMonthCounts.closed) * 100,
     };
 
-    // Trends
     const trends: { [K in keyof StatusCounts]: Trend } = {
         all: getTrend(thisMonthCounts.all, lastMonthCounts.all),
         open: getTrend(thisMonthCounts.open, lastMonthCounts.open),
@@ -113,36 +129,14 @@ export async function getMonthlyTicketStatsByStatus(): Promise<MonthlyStats> {
         closed: getTrend(thisMonthCounts.closed, lastMonthCounts.closed),
     };
 
-    return {
-        thisMonth: thisMonthCounts,
-        lastMonth: lastMonthCounts,
-        percentChange,
-        trends,
-    };
+    return { thisMonth: thisMonthCounts, lastMonth: lastMonthCounts, percentChange, trends };
 }
 
-// Test
-getMonthlyTicketStatsByStatus()
-    .then(console.log)
-    .catch(console.error);
+// Chart data
+export type TicketTrendsData = { labels: string[]; created: number[]; resolved: number[] };
+export type PriorityData = { labels: string[]; counts: number[] };
 
-
-
-// for chartrow
-
-
-export type TicketTrendsData = {
-    labels: string[];
-    created: number[];
-    resolved: number[];
-};
-
-export type PriorityData = {
-    labels: string[];
-    counts: number[];
-};
-
-export async function getTicketChartData(days: number = 7) {
+export async function getTicketChartData(days: number = 7, role?: Role, userId?: string) {
     const today = new Date();
     const lastDays = Array.from({ length: days }).map((_, i) => {
         const d = new Date(today);
@@ -156,20 +150,18 @@ export async function getTicketChartData(days: number = 7) {
     for (const day of lastDays) {
         const created = await prisma.ticket.count({
             where: {
-                createdAt: {
-                    gte: new Date(`${day}T00:00:00.000Z`),
-                    lte: new Date(`${day}T23:59:59.999Z`),
-                },
+                createdAt: { gte: new Date(`${day}T00:00:00.000Z`), lte: new Date(`${day}T23:59:59.999Z`) },
+                isArchived: false,
+                ...getRoleWhere(role!, userId),
             },
         });
 
         const resolved = await prisma.ticket.count({
             where: {
                 status: "CLOSED",
-                updatedAt: {
-                    gte: new Date(`${day}T00:00:00.000Z`),
-                    lte: new Date(`${day}T23:59:59.999Z`),
-                },
+                updatedAt: { gte: new Date(`${day}T00:00:00.000Z`), lte: new Date(`${day}T23:59:59.999Z`) },
+                isArchived: false,
+                ...getRoleWhere(role!, userId),
             },
         });
 
@@ -178,69 +170,43 @@ export async function getTicketChartData(days: number = 7) {
     }
 
     const trends: TicketTrendsData = {
-        labels: lastDays.map((d) =>
-            new Date(d).toLocaleDateString("en-US", { weekday: "short" })
-        ),
+        labels: lastDays.map(d => new Date(d).toLocaleDateString("en-US", { weekday: "short" })),
         created: createdCounts,
         resolved: resolvedCounts,
     };
-
-
-
 
     const priorities: Priority[] = [Priority.URGENT, Priority.HIGH, Priority.MEDIUM, Priority.LOW];
     const priorityCounts: number[] = [];
 
     for (const p of priorities) {
-        const count = await prisma.ticket.count({ where: { priority: p } });
+        const count = await prisma.ticket.count({ where: { priority: p, isArchived: false, ...getRoleWhere(role!, userId) } });
         priorityCounts.push(count);
     }
 
-    const priority: PriorityData = {
-        labels: ["Urgent", "High", "Medium", "Low"],
-        counts: priorityCounts,
-    };
+    const priority: PriorityData = { labels: ["Urgent", "High", "Medium", "Low"], counts: priorityCounts };
 
     return { trends, priority };
 }
 
-
-
-
-export async function getLast5Tickets(): Promise<TicketWithRelations[]> {
-    const data = await prisma.ticket.findMany({
+// Last 5 tickets
+export async function getLast5Tickets(role?: Role, userId?: string): Promise<TicketWithRelations[]> {
+    return prisma.ticket.findMany({
         take: 5,
         orderBy: { createdAt: "desc" },
+        where: { isArchived: false, ...getRoleWhere(role!, userId) },
         include: {
-            category: {
-                select: {
-                    id: true,
-                    name: true,
-                },
-            },
+            category: { select: { id: true, name: true } },
+            requester: { select: { id: true, name: true, email: true } },
+            assignedTo: { select: { id: true, name: true, email: true } },
         },
     });
-
-    return data;
 }
 
-
+// Last 5 audits
 export async function getLast5Audit(): Promise<AuditWithRelations[]> {
-
-    const data = await prisma.audit.findMany({
+    return prisma.audit.findMany({
         take: 5,
         orderBy: { changedAt: "desc" },
-        include: {
-            user: {
-                select: {
-                    id: true,
-                    name: true
-                }
-            }
-        }
-    })
-
-
-
-    return data
+        include: { user: { select: { id: true, name: true } } },
+    });
 }

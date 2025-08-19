@@ -41,13 +41,14 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     const [initialForm, setInitialForm] = useState(emptyForm);
 
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
-    const [jobPositions, setJobPositions] = useState<{ id: string; title: string }[]>([]);
+    const [jobPositions, setJobPositions] = useState<{ id: string; name: string }[]>([]);
 
     const selectRef = useRef<HTMLSelectElement>(null);
 
     // Load account data if updating
     useEffect(() => {
         if (updateID) {
+
             const getData = async () => {
                 const accountData = await getAccount(updateID);
 
@@ -57,7 +58,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                     password: '',
                     role: accountData?.role ?? 'REQUESTER',
                     department: accountData?.department ?? '',
-                    job_position: accountData?.jobPosition?.id ?? '', // ✅ Use ID
+                    job_position: accountData?.jobPositionId ?? '', // ✅ Use ID
                 };
 
                 setForm(normalizedData);
@@ -390,7 +391,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     <option value="" disabled>Select Job Position</option>
                                     {jobPositions.map((job) => (
                                         <option key={job.id} value={job.id}  >
-                                            {job.title}
+                                            {job.name}
                                         </option>
                                     ))}
                                 </select>

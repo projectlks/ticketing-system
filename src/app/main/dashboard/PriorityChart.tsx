@@ -4,10 +4,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { Chart, registerables } from "chart.js";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { getTicketChartData, PriorityData } from "./action";
+import { Role } from "@prisma/client";
 
 Chart.register(...registerables);
 
-const PriorityChart: React.FC = () => {
+
+interface PriorityChartProps {
+  role: Role;
+  userId?: string;
+}
+const PriorityChart: React.FC<PriorityChartProps> = ({ role, userId }) => {
   const priorityRef = useRef<HTMLCanvasElement>(null);
   const priorityChartRef = useRef<Chart | null>(null);
 
@@ -16,11 +22,11 @@ const PriorityChart: React.FC = () => {
 
   useEffect(() => {
     async function fetchData() {
-      const data = await getTicketChartData(days);
+      const data = await getTicketChartData(days, role, userId);
       setPriorityData(data.priority);
     }
     fetchData();
-  }, [days]);
+  }, [days, role, userId]);
 
   useEffect(() => {
     if (!priorityData) return;

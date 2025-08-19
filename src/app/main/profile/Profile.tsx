@@ -2,18 +2,18 @@
 import { useState } from "react";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import WorkAndPersonalDetails from "./WorkAndPersonalDetails";
-import { User } from "@prisma/client";
 import Input from "@/components/Input";
 import ProfileCard from "./ProfileCard";
 import PersonalInformation from "./PersonalInformation";
+import { UserFullData } from "./page";
 
 interface Props {
-    data: User;
+    data: UserFullData
 }
 
 export default function ProfilePage({ data }: Props) {
     const [isProfileAddressModal, setProfileAddressModal] = useState(false);
-
+    const [userData, setUserData] = useState<UserFullData>(data)
 
     return (
         <>
@@ -24,16 +24,13 @@ export default function ProfilePage({ data }: Props) {
                     </h3>
 
                     {/* Profile Card */}
-
-
-                    <ProfileCard data={data} Modal={Modal} />
+                    <ProfileCard data={userData} setUserData={setUserData} Modal={Modal} />
 
                     {/* Personal Information */}
-
-                    <PersonalInformation data={data} Modal={Modal} />
+                    <PersonalInformation data={userData} Modal={Modal} />
 
                     {/* Address */}
-                    <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
+                    {/* <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
                         <div className="flex flex-col gap-6 lg:flex-row lg:justify-between">
                             <div>
                                 <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">
@@ -53,12 +50,6 @@ export default function ProfilePage({ data }: Props) {
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="mb-2 text-xs text-gray-500">Postal Code</p>
-                                        <p className="text-sm font-medium text-gray-800">
-                                            {/* {data.postal_code || "N/A"} */}
-                                        </p>
-                                    </div>
-                                    <div>
                                         <p className="mb-2 text-xs text-gray-500">TAX ID</p>
                                         <p className="text-sm font-medium text-gray-800">
                                             {data.identification_no || "N/A"}
@@ -75,17 +66,24 @@ export default function ProfilePage({ data }: Props) {
                                 Edit
                             </button>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Work & Personal Details */}
-                    <WorkAndPersonalDetails data={data} />
+                    {/* <WorkAndPersonalDetails data={data} /> */}
+
+
                 </div>
             </div>
 
-
-
             {isProfileAddressModal && (
-                <Modal title="Edit Address"  onSubmit={()=>{alert("hello")}} onClose={() => setProfileAddressModal(false)}>
+                <Modal
+                    title="Edit Address"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        alert("Update Address");
+                    }}
+                    onClose={() => setProfileAddressModal(false)}
+                >
                     <div className="space-y-4">
                         <Input
                             label="Country"
@@ -111,7 +109,6 @@ export default function ProfilePage({ data }: Props) {
                             errorMessage=""
                             disable={false}
                         />
-
                         <Input
                             label="TAX ID"
                             id="tax_id"
@@ -127,14 +124,11 @@ export default function ProfilePage({ data }: Props) {
                     </div>
                 </Modal>
             )}
-
-
-
         </>
     );
 }
 
-function Modal({ title, children, onClose, onSubmit }: { title: string; children?: React.ReactNode; onClose: () => void,   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
+function Modal({ title, children, onClose, onSubmit }: { title: string; children?: React.ReactNode; onClose: () => void; onSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
     return (
         <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
             <div className="w-full h-full fixed top-0 left-0 bg-black opacity-20" aria-hidden="true" />

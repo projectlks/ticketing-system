@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, JSX, SetStateAction, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -14,8 +14,20 @@ import {
   Cog6ToothIcon,
   AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
+import { useSession } from "next-auth/react";
 
-const navItems = [
+export type Role = "SUPER_ADMIN" | "ADMIN" | "AGENT" | "REQUESTER";
+
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  activeCheck: (route: string) => boolean;
+  badge?: (count: number) => JSX.Element | false;
+  roles?: Role[]; // Only visible for these roles
+}
+
+const navItems: { section: string; items: NavItem[] }[] = [
   {
     section: "Main",
     items: [
@@ -23,35 +35,29 @@ const navItems = [
         name: "Dashboard",
         href: "/main/dashboard",
         icon: Squares2X2Icon,
-        activeCheck: (route: string) => route === "/main/dashboard",
+        activeCheck: (route) => route === "/main/dashboard",
+        roles: ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"],
       },
       {
         name: "Department",
         href: "/main/department",
         icon: BuildingStorefrontIcon,
-        activeCheck: (route: string) => route.startsWith("/main/department"),
+        activeCheck: (route) => route.startsWith("/main/department"),
+        roles: ["SUPER_ADMIN", "ADMIN"],
       },
       {
         name: "Tickets",
         href: "/main/tickets",
         icon: TicketIcon,
-        activeCheck: (route: string) => route.startsWith("/main/tickets"),
-        badge: (count: number) =>
-          count > 0 && (
-            <span
-              title="Opening tickets not assigned to Developer/Engineer"
-              className="bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-0.5 rounded-full"
-            >
-              {count}
-            </span>
-          ),
+        activeCheck: (route) => route.startsWith("/main/tickets"),
+        roles: ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"],
       },
       {
         name: "Reports",
         href: "/main/reports",
         icon: ChartBarIcon,
-        activeCheck: (route: string) =>
-          ["/main/report", "/main/reports"].includes(route),
+        activeCheck: (route) => ["/main/report", "/main/reports"].includes(route),
+        roles: ["SUPER_ADMIN", "ADMIN"],
       },
     ],
   },
@@ -62,13 +68,15 @@ const navItems = [
         name: "Accounts",
         href: "/main/accounts",
         icon: UserGroupIcon,
-        activeCheck: (route: string) => route.startsWith("/main/accounts"),
+        activeCheck: (route) => route.startsWith("/main/accounts"),
+        roles: ["SUPER_ADMIN", "ADMIN"],
       },
       {
         name: "Category",
         href: "/main/category",
         icon: AdjustmentsHorizontalIcon,
-        activeCheck: (route: string) => route.startsWith("/main/category"),
+        activeCheck: (route) => route.startsWith("/main/category"),
+        roles: ["SUPER_ADMIN", "ADMIN"],
       },
     ],
   },
@@ -77,6 +85,7 @@ const navItems = [
 interface Props {
   openSidebar: boolean;
   setOpenSidebar: Dispatch<SetStateAction<boolean>>;
+
 }
 
 export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
@@ -85,15 +94,18 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
 
   const toggleDropdown = (name: string) => {
     setSelectedDropdown(selectedDropdown === name ? "" : name);
-
-
   };
 
-  // :class="openSidebar ? 'translate-x-0 lg:w-[0px] lg:px-0 ' : '-translate-x-full'"
+  const { data } = useSession()
+  // Filter navItems based on role
+  const filteredNavItems = navItems.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => !item.roles || item.roles.includes(data?.user.role as Role)
+    ),
+  }));
 
   return (
-
-
     <aside
       onClick={() => setOpenSidebar(false)}
       className={`sidebar fixed top-0 left-0 flex h-screen w-[300px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0 -translate-x-full
@@ -108,7 +120,7 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
 
       {/* Navigation */}
       <nav className="space-y-6">
-        {navItems.map(({ section, items }) => (
+        {filteredNavItems.map(({ section, items }) => (
           <div key={section}>
             <div className="w-full text-xs text-gray-600 mb-2">{section}</div>
             <div className="space-y-2">
@@ -126,7 +138,7 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
                     <Icon className="h-6 w-6" />
                     <span className="flex items-center gap-2 text-sm font-medium">
                       {name}
-                      {/* {badge && badge(adminSideBarTicketCount)} */}
+                      {badge && badge(0)}
                     </span>
                   </Link>
                 );
@@ -138,7 +150,6 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
         {/* Settings Dropdown */}
         <div>
           <div className="w-full text-xs text-gray-600 mb-2">Setting</div>
-
           <div className="space-y-1">
             <div
               onClick={() => toggleDropdown("settings")}
@@ -151,7 +162,6 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
                 <Cog6ToothIcon className="h-6 w-6" />
                 <span className="text-sm font-medium">Setting</span>
               </div>
-
               <svg
                 className={`transition-transform duration-200 w-4 h-4 ${selectedDropdown === "settings" ? "rotate-180" : "rotate-0"
                   }`}
@@ -160,12 +170,7 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
                 viewBox="0 0 20 20"
                 stroke="currentColor"
               >
-                <path
-                  d="M6 8l4 4 4-4"
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M6 8l4 4 4-4" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
 

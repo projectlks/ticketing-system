@@ -84,7 +84,7 @@ export async function getAccount(id: string) {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
       assignedTickets: { select: { id: true, title: true, status: true, priority: true } }, // tickets assigned to this user
-      jobPosition: { select: { id: true, title: true } }, // <-- include job position
+      jobPosition: { select: { id: true, name: true } }, // <-- include job position
     },
   });
 }

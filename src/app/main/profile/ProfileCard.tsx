@@ -1,33 +1,53 @@
-"use client"
+'use client'
+
 import Avatar from '@/components/Avatar'
 import { CameraIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
-import React, { JSX, ReactNode, useState } from 'react'
+import React, { Dispatch, JSX, ReactNode, SetStateAction, useState } from 'react'
 import Image from "next/image";
-import { User } from '@prisma/client';
 import Input from '@/components/Input';
-import { changeProfileUrl } from './action';
+import Swal from 'sweetalert2';
+import { changePersonalInfo, changeProfileUrl } from './action';
+import { UserFullData } from './page';
 
 interface Props {
-    data: User
-    Modal({ title, children, onClose }: {
+    data: UserFullData;
+    setUserData: Dispatch<SetStateAction<UserFullData>>,
+    Modal({
+        title,
+        children,
+        onClose,
+        onSubmit,
+    }: {
         title: string;
         children?: ReactNode;
         onClose: () => void;
-    }): JSX.Element
+        onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+    }): JSX.Element;
 }
 
-export default function ProfileCard({ data, Modal }: Props) {
+export default function ProfileCard({ data, Modal, setUserData }: Props) {
     const [isProfileInfoModal, setProfileInfoModal] = useState(false);
     const [currentProfileUrl, setCurrentProfileUrl] = useState<string | null>(data.profileUrl || null);
+    const [errors, setErrors] = useState<{ name?: string; workEmail?: string }>({})
+    const [loading, setLoading] = useState(false);
 
+    const [editData, setEditData] = useState({
+        name: data.name || '',
+        workEmail: data.email || '',
+        personalEmail: data.personal_email || '',
+        workPhone: data.work_mobile || '',
+        personalPhone: data.personal_phone || '',
+    });
 
-    // Function to delete old image from server
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setEditData(prev => ({ ...prev, [name]: value }));
+    };
+
     const deleteImage = async (url: string) => {
         const encodedUrl = encodeURIComponent(url);
         await fetch(`/api/delete-image?url=${encodedUrl}`, { method: 'DELETE' });
-
     };
-
 
     const uploadImage = async (file: File): Promise<string> => {
         const formData = new FormData();
@@ -42,36 +62,84 @@ export default function ProfileCard({ data, Modal }: Props) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Show local preview immediately
-
         try {
-            // Delete old image if exists
-            if (currentProfileUrl) {
-                await deleteImage(currentProfileUrl);
-            }
-
-            // Upload new image to server
+            setLoading(true);
+            if (currentProfileUrl) await deleteImage(currentProfileUrl);
             const uploadedUrl = await uploadImage(file);
-
-            // Update database with new profileUrl
             await changeProfileUrl(data.id, uploadedUrl);
-
-            // Update preview with actual server URL
-            setCurrentProfileUrl(uploadedUrl); // <--- sync new URL
-
+            setCurrentProfileUrl(uploadedUrl);
+            setUserData(prev => ({ ...prev, profileUrl: uploadedUrl }));
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Profile image updated successfully.',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (err) {
             console.error("Error updating profile image:", err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update profile image.'
+            });
+        } finally {
+            setLoading(false);
         }
     };
 
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        // --- Validation ---
+        const newErrors: { name?: string } = {};
+        if (!editData.name.trim()) newErrors.name = 'Name is required.';
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
+        setLoading(true);
+
+        // --- Create FormData ---
+        const formData = new FormData();
+        formData.append('userId', data.id);
+        formData.append('name', editData.name);
+        formData.append('personalEmail', editData.personalEmail);
+        formData.append('workPhone', editData.workPhone);
+        formData.append('personalPhone', editData.personalPhone);
+
+        try {
+            const updatedUser = await changePersonalInfo(formData);
+            setUserData(prev => ({ ...prev, ...updatedUser }));
+            setProfileInfoModal(false);
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Personal information updated successfully.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            console.error('Failed to update personal info:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update personal information. Please try again.'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
             <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-
-                        {/* profile img */}
+                        {/* Profile Image */}
                         <div className="relative group w-20 h-20">
                             {currentProfileUrl ? (
                                 <div className="w-full h-full overflow-hidden rounded-full relative">
@@ -94,23 +162,23 @@ export default function ProfileCard({ data, Modal }: Props) {
                                 accept="image/*"
                                 onChange={handleFileChange}
                                 className="absolute inset-0 opacity-0 cursor-pointer"
+                                disabled={loading}
                             />
                         </div>
 
-
-                        {/* use info  */}
+                        {/* User Info */}
                         <div>
-                            <h4 className=" text-lg font-semibold text-center text-gray-800 xl:text-left">
+                            <h4 className="text-lg font-semibold text-center text-gray-800 xl:text-left">
                                 {data.name || "No Name"}
                             </h4>
-                            <p className='text-[10px] mb-2 text-gray-500 '>
-                                {data.email}
-                            </p>
+                            <p className='text-[10px] mb-2 text-gray-500'>{data.email}</p>
                             <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                                 <p className="text-sm text-gray-500">{data.role}</p>
                                 <div className="hidden h-3.5 w-px bg-gray-300 xl:block"></div>
                                 <p className="text-sm text-gray-500">
-                                    {data.department || "No Department"}
+                                    {typeof data.jobPosition === "object"
+                                        ? data.jobPosition?.department?.name || "No Department"
+                                        : "No Department"}
                                 </p>
                             </div>
                         </div>
@@ -119,48 +187,75 @@ export default function ProfileCard({ data, Modal }: Props) {
                     <button
                         onClick={() => setProfileInfoModal(true)}
                         className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        disabled={loading}
                     >
                         <PencilSquareIcon className="w-5 h-5" />
-                        Edit
+                        {loading ? 'Loading...' : 'Edit'}
                     </button>
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* Edit Modal */}
             {isProfileInfoModal && (
-                <Modal title="Edit Personal Information" onClose={() => setProfileInfoModal(false)}>
+                <Modal title="Edit Personal Information" onSubmit={handleSubmit} onClose={() => setProfileInfoModal(false)}>
                     <div className="space-y-4">
                         <Input
+                            label="Work Email"
+                            id="edit-work-email"
+                            name="workEmail"
+                            placeholder="Enter work email"
+                            value={editData.workEmail}
+                            onChange={handleChange}
+                            require
+                            error={!!errors.workEmail}
+                            errorMessage={errors.workEmail || ''}
+                            disable={true}
+                        />
+
+                        <Input
                             label="Name"
-                            id="name"
+                            id="edit-name"
                             name="name"
                             placeholder="Enter name"
-                            value={data.name || ""}
-                            onChange={(e) => console.log("Update name", e.target.value)}
-                            require={true}
+                            value={editData.name}
+                            onChange={handleChange}
+                            require
+                            error={!!errors.name}
+                            errorMessage={errors.name || ''}
+                            disable={false}
+                        />
+
+                        <Input
+                            label="Personal Email"
+                            id="edit-personal-email"
+                            name="personalEmail"
+                            placeholder="Enter personal email"
+                            value={editData.personalEmail}
+                            onChange={handleChange}
+                            require
+                            error={false}
+                            errorMessage={ ''}
+                            disable={false}
+                        />
+                        <Input
+                            label="Work Phone"
+                            id="edit-work-phone"
+                            name="workPhone"
+                            placeholder="Enter work phone"
+                            value={editData.workPhone}
+                            onChange={handleChange}
+                            require={false}
                             error={false}
                             errorMessage=""
                             disable={false}
                         />
                         <Input
-                            label="Email"
-                            id="email"
-                            name="email"
-                            placeholder="Enter email"
-                            value={data.email || ""}
-                            onChange={(e) => console.log("Update email", e.target.value)}
-                            require={true}
-                            error={false}
-                            errorMessage=""
-                            disable={false}
-                        />
-                        <Input
-                            label="Phone"
-                            id="phone"
-                            name="phone"
-                            placeholder="Enter phone"
-                            value={data.work_mobile || data.personal_phone || ""}
-                            onChange={(e) => console.log("Update phone", e.target.value)}
+                            label="Personal Phone"
+                            id="edit-personal-phone"
+                            name="personalPhone"
+                            placeholder="Enter personal phone"
+                            value={editData.personalPhone}
+                            onChange={handleChange}
                             require={false}
                             error={false}
                             errorMessage=""

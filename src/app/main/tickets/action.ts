@@ -6,7 +6,7 @@ import { getCurrentUserId } from "@/libs/action";
 import { AuditChange } from "@/libs/action";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-import { Prisma, Status } from "@prisma/client";
+import { Prisma, Role, Status } from "@prisma/client";
 import { TicketWithRelations } from "./page";
 // import { CommentWithRelations } from "./view/[id]/TicketView";
 
@@ -134,10 +134,89 @@ export async function getTicket(id: string) {
 
 
 // import prisma from "@/libs/prisma"; // မင်း prisma import path အရ adjust လုပ်ပါ
+// export async function getAllTickets(
+//   page = 1,
+//   searchQuery = "",
+//   filters: { key: string; value: string }[] = []
+// ) {
+//   const take = 10;
+//   const skip = (page - 1) * take;
+//   const trimmedQuery = searchQuery.trim();
+
+//   const prismaFilters: Prisma.TicketWhereInput = {};
+
+//   // Map filters to Prisma enum / query
+//   filters.forEach(f => {
+//     if (f.key === "Assigned") {
+//       if (f.value === "Assigned") prismaFilters.assignedToId = { not: null };
+//       else if (f.value === "Not Assigned") prismaFilters.assignedToId = null;
+//     }
+
+//     if (f.key === "Status") {
+//       const statusMap: Record<string, Prisma.TicketWhereInput["status"]> = {
+//         Open: "OPEN",
+//         "In Progress": "IN_PROGRESS",
+//         Resolved: "RESOLVED",
+//         Closed: "CLOSED",
+//       };
+//       prismaFilters.status = statusMap[f.value] || undefined;
+//     }
+
+//     if (f.key === "Priority") {
+//       const priorityMap: Record<string, Prisma.TicketWhereInput["priority"]> = {
+//         Low: "LOW",
+//         Medium: "MEDIUM",
+//         High: "HIGH",
+//         Urgent: "URGENT",
+//       };
+//       prismaFilters.priority = priorityMap[f.value] || undefined;
+//     }
+//   });
+
+//   const where: Prisma.TicketWhereInput = {
+//     ...prismaFilters,
+//     ...(trimmedQuery && {
+//       OR: [
+//         { title: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+//         { description: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+//       ],
+//     }),
+//   };
+
+//   const total = await prisma.ticket.count({ where });
+//   const data = await prisma.ticket.findMany({
+//     where,
+//     skip,
+//     take,
+//     orderBy: { createdAt: "desc" },
+//     include: {
+//       category: true,
+//       department: true,
+//       requester: { select: { id: true, name: true, email: true } },
+//       assignedTo: { select: { id: true, name: true, email: true } },
+//     },
+//   });
+
+//   return { data, total };
+// }
+export async function getCurrentUser() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) return null;
+
+  // Fetch user with role and id from database
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true, email: true, name: true },
+  });
+
+  return user;
+}
+
 export async function getAllTickets(
   page = 1,
   searchQuery = "",
-  filters: { key: string; value: string }[] = []
+  filters: { key: string; value: string }[] = [],
 ) {
   const take = 10;
   const skip = (page - 1) * take;
@@ -145,7 +224,12 @@ export async function getAllTickets(
 
   const prismaFilters: Prisma.TicketWhereInput = {};
 
-  // Map filters to Prisma enum / query
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  console.log("Current user:", user.id, user.role);
+
+  // Apply filters (status, priority, assigned, etc.)
   filters.forEach(f => {
     if (f.key === "Assigned") {
       if (f.value === "Assigned") prismaFilters.assignedToId = { not: null };
@@ -173,6 +257,14 @@ export async function getAllTickets(
     }
   });
 
+  // 🔑 Role-based filtering
+  if (user.role === "REQUESTER") {
+    prismaFilters.requesterId = user.id; // Requesters see only their tickets
+  } else if (user.role === "AGENT") {
+    prismaFilters.assignedToId = user.id; // Agents see tickets assigned to them
+  }
+  // SUPER_ADMIN and ADMIN see all tickets → no filter added
+
   const where: Prisma.TicketWhereInput = {
     ...prismaFilters,
     ...(trimmedQuery && {
@@ -199,6 +291,9 @@ export async function getAllTickets(
 
   return { data, total };
 }
+
+
+
 export async function updateTicket(
   formData: FormData,
   id: string
@@ -308,7 +403,7 @@ export async function updateTicket(
 // Delete Ticket (soft delete example)
 export async function deleteTicket(id: string) {
   // Optional: get logged-in user to track who deleted
-  const session = await getServerSession(authOptions);
+  // const session = await getServerSession(authOptions);
 
   return await prisma.ticket.update({
     where: { id },

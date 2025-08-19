@@ -1,15 +1,15 @@
 "use client"
 
 import Input from "@/components/Input";
-import { User } from "@prisma/client";
 import { JSX, ReactNode, useState } from "react";
 import { changePassword } from "./action";
 import Loading from "@/components/Loading";
 import Swal from "sweetalert2";
-import Button from "@/components/Button";
+import { UserFullData } from "./page";
+// import Button from "@/components/Button";
 
 interface Props {
-    data: User;
+    data: UserFullData;
     Modal({
         title,
         children,

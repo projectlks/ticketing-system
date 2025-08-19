@@ -4,10 +4,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { Chart, registerables } from "chart.js";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { getTicketChartData, TicketTrendsData } from "./action";
+import { Role } from "@prisma/client";
 
 Chart.register(...registerables);
 
-const TicketTrendsChart: React.FC = () => {
+interface TicketTrendsChartProps {
+  role: Role;
+  userId?: string;
+}
+
+const TicketTrendsChart: React.FC<TicketTrendsChartProps> = ({ role, userId }) => {
   const trendsRef = useRef<HTMLCanvasElement>(null);
   const trendsChartRef = useRef<Chart | null>(null);
 
@@ -16,11 +22,11 @@ const TicketTrendsChart: React.FC = () => {
 
   useEffect(() => {
     async function fetchData() {
-      const data = await getTicketChartData(days);
+      const data = await getTicketChartData(days, role, userId);
       setTrendsData(data.trends);
     }
     fetchData();
-  }, [days]);
+  }, [days, role, userId]);
 
   useEffect(() => {
     if (!trendsData) return;
