@@ -122,12 +122,7 @@ export default function SignInPage() {
                 <div className="space-y-5">
                   {/* Email Input */}
                   <div>
-                    <label
-                      htmlFor="email"
-                      className="block mb-1.5 text-sm font-medium text-gray-700"
-                    >
-                      Email <span className="text-red-500">*</span>
-                    </label>
+                  
                     <Input
                       type="email"
                       id="email"
@@ -136,20 +131,17 @@ export default function SignInPage() {
                       value={data.email}
                       onChange={handleChange}
                       error={!!errors.email}
+                      label="Email"
+                      require={true}
+                      errorMessage={errors.email} // added
+                      disable={loading}       // added
                     />
-                    {errors.email && (
-                      <p className="mt-1 text-xs text-red-500">{errors.email}</p>
-                    )}
+                 
                   </div>
 
                   {/* Password Input */}
                   <div>
-                    <label
-                      htmlFor="password"
-                      className="block mb-1.5 text-sm font-medium text-gray-700"
-                    >
-                      Password <span className="text-red-500">*</span>
-                    </label>
+                   
 
                     <div className="relative">
                       <Input
@@ -160,9 +152,14 @@ export default function SignInPage() {
                         value={data.password}
                         onChange={handleChange}
                         error={!!errors.password}
+                        label="Password"                    // added
+                        require={true}              // added
+                        errorMessage={errors.password} // added
+                        disable={loading}           // added
                       />
 
-                      <button
+
+                      {/* <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 transform text-gray-500 focus:outline-none"
@@ -173,12 +170,10 @@ export default function SignInPage() {
                         ) : (
                           <EyeIcon className="w-5 h-5" />
                         )}
-                      </button>
+                      </button> */}
                     </div>
 
-                    {errors.password && (
-                      <p className="mt-1 text-xs text-red-500">{errors.password}</p>
-                    )}
+                
                   </div>
 
                   {/* General Response Error */}

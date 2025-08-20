@@ -165,7 +165,7 @@ export default function Page() {
                                     <tbody>
                                         {accounts.map((account, index) => (
                                             <tr
-                                                onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
+                                                // onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
                                                 key={account.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >

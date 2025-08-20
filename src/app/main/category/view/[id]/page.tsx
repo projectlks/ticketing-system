@@ -9,18 +9,19 @@ import BackBtn from '@/components/BackBtn';
 import CategoryView from './CategoryView';
 
 
-interface PageProps {
-  params: { id: string };
-}
 
-export default async function DepartmentPage({ params }: PageProps) {
-  // Fetch data server-side
+export default async function DepartmentPage({
+  params,
+}: {
+  params?: Promise<{ id: string }>;
+}) {
+  // Await params so it works whether Next's generated type provides a Promise or a plain object
+  const routeParams = await params;
+  const id = routeParams?.id;
+  if (!id) return null;
+  const audit = await getCategoryAuditLogs(id);
 
-  if (!params.id) return null;
-
-  const audit = await getCategoryAuditLogs(params.id);
-
-  const category = await getCategory(params.id);
+  const category = await getCategory(id);
 
   if (!category) {
     return <p className="p-6 text-center text-red-500">Category not found.</p>;

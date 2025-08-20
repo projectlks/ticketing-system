@@ -175,7 +175,7 @@ export default function Page() {
                                         {departments.map((department, index) => (
                                             <tr
 
-                                                onClick={() => router.push(`/main/department/view/${department.id}`)}
+                                                // onClick={() => router.push(`/main/department/view/${department.id}`)}
                                                 key={department.id}
                                                 className="border-b border-gray-100 hover:bg-gray-50"
                                             >

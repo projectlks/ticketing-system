@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 import { UserWithRelations } from './page';
 import Loading from '@/components/Loading';
 import { getAllDepartmentIdAndName, getJobPositionsByDepartment } from '@/libs/action';
+import { useSession } from 'next-auth/react';
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
@@ -240,6 +241,8 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         }
     };
 
+
+    const { data } = useSession()
     return (
         <>
             {loading && <Loading />}
@@ -316,34 +319,40 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                         )}
 
                         {/* Role */}
-                        <div>
-                            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Role
-                            </label>
-                            <div className="relative">
-                                <select
-                                    ref={selectRef}
-                                    id="role"
-                                    name="role"
-                                    value={form.role}
-                                    onChange={handleChange}
-                                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
-                                >
-                                    <option value="REQUESTER">Requester</option>
-                                    <option value="AGENT">Agent</option>
-                                    <option value="ADMIN">Admin</option>
-                                </select>
-                                <span
-                                    onClick={() => {
-                                        selectRef.current?.focus();
-                                        selectRef.current?.click();
-                                    }}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
-                                >
-                                    <ChevronDownIcon className="w-5 h-5" />
-                                </span>
-                            </div>
-                        </div>
+
+                        {
+                            data?.user.role === "SUPER_ADMIN" && (
+                                <div>
+                                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Role
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            ref={selectRef}
+                                            id="role"
+                                            name="role"
+                                            value={form.role}
+                                            onChange={handleChange}
+                                            className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
+                                        >
+                                            <option value="REQUESTER">Requester</option>
+                                            <option value="AGENT">Agent</option>
+                                            <option value="ADMIN">Admin</option>
+                                        </select>
+                                        <span
+                                            onClick={() => {
+                                                selectRef.current?.focus();
+                                                selectRef.current?.click();
+                                            }}
+                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
+                                        >
+                                            <ChevronDownIcon className="w-5 h-5" />
+                                        </span>
+                                    </div>
+                                </div>
+                            )
+                        }
+
 
                         {/* Department */}
                         <div>

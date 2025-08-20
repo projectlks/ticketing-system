@@ -14,10 +14,11 @@ import {
 } from "@heroicons/react/24/outline";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
-import { Ticket } from "@prisma/client";
+// import { Ticket } from "@prisma/client";
 import { deleteTicket, getAllTickets } from "./action";
 import MultiFilter from "./multiFilter";
 import { useSession } from "next-auth/react";
+import type { Ticket } from "@prisma/client";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: {
@@ -226,7 +227,7 @@ export default function Page() {
                                     <tbody>
                                         {tickets.map((ticket, index) => (
                                             <tr
-                                                onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
+                                                // onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                 key={ticket.id}
                                                 className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
                                                     }`}

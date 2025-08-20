@@ -10,18 +10,21 @@ import BackBtn from '@/components/BackBtn';
 import { getUserIdsandEmail } from '@/libs/action';
 
 
-interface PageProps {
-  params: { id: string };
-}
 
-export default async function DepartmentPage({ params }: PageProps) {
-  // Fetch data server-side
 
-  if (!params.id) return null;
+export default async function DepartmentPage({
+  params,
+}: {
+  params?: Promise<{ id: string }>;
+}) {
+  // Await params so it works whether Next's generated type provides a Promise or a plain object
+  const routeParams = await params;
+  const id = routeParams?.id;
+  if (!id) return null;
 
-  const audit = await getTicketAuditLogs(params.id);
+  const audit = await getTicketAuditLogs(id);
 
-  const ticket = await getTicketDetail(params.id);
+  const ticket = await getTicketDetail(id);
 
   const user = await getUserIdsandEmail()
 

@@ -108,7 +108,7 @@ export function DepartmentView({
                                 <h3 className="text-xs tracking-wide text-muted-foreground">Job Position</h3>
                                 <div className="text-sm font-medium">
 
-                                    {department.positions?.map(job => (<p className="border border-gray-300 rounded-full px-3  py-1" key={job.id}>{job.title}</p>))}
+                                    {department.positions?.map(job => (<p className="border border-gray-300 rounded-full px-3  py-1" key={job.id}>{job.name}</p>))}
                                 </div>
                             </div>
                         </dl>

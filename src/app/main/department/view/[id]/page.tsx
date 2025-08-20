@@ -9,18 +9,20 @@ import { getDepartment, getDepartmentAuditLogs } from '../../action';
 import BackBtn from '@/components/BackBtn';
 
 
-interface PageProps {
-  params: { id: string };
-}
 
-export default async function DepartmentPage({ params }: PageProps) {
-  // Fetch data server-side
+export default async function DepartmentPage({
+  params,
+}: {
+  params?: Promise<{ id: string }>;
+}) {
+  // Await params so it works whether Next's generated type provides a Promise or a plain object
+  const routeParams = await params;
+  const id = routeParams?.id;
+  if (!id) return null;
 
-  if (!params.id) return null;
+  const audit = await getDepartmentAuditLogs(id);
 
-  const audit = await getDepartmentAuditLogs(params.id);
-
-  const department = await getDepartment(params.id);
+  const department = await getDepartment(id);
 
   if (!department) {
     return <p className="p-6 text-center text-red-500">Department not found.</p>;
