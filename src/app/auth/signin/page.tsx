@@ -7,10 +7,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
+import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+   const router = useRouter();
 
   const [data, setData] = useState<{
     email: string;
@@ -90,7 +92,7 @@ export default function SignInPage() {
         response: res.error,
       }));
     } else if (res?.ok) {
-      window.location.href = "/main/dashboard";
+      router.push("/main/dashboard");
     }
   };
 
