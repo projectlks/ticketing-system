@@ -35,7 +35,7 @@ export async function createAccount(
     password: formData.get("password"),
     role: formData.get("role"),
     department: formData.get("department"),
-   jobPositionId: formData.get("job_position")?.toString() || undefined
+    jobPositionId: formData.get("job_position")?.toString() || undefined
 
   };
 
@@ -98,25 +98,29 @@ export async function getAllAccounts(
   const skip = (page - 1) * take;
   const trimmedQuery = searchQuery.trim();
 
-  const where = {
+  const where: Prisma.UserWhereInput = {
     isArchived: false,
-    ...(trimmedQuery && {
-      OR: [
-        {
-          name: {
-            contains: trimmedQuery,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-        {
-          email: {
-            contains: trimmedQuery,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-      ],
-    }),
+    role: {
+      not: 'SUPER_ADMIN', // Exclude SUPER_ADMIN
+    },
   };
+
+  if (trimmedQuery) {
+    where.OR = [
+      {
+        name: {
+          contains: trimmedQuery,
+          mode: Prisma.QueryMode.insensitive,
+        },
+      },
+      {
+        email: {
+          contains: trimmedQuery,
+          mode: Prisma.QueryMode.insensitive,
+        },
+      },
+    ];
+  }
 
   const total = await prisma.user.count({ where });
 
@@ -124,7 +128,7 @@ export async function getAllAccounts(
     where,
     skip,
     take,
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
@@ -133,7 +137,6 @@ export async function getAllAccounts(
 
   return { data, total };
 }
-
 // ===== Delete Account (Soft Delete) =====
 export async function deleteAccount(id: string) {
   const session = await getServerSession(authOptions);

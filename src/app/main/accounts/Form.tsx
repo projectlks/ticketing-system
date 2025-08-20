@@ -45,11 +45,13 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     const [jobPositions, setJobPositions] = useState<{ id: string; name: string }[]>([]);
 
     const selectRef = useRef<HTMLSelectElement>(null);
+    const { data } = useSession();
+    const isSuperAdmin = data?.user.role === "SUPER_ADMIN";
+    const isEditing = !!updateID;
 
     // Load account data if updating
     useEffect(() => {
         if (updateID) {
-
             const getData = async () => {
                 const accountData = await getAccount(updateID);
 
@@ -57,9 +59,9 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                     name: accountData?.name ?? '',
                     email: accountData?.email ?? '',
                     password: '',
-                    role: accountData?.role ?? 'REQUESTER',
+                    role: accountData?.role ?? 'REQUESTER', // keep DB role
                     department: accountData?.department ?? '',
-                    job_position: accountData?.jobPositionId ?? '', // ✅ Use ID
+                    job_position: accountData?.jobPositionId ?? '',
                 };
 
                 setForm(normalizedData);
@@ -67,10 +69,11 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
             };
             getData();
         } else {
-            setForm(emptyForm);
-            setInitialForm(emptyForm);
+            // New account creation
+            setForm(isSuperAdmin ? emptyForm : { ...emptyForm, role: 'REQUESTER' });
+            setInitialForm(isSuperAdmin ? emptyForm : { ...emptyForm, role: 'REQUESTER' });
         }
-    }, [updateID]);
+    }, [updateID, isSuperAdmin]);
 
     // Fetch departments
     useEffect(() => {
@@ -88,7 +91,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                 const data = await getJobPositionsByDepartment(form.department);
                 setJobPositions(data);
 
-                // If current job_position not in new department, reset it
                 if (!data.some((job) => job.id === form.job_position)) {
                     setForm((prev) => ({ ...prev, job_position: '' }));
                 }
@@ -100,11 +102,8 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         }
     }, [form.department]);
 
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-
-
         setForm((prev) => ({ ...prev, [name]: value }));
         setErrors((prev) => ({ ...prev, [name]: '', response: null }));
     };
@@ -205,6 +204,10 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                     });
                 }
             } else {
+
+                if (!isSuperAdmin) {
+                    formData.set('role', 'REQUESTER'); // force role for non-SUPER_ADMIN
+                }
                 const { success, data }: { success: boolean; data: UserWithRelations } = await createAccount(formData);
                 if (success) {
                     setAccounts((prev) => [data, ...prev]);
@@ -241,8 +244,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         }
     };
 
-
-    const { data } = useSession()
     return (
         <>
             {loading && <Loading />}
@@ -319,40 +320,36 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                         )}
 
                         {/* Role */}
-
-                        {
-                            data?.user.role === "SUPER_ADMIN" && (
-                                <div>
-                                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Role
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            ref={selectRef}
-                                            id="role"
-                                            name="role"
-                                            value={form.role}
-                                            onChange={handleChange}
-                                            className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
-                                        >
-                                            <option value="REQUESTER">Requester</option>
-                                            <option value="AGENT">Agent</option>
-                                            <option value="ADMIN">Admin</option>
-                                        </select>
-                                        <span
-                                            onClick={() => {
-                                                selectRef.current?.focus();
-                                                selectRef.current?.click();
-                                            }}
-                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
-                                        >
-                                            <ChevronDownIcon className="w-5 h-5" />
-                                        </span>
-                                    </div>
+                        {isSuperAdmin && (
+                            <div>
+                                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Role
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        ref={selectRef}
+                                        id="role"
+                                        name="role"
+                                        value={form.role}
+                                        onChange={handleChange}
+                                        className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
+                                    >
+                                        <option value="REQUESTER">Requester</option>
+                                        <option value="AGENT">Agent</option>
+                                        <option value="ADMIN">Admin</option>
+                                    </select>
+                                    <span
+                                        onClick={() => {
+                                            selectRef.current?.focus();
+                                            selectRef.current?.click();
+                                        }}
+                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
+                                    >
+                                        <ChevronDownIcon className="w-5 h-5" />
+                                    </span>
                                 </div>
-                            )
-                        }
-
+                            </div>
+                        )}
 
                         {/* Department */}
                         <div>
@@ -371,7 +368,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         Select Department
                                     </option>
                                     {departments.map((dept) => (
-                                        <option key={dept.id} value={dept.id} >
+                                        <option key={dept.id} value={dept.id}>
                                             {dept.name}
                                         </option>
                                     ))}
@@ -397,9 +394,11 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                     disabled={!form.department}
                                 >
-                                    <option value="" disabled>Select Job Position</option>
+                                    <option value="" disabled>
+                                        Select Job Position
+                                    </option>
                                     {jobPositions.map((job) => (
-                                        <option key={job.id} value={job.id}  >
+                                        <option key={job.id} value={job.id}>
                                             {job.name}
                                         </option>
                                     ))}
@@ -409,7 +408,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                 </span>
                             </div>
                             {errors.job_position && <p className="text-red-500 text-xs mt-1">{errors.job_position}</p>}
-
                         </div>
 
                         {errors.response && (
