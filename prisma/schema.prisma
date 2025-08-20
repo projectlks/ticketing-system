@@ -102,7 +102,7 @@ model User {
 // ======================
 model Department {
   id          String  @id @default(cuid())
-  name        String
+  name        String  @unique   // add unique here
   description String?
   contact     String?
   email       String?
@@ -126,6 +126,7 @@ model Department {
   @@index([isArchived])
   @@map("department")
 }
+
 
 // ======================
 // JobPosition model
