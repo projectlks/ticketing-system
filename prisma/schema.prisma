@@ -47,23 +47,21 @@ model User {
   profileUrl String?
 
   // HR fields
-  employee_id        String?
-  department         String?
-  manager            String?
-  status             String?
-  work_mobile        String?
-  personal_phone     String?
-  address            String?
-  personal_email     String?
-  language           String?
-  emergency_contact  String?
-  emergency_phone    String?
-  nationality        String?
-  identification_no  String?
-  passport_no        String?
-  date_of_birth      DateTime?
-  marital_status     String?
-  number_of_children Int?
+  employeeId       String?
+  status           String?
+  workMobile       String?
+  personalPhone    String?
+  address          String?
+  personalEmail    String?
+  language         String?
+  emergencyContact String?
+  emergencyPhone   String?
+  nationality      String?
+  identificationNo String?
+  passportNo       String?
+  dateOfBirth      DateTime?
+  maritalStatus    String?
+  numberOfChildren Int?
 
   // Relations: created/updated users
   creatorId    String?
@@ -78,19 +76,22 @@ model User {
   managedDepartments Department[] @relation("DepartmentManager")
   updatedDepartments Department[] @relation("DepartmentUpdaters")
 
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
   // Categories
   createdCategories Category[] @relation("CategoryCreators")
   updatedCategories Category[] @relation("CategoryUpdaters")
 
   // Job Positions
   jobPositionId       String?
-  jobPosition         JobPosition?  @relation(fields: [jobPositionId], references: [id]) // assigned position
-  createdJobPositions JobPosition[] @relation("JobPositionCreator") // positions created by this user
+  jobPosition         JobPosition?  @relation(fields: [jobPositionId], references: [id])
+  createdJobPositions JobPosition[] @relation("JobPositionCreator")
 
   // Tickets
   requestTickets  Ticket[]      @relation("TicketRequester")
   assignedTickets Ticket[]      @relation("TicketAssignedTo")
-  likes           CommentLike[] // references User via CommentLike
+  likes           CommentLike[]
 
   // Audits & Comments
   audits   Audit[]
@@ -102,7 +103,7 @@ model User {
 // ======================
 model Department {
   id          String  @id @default(cuid())
-  name        String  @unique   // add unique here
+  name        String  @unique
   description String?
   contact     String?
   email       String?
@@ -122,27 +123,26 @@ model Department {
 
   tickets   Ticket[]      @relation("DepartmentTickets")
   positions JobPosition[]
+  users     User[] // all users in this department
 
   @@index([isArchived])
   @@map("department")
 }
 
-
 // ======================
 // JobPosition model
 // ======================
 model JobPosition {
-  id   String @id @default(cuid()) // UUID for uniqueness
+  id   String @id @default(cuid())
   name String
 
   // Department relation
   department   Department @relation(fields: [departmentId], references: [id])
   departmentId String
 
-  // Users assigned to this job position (many-to-many)
-  users User[]
+  users User[] // Users assigned to this job position
 
-  // Creator of this JobPosition (optional)
+  // Creator
   creatorId String?
   creator   User?    @relation("JobPositionCreator", fields: [creatorId], references: [id])
   createdAt DateTime @default(now())
@@ -152,7 +152,6 @@ model JobPosition {
 // ======================
 // Category model
 // ======================
-
 model Category {
   id   String @id @default(cuid())
   name String
@@ -167,13 +166,12 @@ model Category {
   updatedAt  DateTime @updatedAt
   isArchived Boolean  @default(false)
 
-  // 👇 Self relation to allow dynamic subcategories
   parentId      String?
   parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   subcategories Category[] @relation("CategoryHierarchy")
 
-  tickets Ticket[] @relation("CategoryTickets")
-   subTickets    Ticket[]   @relation("SubcategoryTickets")    // tickets under this subcategory
+  tickets    Ticket[] @relation("CategoryTickets")
+  subTickets Ticket[] @relation("SubcategoryTickets")
 
   @@index([isArchived])
   @@map("category")
@@ -191,8 +189,8 @@ model Ticket {
   categoryId String
   category   Category @relation("CategoryTickets", fields: [categoryId], references: [id])
 
-  subcategoryId  String
-  subcategory    Category @relation("SubcategoryTickets", fields: [subcategoryId], references: [id])
+  subcategoryId String
+  subcategory   Category @relation("SubcategoryTickets", fields: [subcategoryId], references: [id])
 
   departmentId String
   department   Department @relation("DepartmentTickets", fields: [departmentId], references: [id])
@@ -214,6 +212,9 @@ model Ticket {
 
   images   TicketImage[]
   comments Comment[]
+
+  @@index([departmentId])
+  @@index([assignedToId])
 }
 
 // ======================

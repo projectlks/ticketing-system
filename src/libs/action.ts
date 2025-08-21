@@ -3,6 +3,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 import { prisma } from "./prisma";
+import { getCurrentUser } from "@/app/main/tickets/action";
+import { NextResponse } from "next/server";
 
 // ====================
 // User Utilities
@@ -65,4 +67,39 @@ export interface AuditChange {
   field: string;
   oldValue: string;
   newValue: string;
+}
+
+
+
+// app/api/tickets/count/route.ts
+
+
+export async function getTicketCount() {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  let where = {};
+
+  if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
+    // အကုန်ပြမယ်
+    where = {};
+  } else if (user.role === "AGENT") {
+    // Agent assigned tickets only
+    where = { assignedToId: user.id };
+  } else if (user.role === "REQUESTER") {
+    // Requester tickets only
+    where = { requesterId: user.id }; // categoryId -> requesterId
+  }
+
+  // Only count non-archived tickets
+  const count = await prisma.ticket.count({
+    where: {
+      ...where,
+      isArchived: false,
+
+      // priority: "HIGH", // "အရေးအတွက်" tickets ကို HIGh priority ဆို assume
+    },
+  });
+
+  return count;
 }

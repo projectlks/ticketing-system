@@ -3,6 +3,7 @@
 import { getCurrentUserId } from "@/libs/action"
 import { prisma } from "@/libs/prisma"
 import bcrypt from "bcrypt";
+import { UserFullData } from "./page";
 
 
 
@@ -111,9 +112,9 @@ export async function changePersonalInfo(formData: FormData) {
             where: { id: userId },
             data: {
                 name,
-                personal_email: personalEmail || null,
-                work_mobile: workPhone || null,
-                personal_phone: personalPhone || null,
+                personalEmail: personalEmail || null,
+                workMobile: workPhone || null,
+                personalPhone: personalPhone || null,
             },
         });
 
@@ -121,5 +122,52 @@ export async function changePersonalInfo(formData: FormData) {
     } catch (err) {
         console.error('Failed to update personal info:', err);
         throw new Error('Failed to update personal info');
+    }
+}
+
+
+
+export async function changeHRInfo(formData: FormData) {
+    const userId = formData.get("userId") as string;
+    if (!userId) throw new Error("Missing user ID");
+
+    // Convert FormData entries to Prisma-compatible object
+    const updateData: Record<string, string | number | Date | null> = {};
+
+    formData.forEach((value, key) => {
+        if (key === "userId") return; // skip userId
+
+        if (value === "") {
+            updateData[key] = null; // empty fields become null
+            return;
+        }
+
+        // Handle date conversion
+        if (key === "dateOfBirth") {
+            updateData[key] = new Date(value as string);
+            return;
+        }
+
+        // Handle numeric conversion (optional fields like numberOfChildren)
+        if (key === "numberOfChildren") {
+            updateData[key] = Number(value);
+            return;
+        }
+
+        // Default: treat as string
+        updateData[key] = String(value);
+    });
+
+    console.log(formData)
+    try {
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+        });
+
+        return updatedUser;
+    } catch (err) {
+        console.error("Failed to update personal info:", err);
+        throw new Error("Failed to update personal info");
     }
 }

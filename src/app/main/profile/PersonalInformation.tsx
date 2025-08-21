@@ -115,54 +115,53 @@ export default function ProfileCard({ data, Modal }: Props) {
                 loading && (<Loading />)
             }
             <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
-                <div className="flex flex-col gap-6 lg:flex-row lg:justify-between">
+
+
+                <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">
+                    Personal Information
+                </h4>
+                <div className="grid grid-cols-1 gap-4 ed-700 w-full lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
                     <div>
-                        <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">
-                            Personal Information
-                        </h4>
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-                            <div>
-                                <p className="mb-2 text-xs text-gray-500">Name</p>
-                                <p className="text-sm font-medium text-gray-800">{data.name}</p>
-                            </div>
+                        <p className="mb-2 text-xs text-gray-500">Name</p>
+                        <p className="text-sm font-medium text-gray-800">{data.name}</p>
+                    </div>
 
-                            <div>
-                                <p className="mb-2 text-xs text-gray-500">Role</p>
-                                <p className="text-sm font-medium text-gray-800">{data.role}</p>
-                            </div>
-                            <div>
-                                <p className="mb-2 text-xs text-gray-500">Work Email</p>
-                                <p className="text-sm font-medium text-gray-800">{data.email}</p>
-                            </div>  <div>
-                                <p className="mb-2 text-xs text-gray-500">Personal Email</p>
-                                <p className="text-sm font-medium text-gray-800">{data.personal_email}</p>
-                            </div>
-                            <div>
-                                <p className="mb-2 text-xs text-gray-500">Work Phone</p>
-                                <p className="text-sm font-medium text-gray-800">
-                                    {data.work_mobile || "N/A"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="mb-2 text-xs text-gray-500">Personal Phone</p>
-                                <p className="text-sm font-medium text-gray-800">
-                                    {data.personal_phone || "N/A"}
-                                </p>
-                            </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500">Role</p>
+                        <p className="text-sm font-medium text-gray-800">{data.role}</p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500">Work Email</p>
+                        <p className="text-sm font-medium text-gray-800">{data.email}</p>
+                    </div>  <div>
+                        <p className="mb-2 text-xs text-gray-500">Personal Email</p>
+                        <p className="text-sm font-medium text-gray-800">{data.personalEmail}</p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500">Work Phone</p>
+                        <p className="text-sm font-medium text-gray-800">
+                            {data.workMobile || "N/A"}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500">Personal Phone</p>
+                        <p className="text-sm font-medium text-gray-800">
+                            {data.personalPhone || "N/A"}
+                        </p>
+                    </div>
 
-                            <div className="col-span-2">
-                                <button
-                                    onClick={() => setChangePasswordModal(true)}
-                                    className="mt-2 text-sm border cursor-pointer border-gray-300 rounded px-4 py-2 hover:bg-gray-100"
-                                >
-                                    Change Password
-                                </button>
+                    <div className="col-span-2">
+                        <button
+                            onClick={() => setChangePasswordModal(true)}
+                            className="mt-2 text-sm border cursor-pointer border-gray-300 rounded px-4 py-2 hover:bg-gray-100"
+                        >
+                            Change Password
+                        </button>
 
-                                {/* <Button buttonLabel="Change Password" click={() => setChangePasswordModal(true)} /> */}
-                            </div>
-                        </div>
+                        {/* <Button buttonLabel="Change Password" click={() => setChangePasswordModal(true)} /> */}
                     </div>
                 </div>
+
             </div>
 
             {/* Modals */}

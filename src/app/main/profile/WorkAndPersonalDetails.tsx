@@ -1,125 +1,170 @@
-"use client";
-import React from "react";
-import { UserFullData } from "./page";
+'use client'
+
+import Loading from '@/components/Loading';
+import React, { JSX, ReactNode, useState } from 'react';
+import { UserFullData } from './page';
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import Input from '@/components/Input';
+import { changeHRInfo } from './action';
 
 interface Props {
   data: UserFullData;
+  Modal({
+    title,
+    children,
+    onClose,
+    onSubmit,
+  }: {
+    title: string;
+    children?: ReactNode;
+    onClose: () => void;
+    onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  }): JSX.Element;
 }
 
-export default function WorkAndPersonalDetails({ data }: Props) {
+type EditableField = keyof UserFullData;
+
+export default function WorkAndPersonalDetails({ data, Modal }: Props) {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showForm, setShowForm] = useState<boolean>(false);
+
+  // Fully type-safe Partial<UserFullData>
+  const [editData, setEditData] = useState<Partial<UserFullData>>({ ...data });
+
+  const fields: { label: string; key: EditableField; type?: 'text' | 'number' | 'date' }[] = [
+    { label: 'Employee ID', key: 'employeeId' },
+    { label: 'Status', key: 'status' },
+    { label: 'Address', key: 'address' },
+    { label: 'Language', key: 'language' },
+    { label: 'Emergency Contact', key: 'emergencyContact' },
+    { label: 'Emergency Phone', key: 'emergencyPhone' },
+    { label: 'Nationality', key: 'nationality' },
+    { label: 'Identification No', key: 'identificationNo' },
+    { label: 'Passport No', key: 'passportNo' },
+    { label: 'Date of Birth', key: 'dateOfBirth', type: 'date' },
+    { label: 'Marital Status', key: 'maritalStatus' },
+    { label: 'Number of Children', key: 'numberOfChildren', type: 'number' },
+
+  ];
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    setEditData(prev => {
+      // type-safe conversion
+      if (type === 'number') {
+        return { ...prev, [name]: value === '' ? undefined : Number(value) } as Partial<UserFullData>;
+      }
+      if (type === 'date') {
+        return { ...prev, [name]: value === '' ? undefined : new Date(value) } as Partial<UserFullData>;
+      }
+      return { ...prev, [name]: value } as Partial<UserFullData>;
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Convert editData to FormData
+      const formData = new FormData();
+      formData.append("userId", data.id); // user id is required
+
+      fields.forEach(field => {
+        const value = editData[field.key];
+        if (value !== undefined && value !== null) {
+          if (field.type === "date" && value instanceof Date) {
+            formData.append(field.key, value.toISOString().split("T")[0]);
+          } else {
+            formData.append(field.key, String(value));
+          }
+        } else {
+          formData.append(field.key, ""); // empty to null
+        }
+      });
+
+      const updatedUser = await changeHRInfo(formData);
+      console.log("Updated user:", updatedUser);
+
+      // Update local state with returned user
+      setEditData({ ...updatedUser });
+
+      setShowForm(false);
+    } catch (err) {
+      console.error("Failed to update personal info:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderValue = (value: UserFullData[EditableField]) => {
+    if (value === null || value === undefined) return 'N/A';
+    if (value instanceof Date) return value.toLocaleDateString();
+    return String(value);
+  };
+
   return (
-    <div className="p-5 border border-gray-200 rounded-2xl lg:p-6">
-      <h4 className="text-lg font-semibold text-gray-800 mb-6">
-        Work & Personal Details
-      </h4>
+    <>
+      {loading && <Loading />}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-
-        {/* Work Fields */}
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Employee ID</p>
-          <p className="text-sm font-medium text-gray-800">{data.employee_id || "N/A"}</p>
+      <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
+        <div className="flex justify-between items-center">
+          <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">
+            HR & Personal Information
+          </h4>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={loading}
+          >
+            <PencilSquareIcon className="w-5 h-5" />
+            {loading ? 'Loading...' : 'Edit'}
+          </button>
         </div>
 
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Job Position</p>
-          <p className="text-sm font-medium text-gray-800">{data.jobPosition?.name || "N/A"}</p>
+        <div className="grid grid-cols-1 gap-4 w-full lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+          {fields.map(field => (
+            <div key={field.key}>
+              <p className="mb-2 text-xs text-gray-500">{field.label}</p>
+              <p className="text-sm font-medium text-gray-800">
+                {renderValue(editData[field.key] as UserFullData[EditableField])}
+              </p>
+            </div>
+          ))}
         </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Department</p>
-          <p className="text-sm font-medium text-gray-800">
-            {data.jobPosition?.department?.name || data.department || "N/A"}
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Manager</p>
-          <p className="text-sm font-medium text-gray-800">
-            {data.jobPosition?.department?.manager?.name || "N/A"}
-            {data.jobPosition?.department?.manager?.email || "N/A"}
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Status</p>
-          <p className="text-sm font-medium text-gray-800">{data.status || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Work Mobile</p>
-          <p className="text-sm font-medium text-gray-800">{data.work_mobile || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Personal Phone</p>
-          <p className="text-sm font-medium text-gray-800">{data.personal_phone || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Work Email</p>
-          <p className="text-sm font-medium text-gray-800">{data.email || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Personal Email</p>
-          <p className="text-sm font-medium text-gray-800">{data.personal_email || "N/A"}</p>
-        </div>
-
-        {/* Personal Fields */}
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Address</p>
-          <p className="text-sm font-medium text-gray-800">{data.address || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Language</p>
-          <p className="text-sm font-medium text-gray-800">{data.language || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Emergency Contact</p>
-          <p className="text-sm font-medium text-gray-800">{data.emergency_contact || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Emergency Phone</p>
-          <p className="text-sm font-medium text-gray-800">{data.emergency_phone || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Nationality</p>
-          <p className="text-sm font-medium text-gray-800">{data.nationality || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Identification No</p>
-          <p className="text-sm font-medium text-gray-800">{data.identification_no || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Passport No</p>
-          <p className="text-sm font-medium text-gray-800">{data.passport_no || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Date of Birth</p>
-          <p className="text-sm font-medium text-gray-800">
-            {data.date_of_birth ? new Date(data.date_of_birth).toLocaleDateString() : "N/A"}
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Marital Status</p>
-          <p className="text-sm font-medium text-gray-800">{data.marital_status || "N/A"}</p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs text-gray-500">Number of Children</p>
-          <p className="text-sm font-medium text-gray-800">{data.number_of_children ?? "N/A"}</p>
-        </div>
-
       </div>
-    </div>
+
+      {showForm && (
+        <Modal
+          title="Edit Personal Information"
+          onSubmit={handleSubmit}
+          onClose={() => setShowForm(false)}
+        >
+          <div className="space-y-4">
+            {fields.map(field => (
+              <Input
+                key={field.key}
+                label={field.label}
+                id={`edit-${field.key}`}
+                name={field.key}
+                placeholder={`Enter ${field.label}`}
+                value={editData[field.key] !== undefined && editData[field.key] !== null
+                  ? field.type === 'date' && editData[field.key] instanceof Date
+                    ? (editData[field.key] as Date).toISOString().split('T')[0]
+                    : String(editData[field.key])
+                  : ''
+                }
+                type={field.type || 'text'}
+                require={false} // all optional
+                error={false}
+                errorMessage=""
+                disable={false}
+                onChange={handleChange}
+              />
+            ))}
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }

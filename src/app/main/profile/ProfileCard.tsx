@@ -34,9 +34,9 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
     const [editData, setEditData] = useState({
         name: data.name || '',
         workEmail: data.email || '',
-        personalEmail: data.personal_email || '',
-        workPhone: data.work_mobile || '',
-        personalPhone: data.personal_phone || '',
+        personalEmail: data.personalEmail || '',
+        workPhone: data.workMobile || '',
+        personalPhone: data.personalPhone || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,6 +179,12 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
                                     {typeof data.jobPosition === "object"
                                         ? data.jobPosition?.department?.name || "No Department"
                                         : "No Department"}
+
+                                    {"                   "}
+
+                                    (
+                                    {`  ${data.jobPosition?.name} `}
+                                    )
                                 </p>
                             </div>
                         </div>
@@ -234,7 +240,7 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
                             onChange={handleChange}
                             require
                             error={false}
-                            errorMessage={ ''}
+                            errorMessage={''}
                             disable={false}
                         />
                         <Input

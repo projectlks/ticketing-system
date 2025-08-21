@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, JSX, SetStateAction, useState } from "react";
+import { Dispatch, JSX, SetStateAction, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -15,6 +15,7 @@ import {
   AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
+import { getTicketCount } from "@/libs/action";
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "AGENT" | "REQUESTER";
 
@@ -23,7 +24,9 @@ interface NavItem {
   href: string;
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
   activeCheck: (route: string) => boolean;
+  // badge?: (count: number) => JSX.Element | false;
   badge?: (count: number) => JSX.Element | false;
+
   roles?: Role[]; // Only visible for these roles
 }
 
@@ -51,6 +54,12 @@ const navItems: { section: string; items: NavItem[] }[] = [
         icon: TicketIcon,
         activeCheck: (route) => route.startsWith("/main/tickets"),
         roles: ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"],
+        badge: (count) =>
+          count > 0 ? (
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-indigo-500 text-gray-100 text-xs px-2">
+              {count}
+            </span>
+          ) : false,
       },
       {
         name: "Reports",
@@ -92,6 +101,20 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
   const [selectedDropdown, setSelectedDropdown] = useState("");
   const pathname = usePathname();
 
+  const [ticketCount, setTicketCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchCount() {
+      try {
+        const count = await getTicketCount();
+        setTicketCount(count);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchCount();
+  }, []);
+
   const toggleDropdown = (name: string) => {
     setSelectedDropdown(selectedDropdown === name ? "" : name);
   };
@@ -107,10 +130,12 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
 
   return (
     <aside
-      onClick={() => setOpenSidebar(false)}
-      className={`sidebar fixed top-0 left-0 flex h-screen w-[300px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0 -translate-x-full
-        ${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0  " : "-translate-x-full"} 
-        lg:static lg:translate-x-0`}
+      // onClick={() => setOpenSidebar(false)}
+      className={`sidebar flex h-screen  flex-col overflow-y-auto 
+        ${openSidebar ? "opacity-100   " : "opacity-0 hidden "} 
+        `}
+
+    // className="w-full bg-red-900"
     >
       {/* Logo */}
       <div className="flex items-center pt-8 space-x-3 pb-7">
@@ -136,9 +161,9 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
                       }`}
                   >
                     <Icon className="h-6 w-6" />
-                    <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex items-center justify-between  w-full gap-2 text-sm font-medium">
                       {name}
-                      {badge && badge(0)}
+                      {badge && badge(name === "Tickets" ? ticketCount : 0)}
                     </span>
                   </Link>
                 );

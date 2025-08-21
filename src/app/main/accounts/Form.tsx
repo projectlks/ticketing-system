@@ -60,7 +60,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                     email: accountData?.email ?? '',
                     password: '',
                     role: accountData?.role ?? 'REQUESTER', // keep DB role
-                    department: accountData?.department ?? '',
+                    department: accountData?.departmentId ?? '',
                     job_position: accountData?.jobPositionId ?? '',
                 };
 
