@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-   const router = useRouter();
+  const router = useRouter();
 
   const [data, setData] = useState<{
     email: string;
@@ -69,7 +69,7 @@ export default function SignInPage() {
     }
 
     if (data.password.length < 8) {
-      validationErrors.password = "Password must be at least 6 characters.";
+      validationErrors.password = "Password must be at least 8 characters.";
       isValid = false;
     }
 
@@ -124,7 +124,7 @@ export default function SignInPage() {
                 <div className="space-y-5">
                   {/* Email Input */}
                   <div>
-                  
+
                     <Input
                       type="email"
                       id="email"
@@ -138,12 +138,12 @@ export default function SignInPage() {
                       errorMessage={errors.email} // added
                       disable={loading}       // added
                     />
-                 
+
                   </div>
 
                   {/* Password Input */}
                   <div>
-                   
+
 
                     <div className="relative">
                       <Input
@@ -175,7 +175,7 @@ export default function SignInPage() {
                       </button> */}
                     </div>
 
-                
+
                   </div>
 
                   {/* General Response Error */}

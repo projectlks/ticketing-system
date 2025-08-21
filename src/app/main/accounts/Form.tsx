@@ -179,6 +179,13 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
             isValid = false;
         }
 
+        if (updateID && form.password.trim()) {
+            if (form.password.length < 8) {
+                newErrors.password = 'Password must be at least 8 characters.';
+                isValid = false;
+            }
+        }
+
         if (!isValid) {
             setErrors(newErrors);
             setLoading(false);
@@ -189,6 +196,11 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
 
         try {
             if (updateID) {
+
+                if (form.password.trim()) {
+                    formData.set('password', form.password);
+
+                }
                 const { success, data } = await updateAccount(formData, updateID);
                 if (success) {
                     setAccounts((prev) => prev.map((item) => (item.id === updateID ? data : item)));
@@ -244,6 +256,8 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         }
     };
 
+
+    // const { data } = useSession()
     return (
         <>
             {loading && <Loading />}
@@ -297,27 +311,28 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                             aria-describedby={errors.email ? 'email-error' : undefined}
                             label="Email"
                             require
-                            disable={loading}
+                            disable={loading || !!updateID}
                             errorMessage={errors.email}
                         />
 
-                        {!updateID && (
+                        {(data?.user.role === "SUPER_ADMIN" || !updateID) && (
                             <Input
                                 id="password"
-                                name="password"
+                                name="password" // keep this as "password"
                                 type="password"
-                                placeholder="Enter your password"
+                                placeholder={updateID ? "Enter new password" : "Enter password"}
                                 value={form.password}
                                 onChange={handleChange}
                                 error={!!errors.password}
                                 aria-invalid={!!errors.password}
                                 aria-describedby={errors.password ? 'password-error' : undefined}
-                                label="Password"
+                                label={updateID ? "New Password (leave blank to keep current)" : "Password"}
                                 require
                                 disable={loading}
                                 errorMessage={errors.password}
                             />
                         )}
+
 
                         {/* Role */}
                         {isSuperAdmin && (

@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 import ViewContext from '@/components/ViewContext';
 import { ticketAssign } from '../../action';
+import { useSession } from 'next-auth/react';
 
 interface Props {
     users: {
@@ -23,6 +24,7 @@ interface Props {
     };
 
 }
+
 
 export default function AssignBox({ users, ticket }: Props) {
     const [ticketData, setTicketData] = useState(ticket);
@@ -70,6 +72,8 @@ export default function AssignBox({ users, ticket }: Props) {
         }
     };
 
+    const { data } = useSession()
+    const show = (!ticketData.assignedTo?.id) && (data?.user.role === "ADMIN" || data?.user.role === "SUPER_ADMIN")
     return (
         <>
             <ViewContext
@@ -77,16 +81,24 @@ export default function AssignBox({ users, ticket }: Props) {
                 value={ticketData.assignedTo?.name || "-"}
             />
 
-            <SelectBox
-                label=" Assigned User"
-                id="assignUser"
-                name="assignUser"
-                value={ticketData.assignedTo?.id || ""}
-                options={users}
-                showEmail
-                onChange={handleAssignChange}
-                placeholder="Select user"
-            />
+            {
+              show && (
+                    <>
+
+                        <SelectBox
+                            label="Assigned User"
+                            id="assignUser"
+                            name="assignUser"
+                            value={ticketData.assignedTo?.id || ""}
+                            options={users}
+                            showEmail
+                            onChange={handleAssignChange}
+                            placeholder="Select user"
+                        />
+                    </>
+                )
+            }
+
         </>
     );
 }

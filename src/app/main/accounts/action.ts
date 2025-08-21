@@ -21,6 +21,7 @@ const FormSchema = z.object({
 
 const FormSchemaUpdate = FormSchema.omit({
   password: true,
+  email: true
 });
 
 
@@ -157,7 +158,7 @@ export async function updateAccount(
 ): Promise<{ success: boolean; data: UserWithRelations }> {
   const updateDataRaw = {
     name: formData.get("name"),
-    email: formData.get("email"),
+    // email: formData.get("email"),
     role: formData.get("role"),
     department: formData.get("department"),
     jobPositionId: formData.get("job_position")?.toString() || undefined
@@ -165,6 +166,12 @@ export async function updateAccount(
   };
 
   const updateData = FormSchemaUpdate.parse(updateDataRaw);
+  const newPassword = formData.get('password')?.toString();
+  let hashedPassword: string | undefined;
+
+  if (newPassword) {
+    hashedPassword = await bcrypt.hash(newPassword, 10);
+  }
 
   try {
     const updaterId = await getCurrentUserId();
@@ -193,9 +200,21 @@ export async function updateAccount(
       }
     );
 
+    // await prisma.user.update({
+    //   where: { id },
+    //   data: { ...updateData, updaterId },
+    // });
+
+
+    const updatePayload = {
+      ...updateData,
+      updaterId,
+      ...(hashedPassword ? { password: hashedPassword } : {})
+    };
+
     await prisma.user.update({
       where: { id },
-      data: { ...updateData, updaterId },
+      data: updatePayload,
     });
 
     if (changes.length > 0) {
@@ -222,8 +241,9 @@ export async function updateAccount(
 
     return { success: true, data };
   } catch (error) {
-    console.error("Error updating account:", error);
-    throw error;
+    throw new Error(`Failed to update account ${id}: ${error instanceof Error ? error.message : error}`);
+
+
   }
 }
 
