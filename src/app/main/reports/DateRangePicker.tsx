@@ -34,7 +34,7 @@ export default function DateRangePicker({
                 setToDate(newFrom);
               }
             }}
-            className="w-full pl-8 pr-2 py-2 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full pl-8 pr-2 py-2 text-xs border border-gray-300 rounded  transition-colors text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 "
             placeholder="From"
           />
         </div>
@@ -61,7 +61,7 @@ export default function DateRangePicker({
             className={`w-full pl-8 pr-2 py-2 text-xs border rounded transition-colors ${
               !fromDate
                 ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
-                : "border-gray-300 bg-white text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                : "border-gray-300 bg-white text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 "
             }`}
             placeholder="To"
           />

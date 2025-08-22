@@ -13,6 +13,7 @@ import Button from "@/components/Button";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DateRangePicker from "./DateRangePicker";
+import { ArrowDownCircleIcon } from "@heroicons/react/24/outline";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: { id: string; name: string; email: string } | null;
@@ -189,9 +190,9 @@ export default function Page() {
                     />
                     {/* Excel Download */}
                     <div>
-                        <Button buttonLabel="Download Excel" click={() => downloadExcel(tickets, selectedTickets)}>
-                            {/* <ArrowDownCircleIcon className="w-5 h-5" /> */}
-                        </Button>
+                        <button onClick={() => downloadExcel(tickets, selectedTickets)} className="bg-indigo-500 px-2 py-1 rounded text-gray-100">
+                            <ArrowDownCircleIcon className="w-6 h-6" />
+                        </button>
                     </div>
                 </div>
 

@@ -92,12 +92,12 @@ export default function CommentInput({ setComments, ticketId, parentId, onReply 
   return (
     <>
       {loading && <Loading />}
-      <div className="mx-auto max-h-[162px] w-full rounded-2xl border border-gray-200 shadow-xs dark:border-gray-800 dark:bg-gray-800">
+      <div className="mx-auto max-h-[162px] w-full rounded-2xl border border-gray-200 shadow-xs ">
         <textarea
           placeholder="Type your reply here..."
           value={commentText}
           onChange={e => { if (e.target.value.length) setCommentText(e.target.value); }}
-          className="h-20 w-full resize-none border-none bg-transparent p-5 font-normal text-gray-800 outline-none placeholder:text-gray-400 focus:ring-0 dark:text-white"
+          className="h-20 w-full resize-none border-none  p-5 font-normal text-gray-800 outline-none placeholder:text-gray-400 focus:ring-0 "
         />
         <div className="flex items-center justify-between p-3">
           <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
