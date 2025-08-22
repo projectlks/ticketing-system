@@ -1,6 +1,6 @@
 "use client";
 
-import { PaperClipIcon } from "@heroicons/react/24/outline";
+import { PaperClipIcon, TrashIcon } from "@heroicons/react/24/outline";
 import React, { ChangeEvent, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import Image from "next/image";
@@ -116,8 +116,33 @@ export default function CommentInput({ setComments, ticketId, parentId, onReply 
         </div>
       </div>
 
-      {imagePreview && <Image src={imagePreview} width={500} height={500} alt="Preview" className="mt-2 w-[200px] rounded" unoptimized />}
+      {imagePreview && (<>
+
+
+
+
+        <div onClick={(e) => {
+          e.stopPropagation();
+
+          setImageFile(null);
+          setImagePreview(null);
+
+        }} className="group w-fit relative">
+          <div className="absolute inset-0 bg-transparent flex justify-center items-center
+                  group-hover:bg-[rgba(0,0,0,0.5)] transition-colors ">
+            <span className="w-[50px] aspect-square group-hover:opacity-100 opacity-0 rounded-full bg-gray-100 flex justify-center items-center">
+              <TrashIcon className="w-6 h-6 text-red-400" />
+            </span>
+          </div>
+
+          <Image src={imagePreview} width={500} height={500} alt="Preview" className="mt-2 w-[200px] rounded" unoptimized />
+        </div>
+      </>
+
+      )}
 
     </>
   );
 }
+
+

@@ -26,6 +26,10 @@ export type TicketWithRelations = {
         id: string;
         name: string;
     };
+    subcategory: {
+        id: string;
+        name: string;
+    },
 
     department: {
         id: string;
@@ -124,6 +128,7 @@ export async function TicketView({
                             <ViewContext label="Created At" value={new Date(ticket.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
                             <ViewContext label="Updated At" value={new Date(ticket.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
                             <ViewContext label="Category" value={ticket.category?.name || "-"} />
+                            <ViewContext label="Sub Category" value={ticket.subcategory?.name || "-"} />
                             <ViewContext label="Department" value={ticket.department?.name || "-"} />
                             <ViewContext label="Requester" value={ticket.requester?.name || "-"} />
 

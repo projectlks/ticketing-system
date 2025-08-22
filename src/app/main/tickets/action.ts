@@ -449,6 +449,10 @@ export async function getTicketDetail(id: string) {
       category: {
         select: { id: true, name: true },
       },
+      subcategory:{
+                select: { id: true, name: true },
+
+      },
       department: {
         select: { id: true, name: true },
       },
