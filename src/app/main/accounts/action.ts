@@ -100,12 +100,6 @@ export async function getAllAccounts(
   const skip = (page - 1) * take;
   const trimmedQuery = searchQuery.trim();
 
-  // const where: Prisma.UserWhereInput = {
-  //   isArchived: false,
-  //   role: {
-  //     not: 'SUPER_ADMIN', // Exclude SUPER_ADMIN
-  //   },
-  // };
 
 
 
@@ -144,6 +138,8 @@ export async function getAllAccounts(
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
+      department: { select: { id: true, name: true } },
+      jobPosition: { select: { id: true, name: true } }
     },
   });
 

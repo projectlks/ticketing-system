@@ -15,7 +15,6 @@ import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outli
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { prisma } from "@/libs/prisma";
 
 export type UserWithRelations = User & {
     creator?: {
@@ -33,6 +32,10 @@ export type UserWithRelations = User & {
         priority: string;
     }[] | null;
     jobPosition?: {
+        id: string;
+        name: string;
+    } | null;
+    department?: {
         id: string;
         name: string;
     } | null;
@@ -208,8 +211,10 @@ export default function Page() {
                                             <TableHead data="Name" />
                                             <TableHead data="Email" />
                                             <TableHead data="Role" />
-                                            <TableHead data="Created At" />
-                                            <TableHead data="Updated At" />
+                                            <TableHead data="Department" />
+                                            <TableHead data="Job Position" />
+                                            {/* <TableHead data="Created At" />
+                                            <TableHead data="Updated At" /> */}
                                             <TableHead data="Creator" />
                                             <TableHead data="Actions" />
                                             {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />}
@@ -230,8 +235,11 @@ export default function Page() {
                                                 <TableBody data={account.name} />
                                                 <TableBody data={account.email} />
                                                 <TableBody data={account.role} />
-                                                <TableBody data={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-                                                <TableBody data={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+                                                <TableBody data={account.department?.name || ''} />
+                                                <TableBody data={account.jobPosition?.name || ''} />
+
+                                                {/* <TableBody data={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+                                                <TableBody data={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} /> */}
 
 
                                                 <td className={`px-5 py-4 sm:px-6 `}>

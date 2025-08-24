@@ -149,37 +149,7 @@ export default function Page() {
 
                     {/* Date Filter */}
 
-                    {/* <div>
 
-
-                        <input
-                            type="date"
-                            value={fromDate}
-                            max={new Date().toISOString().split("T")[0]}
-                            onChange={(e) => {
-                                const newFrom = e.target.value;
-                                setFromDate(newFrom);
-
-                                if (toDate && newFrom > toDate) {
-                                    setToDate(newFrom);
-                                }
-                            }}
-                            className="border px-2 py-1 rounded"
-                        />
-
-                        <input
-                            type="date"
-                            value={toDate}
-                            min={fromDate || undefined}
-                            max={new Date().toISOString().split("T")[0]}
-                            disabled={!fromDate}
-                            onChange={(e) => {
-                                const newTo = e.target.value;
-                                if (newTo >= fromDate) setToDate(newTo);
-                            }}
-                            className="border px-2 py-1 rounded"
-                        />
-                    </div> */}
 
                     {/* Date Range Picker */}
                     <DateRangePicker
