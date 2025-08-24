@@ -6,7 +6,7 @@ import { getCurrentUserId } from "@/libs/action";
 import { AuditChange } from "@/libs/action";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-import { Prisma, Role, Status } from "@prisma/client";
+import { Prisma, Status } from "@prisma/client";
 import { TicketWithRelations } from "./page";
 // import { CommentWithRelations } from "./view/[id]/TicketView";
 
@@ -103,12 +103,19 @@ export async function createTicket(
       assignedTo: { select: { id: true, name: true, email: true } },
       requester: { select: { id: true, name: true, email: true } },
       images: true,
+      views: true, // ✅ DB မှာ array
     },
   });
 
   if (!createdData) throw new Error("Ticket creation failed");
 
-  return { success: true, data: createdData };
+  // map views array → viewed boolean
+  const ticketWithViewed: TicketWithRelations = {
+    ...createdData,
+    viewed: createdData.views.some(v => v.userId === currentUserId), // creator ရှိမရှိစစ်
+  };
+
+  return { success: true, data: ticketWithViewed };
 }
 
 // Get Single Ticket
@@ -133,72 +140,7 @@ export async function getTicket(id: string) {
 
 
 
-// import prisma from "@/libs/prisma"; // မင်း prisma import path အရ adjust လုပ်ပါ
-// export async function getAllTickets(
-//   page = 1,
-//   searchQuery = "",
-//   filters: { key: string; value: string }[] = []
-// ) {
-//   const take = 10;
-//   const skip = (page - 1) * take;
-//   const trimmedQuery = searchQuery.trim();
 
-//   const prismaFilters: Prisma.TicketWhereInput = {};
-
-//   // Map filters to Prisma enum / query
-//   filters.forEach(f => {
-//     if (f.key === "Assigned") {
-//       if (f.value === "Assigned") prismaFilters.assignedToId = { not: null };
-//       else if (f.value === "Not Assigned") prismaFilters.assignedToId = null;
-//     }
-
-//     if (f.key === "Status") {
-//       const statusMap: Record<string, Prisma.TicketWhereInput["status"]> = {
-//         Open: "OPEN",
-//         "In Progress": "IN_PROGRESS",
-//         Resolved: "RESOLVED",
-//         Closed: "CLOSED",
-//       };
-//       prismaFilters.status = statusMap[f.value] || undefined;
-//     }
-
-//     if (f.key === "Priority") {
-//       const priorityMap: Record<string, Prisma.TicketWhereInput["priority"]> = {
-//         Low: "LOW",
-//         Medium: "MEDIUM",
-//         High: "HIGH",
-//         Urgent: "URGENT",
-//       };
-//       prismaFilters.priority = priorityMap[f.value] || undefined;
-//     }
-//   });
-
-//   const where: Prisma.TicketWhereInput = {
-//     ...prismaFilters,
-//     ...(trimmedQuery && {
-//       OR: [
-//         { title: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
-//         { description: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
-//       ],
-//     }),
-//   };
-
-//   const total = await prisma.ticket.count({ where });
-//   const data = await prisma.ticket.findMany({
-//     where,
-//     skip,
-//     take,
-//     orderBy: { createdAt: "desc" },
-//     include: {
-//       category: true,
-//       department: true,
-//       requester: { select: { id: true, name: true, email: true } },
-//       assignedTo: { select: { id: true, name: true, email: true } },
-//     },
-//   });
-
-//   return { data, total };
-// }
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
 
@@ -212,11 +154,11 @@ export async function getCurrentUser() {
 
   return user;
 }
-
 export async function getAllTickets(
   page = 1,
   searchQuery = "",
   filters: { key: string; value: string }[] = [],
+  viewedFilter?: "SEEN" | "UNSEEN"
 ) {
   const take = 10;
   const skip = (page - 1) * take;
@@ -227,16 +169,11 @@ export async function getAllTickets(
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
-  console.log("Current user:", user.id, user.role);
-
-  // Apply filters (status, priority, assigned, etc.)
+  // Apply filters (status, priority, assigned)
   filters.forEach(f => {
     if (f.key === "Assigned") {
-      if (f.value === "Assigned") prismaFilters.assignedToId = { not: null };
-      else if (f.value === "Not Assigned") prismaFilters.assignedToId = null;
-    }
-
-    if (f.key === "Status") {
+      prismaFilters.assignedToId = f.value === "Assigned" ? { not: null } : null;
+    } else if (f.key === "Status") {
       const statusMap: Record<string, Prisma.TicketWhereInput["status"]> = {
         Open: "OPEN",
         "In Progress": "IN_PROGRESS",
@@ -244,9 +181,7 @@ export async function getAllTickets(
         Closed: "CLOSED",
       };
       prismaFilters.status = statusMap[f.value] || undefined;
-    }
-
-    if (f.key === "Priority") {
+    } else if (f.key === "Priority") {
       const priorityMap: Record<string, Prisma.TicketWhereInput["priority"]> = {
         Low: "LOW",
         Medium: "MEDIUM",
@@ -257,13 +192,13 @@ export async function getAllTickets(
     }
   });
 
-  // 🔑 Role-based filtering
-  if (user.role === "REQUESTER") {
-    prismaFilters.requesterId = user.id; // Requesters see only their tickets
-  } else if (user.role === "AGENT") {
-    prismaFilters.assignedToId = user.id; // Agents see tickets assigned to them
-  }
-  // SUPER_ADMIN and ADMIN see all tickets → no filter added
+  // Role-based filters
+  if (user.role === "REQUESTER") prismaFilters.requesterId = user.id;
+  else if (user.role === "AGENT") prismaFilters.assignedToId = user.id;
+
+  // Seen/Unseen filter
+  if (viewedFilter === "SEEN") prismaFilters.views = { some: { userId: user.id } };
+  if (viewedFilter === "UNSEEN") prismaFilters.views = { none: { userId: user.id } };
 
   const where: Prisma.TicketWhereInput = {
     ...prismaFilters,
@@ -276,7 +211,7 @@ export async function getAllTickets(
   };
 
   const total = await prisma.ticket.count({ where });
-  const data = await prisma.ticket.findMany({
+  const rawData = await prisma.ticket.findMany({
     where,
     skip,
     take,
@@ -286,12 +221,17 @@ export async function getAllTickets(
       department: true,
       requester: { select: { id: true, name: true, email: true } },
       assignedTo: { select: { id: true, name: true, email: true } },
+      views: true,
     },
   });
 
+  const data = rawData.map(ticket => ({
+    ...ticket,
+    viewed: ticket.views.some(v => v.userId === user.id),
+  }));
+
   return { data, total };
 }
-
 
 
 export async function updateTicket(
@@ -380,18 +320,25 @@ export async function updateTicket(
   }
 
   // 10. update ပြီးတဲ့ ticket ကို relations တွေနဲ့ ပြန်ရှာပြီး return ပြန်မယ်
-  const updatedTicket = await prisma.ticket.findFirst({
+  const updatedTicketRaw = await prisma.ticket.findFirst({
     where: { id },
     include: {
       assignedTo: { select: { id: true, name: true, email: true } },
       requester: { select: { id: true, name: true, email: true } },
       images: true,
+      views: true,
     },
   });
 
-  if (!updatedTicket) {
+  if (!updatedTicketRaw) {
     throw new Error('Ticket not found after update');
   }
+
+  // map views array → viewed boolean
+  const updatedTicket: TicketWithRelations = {
+    ...updatedTicketRaw,
+    viewed: updatedTicketRaw.views.some(v => v.userId === updaterId),
+  };
 
   return { success: true, data: updatedTicket };
 }
@@ -449,8 +396,8 @@ export async function getTicketDetail(id: string) {
       category: {
         select: { id: true, name: true },
       },
-      subcategory:{
-                select: { id: true, name: true },
+      subcategory: {
+        select: { id: true, name: true },
 
       },
       department: {
@@ -682,6 +629,27 @@ export async function ticketStatusUpdate(
       newValue: newStatus,
       userId: updaterId,
       changedAt: new Date(),
+    },
+  });
+}
+
+
+
+export async function markTicketAsViewed(ticketId: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  await prisma.ticketView.upsert({
+    where: {
+      ticketId_userId: {
+        ticketId,
+        userId: user.id,
+      },
+    },
+    update: {}, // already viewed => nothing to update
+    create: {
+      ticketId,
+      userId: user.id,
     },
   });
 }

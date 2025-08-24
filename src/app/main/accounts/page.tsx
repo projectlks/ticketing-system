@@ -193,10 +193,10 @@ export default function Page() {
                                                     <DotMenu isBottom={index >= accounts.length - 2} option={{
                                                         view: true,
                                                         edit: true,
-                                                        // delete: true
+delete: data?.user.role === "SUPER_ADMIN"
                                                     }}
 
-                                                        // onDelete={() => handleDelete(account.id)}
+                                                        onDelete={() => handleDelete(account.id)}
                                                         onEdit={(e) => handleEdit(e, account.id)}
                                                         onView={() => router.push(`/main/accounts/view/${account.id}`)}
                                                     />

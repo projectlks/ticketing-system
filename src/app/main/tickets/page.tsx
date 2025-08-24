@@ -10,15 +10,16 @@ import TableHead from "@/components/TableHead";
 import Swal from "sweetalert2";
 import Button from "@/components/Button";
 import {
-    ArrowLongRightIcon, ArrowLongLeftIcon, AdjustmentsVerticalIcon
+    ArrowLongRightIcon, ArrowLongLeftIcon
 } from "@heroicons/react/24/outline";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
 // import { Ticket } from "@prisma/client";
-import { deleteTicket, getAllTickets } from "./action";
+import { deleteTicket, getAllTickets, markTicketAsViewed } from "./action";
 import MultiFilter from "./multiFilter";
 import { useSession } from "next-auth/react";
 import type { Ticket } from "@prisma/client";
+import { useTicketCount } from "@/context/TicketCountContext";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: {
@@ -32,6 +33,8 @@ export type TicketWithRelations = Ticket & {
         name: string;
         email: string;
     } | null;
+    // viewed field, default false
+    viewed: boolean;
 }
 
 
@@ -53,37 +56,51 @@ export default function Page() {
 
     const router = useRouter();
 
+    const { refreshTicketCount } = useTicketCount();
+
 
     // call fetchTickets
     const fetchTickets = async (currentPage: number) => {
-        // const { data, total } = await getAllTickets(currentPage, searchQuery, filters);
-        // setTickets(data);
-
-
-
-
-
         try {
-            // filters: { key: string; value: string }[]
-            const prismaFilters: Record<string, string> = {};
-            filters.forEach(f => {
-                prismaFilters[f.key] = f.value;
+            let viewedFilter: "SEEN" | "UNSEEN" | undefined;
+
+            // Separate "Viewed" filter from others
+            const normalFilters = filters.filter(f => {
+                if (f.key === "Viewed") {
+                    viewedFilter =
+                        f.value === "Seen"
+                            ? "SEEN"
+                            : f.value === "Unseen"
+                                ? "UNSEEN"
+                                : undefined;
+                    return false; // exclude "Viewed" from normal filters
+                }
+                return true;
             });
 
+            // Call backend with normal filters + viewedFilter
+            const { data, total } = await getAllTickets(
+                currentPage,
+                searchQuery,
+                normalFilters,
+                viewedFilter
+            );
 
-            const { data, total } = await getAllTickets(currentPage, searchQuery, filters);
             const totalPages = Math.ceil(total / take);
 
+            // Handle page overflow
             if (currentPage > totalPages && totalPages > 0) {
                 setPage(totalPages);
                 return;
-            } else {
-                setTickets(data);
             }
+
+            setTickets(data);
         } catch (error) {
             console.error("Failed to fetch tickets:", error);
         }
     };
+
+
 
 
 
@@ -229,7 +246,8 @@ export default function Page() {
                                             <tr
                                                 // onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                 key={ticket.id}
-                                                className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
+                                                className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${!ticket.viewed ? "bg-indigo-50" : "bg-white"
+                                                    } ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
                                                     }`}
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
@@ -306,7 +324,15 @@ export default function Page() {
                                                         }}
                                                         // onDelete={() => handleDelete(ticket.id)}
                                                         onEdit={(e) => handleEdit(e, ticket.id)}
-                                                        onView={() => router.push(`/main/tickets/view/${ticket.id}`)}
+                                                        onView={async () => {
+                                                            try {
+                                                                await markTicketAsViewed(ticket.id);
+                                                                refreshTicketCount()
+                                                                router.push(`/main/tickets/view/${ticket.id}`);
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                            }
+                                                        }}
                                                     />
                                                 </td>
                                             </tr>

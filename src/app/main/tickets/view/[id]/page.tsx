@@ -22,6 +22,8 @@ export default async function DepartmentPage({
   const id = routeParams?.id;
   if (!id) return null;
 
+
+ 
   const audit = await getTicketAuditLogs(id);
 
   const ticket = await getTicketDetail(id);

@@ -84,7 +84,7 @@ export default function UserMenu({ menuToggle }: Props) {
               </li>
             </ul>
             <button
-              onClick={() =>{ signOut(); router.push("/auth/signin")}}
+              onClick={() =>{ signOut(); }}
               className="flex items-center justify-center w-full gap-3 px-3 py-2 mt-3 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100"
             >
               <ArrowRightOnRectangleIcon className="w-6 h-6" />

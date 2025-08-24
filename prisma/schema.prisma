@@ -96,6 +96,7 @@ model User {
   // Audits & Comments
   audits   Audit[]
   comments Comment[]
+  views    TicketView[]
 }
 
 // ======================
@@ -213,6 +214,8 @@ model Ticket {
   images   TicketImage[]
   comments Comment[]
 
+  views TicketView[]
+
   @@index([departmentId])
   @@index([assignedToId])
 }
@@ -226,6 +229,18 @@ model TicketImage {
   ticketId  String
   ticket    Ticket   @relation(fields: [ticketId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model TicketView {
+  id       String   @id @default(cuid())
+  ticketId String
+  userId   String
+  viewedAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([ticketId, userId]) // တယောက်ကြိမ်တခါထက်မမြောက်နေရအောင် unique ထား
 }
 
 // ======================

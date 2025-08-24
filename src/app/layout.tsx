@@ -6,6 +6,7 @@ import PortalRoot from "@/components/PortalRoot";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import Providers from "@/components/Provider";
+import { TicketCountProvider } from "@/context/TicketCountContext";
 // import Providers from "@/components/Providers";
 
 const geistSans = Geist({
@@ -46,10 +47,12 @@ export default async function RootLayout({
         </title>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Providers session={session}>
-          {children}
-          <PortalRoot />
-        </Providers>
+        <TicketCountProvider>
+          <Providers session={session}>
+            {children}
+            <PortalRoot />
+          </Providers>
+        </TicketCountProvider>
       </body>
     </html>
   );

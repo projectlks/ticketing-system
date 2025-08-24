@@ -3,7 +3,8 @@
 import { Dispatch, SetStateAction, useState, useRef, useEffect } from "react";
 import { AdjustmentsVerticalIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
-const filterKeys = ["Status", "Priority", "Assigned"];
+// Add "Viewed" to support Seen / Unseen filtering
+const filterKeys = ["Status", "Priority", "Assigned", "Viewed"];
 
 interface Props {
     filters: { key: string; value: string }[];
@@ -15,14 +16,22 @@ export default function MultiFilter({ filters, setFilters }: Props) {
     const [selectedKey, setSelectedKey] = useState<string>("Status");
     const wrapperRef = useRef<HTMLDivElement>(null); // ref to detect outside clicks
 
+    // Add or update a filter
     const addFilter = (value: string) => {
         if (!selectedKey) return;
-        setFilters(prev => [...prev.filter(f => f.key !== selectedKey), { key: selectedKey, value }]);
+        setFilters(prev => [
+            ...prev.filter(f => f.key !== selectedKey),
+            { key: selectedKey, value }
+        ]);
     };
 
+    // Remove a filter by key
     const removeFilter = (key: string) => setFilters(prev => prev.filter(f => f.key !== key));
+
+    // Clear all filters
     const clearFilters = () => setFilters([]);
 
+    // Define options for each filter type
     const getFilterOptions = (key: string) => {
         switch (key) {
             case "Status":
@@ -31,6 +40,8 @@ export default function MultiFilter({ filters, setFilters }: Props) {
                 return ["Low", "Medium", "High", "Urgent", ""];
             case "Assigned":
                 return ["Assigned", "Not Assigned", ""];
+            case "Viewed":
+                return ["Seen", "Unseen", ""];
             default:
                 return [];
         }
@@ -53,6 +64,7 @@ export default function MultiFilter({ filters, setFilters }: Props) {
 
     return (
         <div className="relative" ref={wrapperRef}>
+            {/* Filter Button */}
             <div
                 onClick={() => setShow(!show)}
                 className="h-[34px] aspect-square bg-gray-100 hover:bg-gray-200 flex items-center justify-center rounded cursor-pointer"
@@ -72,7 +84,10 @@ export default function MultiFilter({ filters, setFilters }: Props) {
                             {filters.map(f => (
                                 <div key={f.key} className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded text-xs">
                                     <span>{f.key}: {f.value || "-"}</span>
-                                    <XMarkIcon className="w-3 h-3 cursor-pointer" onClick={() => removeFilter(f.key)} />
+                                    <XMarkIcon
+                                        className="w-3 h-3 cursor-pointer"
+                                        onClick={() => removeFilter(f.key)}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -87,26 +102,34 @@ export default function MultiFilter({ filters, setFilters }: Props) {
 
                     {/* Filter Content */}
                     <div className="flex py-5">
+                        {/* Filter Keys */}
                         <ul className="w-[150px] text-xs px-2 space-y-1 border-r border-gray-300">
                             {filterKeys.map(key => (
                                 <li
                                     key={key}
                                     onClick={() => setSelectedKey(key)}
-                                    className={`cursor-pointer px-3 py-2 flex justify-between items-center rounded ${selectedKey === key ? "bg-indigo-100 text-indigo-600 font-semibold" : ""
+                                    className={`cursor-pointer px-3 py-2 flex justify-between items-center rounded ${selectedKey === key
+                                            ? "bg-indigo-100 text-indigo-600 font-semibold"
+                                            : ""
                                         }`}
                                 >
                                     <span>{key}</span>
-                                    {filters.some(f => f.key === key) && <CheckIcon className="w-4 h-4 text-green-600" />}
+                                    {filters.some(f => f.key === key) && (
+                                        <CheckIcon className="w-4 h-4 text-green-600" />
+                                    )}
                                 </li>
                             ))}
                         </ul>
 
+                        {/* Filter Options */}
                         <div className="flex-1 px-5 space-y-2">
                             <div className="grid grid-cols-2 gap-2">
                                 {getFilterOptions(selectedKey).map(val => (
                                     <label
                                         key={val || "empty"}
-                                        className={`flex items-center text-xs border border-gray-300 rounded px-2 py-1 cursor-pointer ${currentFilter === val ? "bg-blue-100 border-blue-400" : "bg-white hover:bg-gray-100"
+                                        className={`flex items-center text-xs border border-gray-300 rounded px-2 py-1 cursor-pointer ${currentFilter === val
+                                                ? "bg-blue-100 border-blue-400"
+                                                : "bg-white hover:bg-gray-100"
                                             }`}
                                     >
                                         <input

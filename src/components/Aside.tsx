@@ -15,7 +15,9 @@ import {
   AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
-import { getTicketCount } from "@/libs/action";
+import { getUnseenTicketCount } from "@/libs/action";
+import { useTicketCount } from "@/context/TicketCountContext";
+// import { getTicketCount } from "@/libs/action";
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "AGENT" | "REQUESTER";
 
@@ -100,20 +102,21 @@ interface Props {
 export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
   const [selectedDropdown, setSelectedDropdown] = useState("");
   const pathname = usePathname();
+  const { ticketCount } = useTicketCount();
 
-  const [ticketCount, setTicketCount] = useState(0);
+  // const [ticketCount, setTicketCount] = useState(0);
 
-  useEffect(() => {
-    async function fetchCount() {
-      try {
-        const count = await getTicketCount();
-        setTicketCount(count);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    fetchCount();
-  }, []);
+  // useEffect(() => {
+  //   async function fetchCount() {
+  //     try {
+  //       // const count = await getUnseenTicketCount();
+  //       // setTicketCount(count);
+  //     } catch (err) {
+  //       console.error(err);
+  //     }
+  //   }
+  //   fetchCount();
+  // }, []);
 
   const toggleDropdown = (name: string) => {
     setSelectedDropdown(selectedDropdown === name ? "" : name);

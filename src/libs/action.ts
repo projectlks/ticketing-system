@@ -74,32 +74,114 @@ export interface AuditChange {
 // app/api/tickets/count/route.ts
 
 
-export async function getTicketCount() {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
+// export async function getTicketCount() {
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Unauthorized");
 
-  let where = {};
+//   let where = {};
+
+//   if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
+//     // အကုန်ပြမယ်
+//     where = {};
+//   } else if (user.role === "AGENT") {
+//     // Agent assigned tickets only
+//     where = { assignedToId: user.id };
+//   } else if (user.role === "REQUESTER") {
+//     // Requester tickets only
+//     where = { requesterId: user.id }; // categoryId -> requesterId
+//   }
+
+//   // Only count non-archived tickets
+//   const count = await prisma.ticket.count({
+//     where: {
+//       ...where,
+//       isArchived: false,
+
+//       // priority: "HIGH", // "အရေးအတွက်" tickets ကို HIGh priority ဆို assume
+//     },
+//   });
+
+//   return count;
+// }
+
+
+// export async function getUnseenTicketCount() {
+//   const user = await getCurrentUser();
+//   if (!user) throw new Error("Unauthorized");
+
+//   let where: any = { isArchived: false };
+
+//   if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
+//     // Admin / SuperAdmin → အကုန်မြင်နိုင်
+//     where = {
+//       ...where,
+//       views: {
+//         none: { userId: user.id }, // မကြည့်ရသေးတာများ
+//       },
+//     };
+//   } else if (user.role === "AGENT") {
+//     // Agent → သူ့ကို assign လုပ်ထားတဲ့ ticket တွေထဲက မကြည့်ရသေးတာများ
+//     where = {
+//       ...where,
+//       assignedToId: user.id,
+//       views: {
+//         none: { userId: user.id },
+//       },
+//     };
+//   } else if (user.role === "REQUESTER") {
+//     // Requester → သူဖွင့်ထားတဲ့ ticket တွေကိုသာ ပြ
+//     // count မလိုရင် ဒီထဲမှာမထည့်ဘဲ return 0 လည်း လုပ်နိုင်
+//     where = {
+//       ...where,
+//       requesterId: user.id,
+//     };
+//   }
+
+//   const count = await prisma.ticket.count({
+//     where,
+//   });
+
+//   return count;
+// }
+
+
+export async function getUnseenTicketCount() {
+  const user = await getCurrentUser();
+  if (!user) return 0;
 
   if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
-    // အကုန်ပြမယ်
-    where = {};
-  } else if (user.role === "AGENT") {
-    // Agent assigned tickets only
-    where = { assignedToId: user.id };
-  } else if (user.role === "REQUESTER") {
-    // Requester tickets only
-    where = { requesterId: user.id }; // categoryId -> requesterId
+    // Admins → unseen tickets all
+    return prisma.ticket.count({
+      where: {
+        isArchived: false,
+        views: {
+          none: {
+            userId: user.id, // ဒီ user မကြည့်ရသေးရင်
+          },
+        },
+      },
+    });
   }
 
-  // Only count non-archived tickets
-  const count = await prisma.ticket.count({
-    where: {
-      ...where,
-      isArchived: false,
+  if (user.role === "AGENT") {
+    // Agents → only assigned tickets unseen
+    return prisma.ticket.count({
+      where: {
+        isArchived: false,
+        assignedToId: user.id,
+        views: {
+          none: {
+            userId: user.id,
+          },
+        },
+      },
+    });
+  }
 
-      // priority: "HIGH", // "အရေးအတွက်" tickets ကို HIGh priority ဆို assume
-    },
-  });
+  if (user.role === "REQUESTER") {
+    // Requesters → unseen count မလို
+    return 0;
+  }
 
-  return count;
+  return 0;
 }
