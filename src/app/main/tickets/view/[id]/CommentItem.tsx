@@ -109,10 +109,10 @@ export default function CommentItem({ comment, ticketId, setComments, onReply }:
 
 
                                 {
-                                    (comment.replies && comment.replies.length > 0 && comment.replies.length === ind +1) && (
-                                    <span className="absolute left-1 top-[82px]  h-[calc(100%-82px)] bg-white w-[4px] "></span>
-                                
-                                )
+                                    (comment.replies && comment.replies.length > 0 && comment.replies.length === ind + 1) && (
+                                        <span className="absolute left-1 top-[82px]  h-[calc(100%-82px)] bg-white w-[4px] "></span>
+
+                                    )
                                 }
 
 

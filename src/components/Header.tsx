@@ -11,6 +11,7 @@ interface HeaderProps {
     searchQuery: string
     children?: ReactNode
     showNewBtn?: boolean
+    downloadBtn?: ReactNode
 }
 
 export default function Header({
@@ -21,7 +22,9 @@ export default function Header({
     setSearchQuery,
     searchQuery = '',
     children,
-    showNewBtn = false
+    showNewBtn = false,
+    downloadBtn
+
 }: HeaderProps) {
 
     return (
@@ -53,7 +56,10 @@ export default function Header({
             </div>
             {/* </form> */}
 
-            <div></div>
+            <div>
+                {downloadBtn}
+
+            </div>
         </div>
     )
 }

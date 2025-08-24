@@ -109,8 +109,8 @@ export default function MultiFilter({ filters, setFilters }: Props) {
                                     key={key}
                                     onClick={() => setSelectedKey(key)}
                                     className={`cursor-pointer px-3 py-2 flex justify-between items-center rounded ${selectedKey === key
-                                            ? "bg-indigo-100 text-indigo-600 font-semibold"
-                                            : ""
+                                        ? "bg-indigo-100 text-indigo-600 font-semibold"
+                                        : ""
                                         }`}
                                 >
                                     <span>{key}</span>
@@ -128,8 +128,8 @@ export default function MultiFilter({ filters, setFilters }: Props) {
                                     <label
                                         key={val || "empty"}
                                         className={`flex items-center text-xs border border-gray-300 rounded px-2 py-1 cursor-pointer ${currentFilter === val
-                                                ? "bg-blue-100 border-blue-400"
-                                                : "bg-white hover:bg-gray-100"
+                                            ? "bg-blue-100 border-blue-400"
+                                            : "bg-white hover:bg-gray-100"
                                             }`}
                                     >
                                         <input

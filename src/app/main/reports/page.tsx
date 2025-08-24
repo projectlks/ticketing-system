@@ -8,12 +8,18 @@ import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
 import { Ticket } from "@prisma/client";
 import { getAllTickets } from "./action";
-import Button from "@/components/Button";
-// import { ArrowDownCircleIcon } from "@heroicons/react/24/outline";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DateRangePicker from "./DateRangePicker";
-import { ArrowDownCircleIcon } from "@heroicons/react/24/outline";
+import {
+    ArrowDownCircleIcon,
+    ArrowLongLeftIcon,
+    ArrowLongRightIcon,
+    ChevronDownIcon,
+    MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
+import MultiFilter from "../tickets/multiFilter";
+import Button from "@/components/Button";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: { id: string; name: string; email: string } | null;
@@ -35,59 +41,100 @@ export default function Page() {
     const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filters, setFilters] = useState<{ key: string; value: string }[]>([]);
+    const [take, setTake] = useState(10);
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
 
     const router = useRouter();
     const fetchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    // Fetch all tickets
-    const fetchTickets = async (filters?: { from?: string; to?: string }) => {
+    const totalPages = Math.ceil(total / take);
+
+    // Fetch tickets from backend
+    const fetchTickets = async (datefilters?: { from?: string; to?: string }) => {
         setIsLoading(true);
+        let viewedFilter: "SEEN" | "UNSEEN" | undefined;
+
+        const normalFilters = filters.filter((f) => {
+            if (f.key === "Viewed") {
+                viewedFilter =
+                    f.value === "Seen"
+                        ? "SEEN"
+                        : f.value === "Unseen"
+                            ? "UNSEEN"
+                            : undefined;
+                return false;
+            }
+            return true;
+        });
+
         try {
-            const { data } = await getAllTickets(filters);
+            const { data, total } = await getAllTickets(
+                datefilters,
+                normalFilters,
+                page,
+                take,
+                viewedFilter,
+                searchQuery
+            );
             setTickets(data);
-            setSelectedTickets([]); // clear selection on new fetch
+            setTotal(total);
+            setSelectedTickets([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Debounced version
     const fetchTicketsDebounced = (filters?: { from?: string; to?: string }) => {
         if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
         fetchTimeout.current = setTimeout(() => {
             fetchTickets(filters);
-        }, 300); // 300ms debounce
+        }, 300);
     };
 
+    // Initial fetch
     useEffect(() => {
-        // initial fetch
         fetchTickets();
     }, []);
 
-    // Status and Priority colors
-    type StatusType = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
-    const statusColors: Record<StatusType | "DEFAULT", { bg: string; borderAndText: string }> = {
+    // Fetch tickets when filters, dates, search, page, or page size changes
+    useEffect(() => {
+        setPage(1); // reset page on filters/search change
+        fetchTicketsDebounced({ from: fromDate, to: toDate });
+    }, [filters, searchQuery, fromDate, toDate]);
+
+    useEffect(() => {
+        fetchTicketsDebounced({ from: fromDate, to: toDate });
+    }, [page, take]);
+
+    // Status and priority colors
+    const statusColors: Record<
+        string,
+        { bg: string; borderAndText: string }
+    > = {
         OPEN: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
         IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
         RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
         CLOSED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
         DEFAULT: { bg: "bg-gray-500", borderAndText: "border-red-500 text-red-500" },
     };
-    const getStatusColor = (status: string, type: "bg" | "borderAndText" = "bg") => {
-        return statusColors[status as StatusType]?.[type] ?? statusColors.DEFAULT[type];
-    };
+    const getStatusColor = (status: string, type: "bg" | "borderAndText" = "bg") =>
+        statusColors[status]?.[type] ?? statusColors.DEFAULT[type];
 
-    type PriorityType = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-    const priorityColors: Record<PriorityType | "DEFAULT", { bg: string; borderAndText: string }> = {
+    const priorityColors: Record<
+        string,
+        { bg: string; borderAndText: string }
+    > = {
         LOW: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
         MEDIUM: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
         HIGH: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
         URGENT: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
         DEFAULT: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
     };
-    const getPriorityColor = (priority: string, type: "bg" | "borderAndText" = "bg") => {
-        return priorityColors[priority as PriorityType]?.[type] ?? priorityColors.DEFAULT[type];
-    };
+    const getPriorityColor = (priority: string, type: "bg" | "borderAndText" = "bg") =>
+        priorityColors[priority]?.[type] ?? priorityColors.DEFAULT[type];
 
     // Selection functions
     const toggleSelectTicket = (id: string) => {
@@ -96,7 +143,6 @@ export default function Page() {
         );
     };
 
-    // Example: selectedTickets holds IDs of tickets you want to export
     const downloadExcel = (tickets: TicketWithRelations[], selectedTickets: string[]) => {
         const dataToExport = tickets
             .filter((t) => selectedTickets.includes(t.id))
@@ -132,35 +178,48 @@ export default function Page() {
         saveAs(blob, "tickets.xlsx");
     };
 
-    // Fetch tickets automatically when date changes
-    useEffect(() => {
-        fetchTicketsDebounced({ from: fromDate, to: toDate });
-    }, [fromDate, toDate]);
-
     return (
         <>
-            {isLoading && <Loading />}
-            <div className="w-full min-h-full bg-white pb-10 rounded-lg">
+
+            {isLoading && (
+
+                <Loading />
+
+            )}
+
+            <div className="w-full min-h-full bg-white pb-10 rounded-lg relative">
+
                 {/* Header */}
                 <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 justify-between items-center">
                     <div className="flex items-center space-x-2">
                         <h1 className="text-sm text-gray-800">Reports</h1>
                     </div>
 
-                    {/* Date Filter */}
+                    <div className="relative flex items-center space-x-2">
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            className="h-[34px] w-[350px] sm:w-[400px] md:w-[450px] rounded border border-gray-300 bg-transparent px-9 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <div className="absolute top-1/2 left-3 transform -translate-y-1/2 pointer-events-none text-gray-700 w-4 h-4">
+                            <MagnifyingGlassIcon />
+                        </div>
+                        <MultiFilter filters={filters} setFilters={setFilters} />
+                    </div>
 
-
-
-                    {/* Date Range Picker */}
-                    <DateRangePicker
-                        fromDate={fromDate}
-                        toDate={toDate}
-                        setFromDate={setFromDate}
-                        setToDate={setToDate}
-                    />
-                    {/* Excel Download */}
-                    <div>
-                        <button onClick={() => downloadExcel(tickets, selectedTickets)} className="bg-indigo-500 px-2 py-1 rounded text-gray-100">
+                    <div className="flex space-x-2 items-center">
+                        <DateRangePicker
+                            fromDate={fromDate}
+                            toDate={toDate}
+                            setFromDate={setFromDate}
+                            setToDate={setToDate}
+                        />
+                        <button
+                            onClick={() => downloadExcel(tickets, selectedTickets)}
+                            className="bg-indigo-500 px-2 py-1 rounded text-gray-100"
+                        >
                             <ArrowDownCircleIcon className="w-6 h-6" />
                         </button>
                     </div>
@@ -170,7 +229,7 @@ export default function Page() {
                     {tickets.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
-                                <table className="w-full min-w-[1102px] border border-gray-200">
+                                <table id="ticketTable" className="w-full min-w-[1102px] border border-gray-200">
                                     <thead>
                                         <tr className="border-b border-gray-100">
                                             <th className="px-3">
@@ -199,26 +258,22 @@ export default function Page() {
                                     <tbody>
                                         {tickets.map((ticket, index) => (
                                             <tr
-                                                onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                 key={ticket.id}
                                                 className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
                                                     }`}
                                             >
-                                                {/* Selection checkbox */}
                                                 <td className="px-3">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedTickets.includes(ticket.id)}
                                                         onChange={() => toggleSelectTicket(ticket.id)}
-                                                        onClick={(e) => e.stopPropagation()} // prevent row click
+                                                        onClick={(e) => e.stopPropagation()}
                                                     />
                                                 </td>
-
                                                 <TableBody data={String(index + 1)} />
                                                 <TableBody data={ticket.ticketId} />
                                                 <TableBody data={ticket.title} />
                                                 <TableBody data={ticket.description} />
-                                                {/* Status */}
                                                 <td className="px-5 py-4 sm:px-6">
                                                     <div
                                                         className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(
@@ -234,8 +289,6 @@ export default function Page() {
                                                         <p className="text-xs truncate">{ticket.status}</p>
                                                     </div>
                                                 </td>
-
-                                                {/* Priority */}
                                                 <td className="px-5 py-4 sm:px-6">
                                                     <div
                                                         className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(
@@ -251,23 +304,19 @@ export default function Page() {
                                                         <p className="text-xs truncate">{ticket.priority}</p>
                                                     </div>
                                                 </td>
-
                                                 <TableBody
                                                     data={new Date(ticket.createdAt).toLocaleString("en-US", {
                                                         timeZone: "Asia/Yangon",
                                                     })}
                                                 />
-
                                                 <td className="px-5 py-4 sm:px-6">
                                                     <p className="text-gray-500 truncate">{ticket.requester?.name ?? "-"}</p>
                                                     <p className="text-gray-500 text-xs truncate">{ticket.requester?.email ?? "-"}</p>
                                                 </td>
-
                                                 <td className="px-5 py-4 sm:px-6">
                                                     <p className="text-gray-500 truncate">{ticket.assignedTo?.name ?? "-"}</p>
                                                     <p className="text-gray-500 text-xs truncate">{ticket.assignedTo?.email ?? "-"}</p>
                                                 </td>
-
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu
                                                         isBottom={index >= tickets.length - 2}
@@ -279,6 +328,52 @@ export default function Page() {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            {/* Pagination */}
+                            <div className="flex justify-end gap-2 mt-4 items-center">
+                                <Button
+                                    click={() => setPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={page === 1 || isLoading}
+                                    buttonLabel={
+                                        <>
+                                            <ArrowLongLeftIcon className="w-4 h-4" />
+                                            <span> Prev</span>
+                                        </>
+                                    }
+                                />
+                                <Button
+                                    click={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                                    disabled={page >= totalPages || isLoading}
+                                    buttonLabel={
+                                        <>
+                                            <span>Next </span>
+                                            <ArrowLongRightIcon className="w-4 h-4" />
+                                        </>
+                                    }
+                                />
+
+                                <div className="relative">
+                                    <select
+                                        id="take"
+                                        value={take}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setTake(Number(e.target.value));
+                                        }}
+                                        className="h-[33px] rounded-lg border px-2 pr-5 py-1 text-xs text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none border-gray-300"
+                                    >
+                                        <option value={10}>10</option>
+                                        <option value={20}>20</option>
+                                        <option value={30}>30</option>
+                                        <option value={50}>50</option>
+                                        <option value={100}>100</option>
+                                        <option value={99999}>All</option>
+                                    </select>
+                                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                                        <ChevronDownIcon className="w-3 h-3" />
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     ) : (

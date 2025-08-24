@@ -5,7 +5,7 @@ import z from "zod";
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { UserWithRelations } from "./page"; // ✅ imported type from Page
 import { AuditChange, getCurrentUserId } from "@/libs/action";
 
@@ -94,9 +94,10 @@ export async function getAccount(id: string) {
 export async function getAllAccounts(
   page: number = 1,
   searchQuery: string = "",
-  currentUserRole: string
+  currentUserRole: string,
+  take: number = 10
 ) {
-  const take = 10;
+  // const take = 10;
   const skip = (page - 1) * take;
   const trimmedQuery = searchQuery.trim();
 
@@ -125,6 +126,7 @@ export async function getAllAccounts(
           mode: Prisma.QueryMode.insensitive,
         },
       },
+
     ];
   }
 

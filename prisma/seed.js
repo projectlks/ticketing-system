@@ -6,10 +6,10 @@ const prisma = new PrismaClient();
 async function main() {
   // ===== Users =====
   const adminPassword = await bcrypt.hash("QwertyuioP@123!@#", 10);
-  const agentPassword = await bcrypt.hash("QwertyuioP@123!@#", 10);
+  // const agentPassword = await bcrypt.hash("QwertyuioP@123!@#", 10);
 
   await prisma.user.upsert({
-    where: { email: "admin@example.com" },
+    where: { email: "admin@eastwindmyanmar.com" },
     update: {},
     create: {
       name: "Admin User",
@@ -19,18 +19,7 @@ async function main() {
     },
   });
 
-  await prisma.user.upsert({
-    where: { email: "agent@example.com" },
-    update: {},
-    create: {
-      name: "Agent User",
-      email: "agent@example.com",
-      password: agentPassword,
-      role: "AGENT",
-    },
-  });
-
-  console.log("✅ Essential seed data inserted!");
+  // console.log("✅ Essential seed data inserted!");
 }
 
 main()
