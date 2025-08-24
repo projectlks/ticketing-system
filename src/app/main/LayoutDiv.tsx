@@ -4,18 +4,24 @@ import TopBar from "@/components/TopBar";
 import React, { useState } from "react";
 
 export default function LayoutDiv({ children }: { children: React.ReactNode }) {
-    const [openSidebar, setOpenSidebar] = useState<boolean>(true);
+    const [openSidebar, setOpenSidebar] = useState<boolean>(false);
 
     return (
         <>
-            <div className={`sidebar fixed top-0 left-0 border-r border-gray-200 bg-white px-5 transition-all z-50 duration-300
-  ${openSidebar ? "w-[300px] min-w-[300px] translate-x-0" : "w-[0px] -translate-x-full lg:w-[0px] opacity-50 lg:px-0"}
-  lg:static lg:translate-x-0`}>
 
-                <Aside openSidebar={openSidebar} setOpenSidebar={setOpenSidebar} />
-            </div>
+
+            <Aside openSidebar={openSidebar} setOpenSidebar={setOpenSidebar} />
+
 
             <div className="flex-1 flex flex-col overflow-hidden ">
+
+                {/* <div :class="openSidebar ? 'block lg:hidden' : 'hidden'" class="fixed z-10 h-screen w-full bg-gray-900/50 block lg:hidden"></div> */}
+
+                <div
+                    className={`fixed z-10 h-screen w-full bg-gray-900/50 lg:hidden transition-opacity duration-300 ${openSidebar ? "block opacity-100 lg:hidden " : "hidden opacity-0"
+                        }`}
+                    onClick={() => setOpenSidebar(false)} // close sidebar when clicking overlay
+                ></div>
                 <TopBar openSidebar={openSidebar} setOpenSidebar={setOpenSidebar} />
 
                 <div className="p-4 md:p-5 overflow-y-auto h-[calc(100%-76px)] overflow-x-auto bg-gray-100">

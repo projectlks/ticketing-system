@@ -93,17 +93,28 @@ export async function getAccount(id: string) {
 // ===== Get All Accounts =====
 export async function getAllAccounts(
   page: number = 1,
-  searchQuery: string = ""
+  searchQuery: string = "",
+  currentUserRole: string
 ) {
   const take = 10;
   const skip = (page - 1) * take;
   const trimmedQuery = searchQuery.trim();
 
+  // const where: Prisma.UserWhereInput = {
+  //   isArchived: false,
+  //   role: {
+  //     not: 'SUPER_ADMIN', // Exclude SUPER_ADMIN
+  //   },
+  // };
+
+
+
+
+  // SuperAdmin ဆိုရင် filter မထည့်ဘူး၊ အကုန်ပြ
+  // အခြား users အတွက် isArchived=false ထည့်
   const where: Prisma.UserWhereInput = {
-    isArchived: false,
-    role: {
-      not: 'SUPER_ADMIN', // Exclude SUPER_ADMIN
-    },
+    ...(currentUserRole !== "SUPER_ADMIN" && { isArchived: false, role: { not: "SUPER_ADMIN" } }),
+    ...(currentUserRole !== "SUPER_ADMIN" && { role: { not: "SUPER_ADMIN" } }),
   };
 
   if (trimmedQuery) {
@@ -150,6 +161,20 @@ export async function deleteAccount(id: string) {
     },
   });
 }
+export async function restoreAccount(id: string) {
+  const session = await getServerSession(authOptions);
+
+  return await prisma.user.update({
+    where: { id },
+    data: {
+      isArchived: false,
+      updaterId: session?.user?.id,
+    },
+  });
+}
+
+
+
 
 // ===== Update Account =====
 export async function updateAccount(

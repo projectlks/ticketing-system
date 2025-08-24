@@ -58,7 +58,7 @@ const DashboardCard: React.FC<CardData> = ({
           <div
             className={`w-12 h-12 flex justify-center items-center rounded-full border ${iconBorder} ${iconColor}`}
           >
-            <Icon className="h-6 w-6" />
+            <Icon className="h-6 w-6 " />
           </div>
         </div>
         <div className="h-fit">
@@ -140,6 +140,9 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({ stats }) => {
       {cards.map((card, index) => (
         <DashboardCard key={index} {...card} />
       ))}
+
+
+
     </div>
   );
 };

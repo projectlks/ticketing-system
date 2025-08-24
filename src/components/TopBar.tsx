@@ -1,7 +1,7 @@
 "use client";
 
 import { Dispatch, SetStateAction, useState } from "react";
-import { Bars3Icon, SpeakerWaveIcon } from "@heroicons/react/24/outline"; // or /solid
+import { Bars3Icon, EllipsisHorizontalIcon } from "@heroicons/react/24/outline"; // or /solid
 import UserProfile from "./UserProfile";
 import Image from "next/image";
 
@@ -21,15 +21,15 @@ export default function TopBar({ setOpenSidebar, openSidebar }: Props) {
 
 
     return (
-        <div className="w-full h-19 bg-white border-b border-gray-200 ">
+        <div className="w-full min-h-19 bg-white border-b border-gray-200 ">
 
 
-            <div className="flex justify-between lg:flex-row flex-col h-full items-center lg:px-6">
+            <div className="flex justify-between lg:flex-row flex-col  items-center lg:px-6">
                 {/* menu btn */}
 
 
                 {/* left side */}
-                <div className="flex w-full  items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
+                <div className="flex w-full   items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -57,8 +57,11 @@ export default function TopBar({ setOpenSidebar, openSidebar }: Props) {
                             }`}
                         aria-label="Toggle Menu"
                     >
-                        <SpeakerWaveIcon className="w-6 h-6 fill-current" />
+                        <EllipsisHorizontalIcon className="w-6 h-6 fill-current" />
                     </button>
+
+
+
                 </div>
 
                 {/* right side user menu */}

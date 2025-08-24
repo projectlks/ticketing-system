@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import { useEffect, useState } from "react";
 import Portal from "@/components/Portal";
 import Form from "./Form";
-import { deleteAccount, getAllAccounts } from "./action";
+import { deleteAccount, getAllAccounts, restoreAccount } from "./action";
 import { User } from "@prisma/client";
 import TableBody from "@/components/TableBody";
 import DotMenu from "@/components/DotMenu";
@@ -15,6 +15,7 @@ import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outli
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { prisma } from "@/libs/prisma";
 
 export type UserWithRelations = User & {
     creator?: {
@@ -51,12 +52,14 @@ export default function Page() {
 
     const router = useRouter();
 
+    const { data: session } = useSession()
+
 
 
     const fetchAccounts = async (currentPage: number) => {
         try {
             // setLoading(true);
-            const { data, total } = await getAllAccounts(currentPage, searchQuery);
+            const { data, total } = await getAllAccounts(currentPage, searchQuery, session?.user?.role || '');
             const totalPages = Math.ceil(total / take);
             // page က totalPages ထက်ကြီးနေပြီး totalPages > 0 ဆိုရင်
             if (currentPage > totalPages && totalPages > 0) {
@@ -101,7 +104,15 @@ export default function Page() {
 
             if (result.isConfirmed) {
                 await deleteAccount(id);
-                setAccounts(accounts.filter(account => account.id !== id));
+
+                if (data?.user.role === "SUPER_ADMIN") {
+                    setAccounts(accounts.map(acc => acc.id === id ? { ...acc, isArchived: true } : acc));
+
+                }
+                else {
+
+                    setAccounts(accounts.filter(account => account.id !== id));
+                }
 
                 Swal.fire({
                     title: 'Deleted!',
@@ -116,6 +127,47 @@ export default function Page() {
             Swal.fire({
                 title: 'Error!',
                 text: 'Failed to delete the account.',
+                icon: 'error',
+            });
+        }
+    };
+
+
+
+    const handleRestore = async (id: string) => {
+        try {
+            const result = await Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to restore this account?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, restore it!',
+            });
+
+            if (result.isConfirmed) {
+                // Update isArchived to false
+
+                await restoreAccount(id);
+
+
+                // Update UI
+                setAccounts(accounts.map(acc => acc.id === id ? { ...acc, isArchived: false } : acc));
+
+                Swal.fire({
+                    title: 'Restored!',
+                    text: 'The account has been restored.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                });
+            }
+        } catch (error) {
+            console.error("Failed to restore account:", error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to restore the account.',
                 icon: 'error',
             });
         }
@@ -160,6 +212,7 @@ export default function Page() {
                                             <TableHead data="Updated At" />
                                             <TableHead data="Creator" />
                                             <TableHead data="Actions" />
+                                            {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -167,7 +220,11 @@ export default function Page() {
                                             <tr
                                                 // onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
                                                 key={account.id}
-                                                className="border-b border-gray-100 hover:bg-gray-50"
+                                                className={
+                                                    `
+                                                    border-b border-gray-100  ${account.isArchived ? "bg-red-100" : " hover:bg-gray-50 "}
+                                                    `
+                                                }
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={account.name} />
@@ -193,7 +250,7 @@ export default function Page() {
                                                     <DotMenu isBottom={index >= accounts.length - 2} option={{
                                                         view: true,
                                                         edit: true,
-delete: data?.user.role === "SUPER_ADMIN"
+                                                        delete: data?.user.role === "SUPER_ADMIN" && !account.isArchived
                                                     }}
 
                                                         onDelete={() => handleDelete(account.id)}
@@ -201,6 +258,11 @@ delete: data?.user.role === "SUPER_ADMIN"
                                                         onView={() => router.push(`/main/accounts/view/${account.id}`)}
                                                     />
                                                 </td>
+                                                {account.isArchived &&
+                                                    (<td className={`px-5 py-4 sm:px-6 `}>
+                                                        <Button buttonLabel={"Restore"} click={() => handleRestore(account.id)} />
+                                                    </td>)}
+
                                             </tr>
                                         ))}
                                     </tbody>

@@ -99,24 +99,12 @@ interface Props {
 
 }
 
-export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
+export default function Sidebar({ openSidebar }: Props) {
   const [selectedDropdown, setSelectedDropdown] = useState("");
   const pathname = usePathname();
   const { ticketCount } = useTicketCount();
 
-  // const [ticketCount, setTicketCount] = useState(0);
 
-  // useEffect(() => {
-  //   async function fetchCount() {
-  //     try {
-  //       // const count = await getUnseenTicketCount();
-  //       // setTicketCount(count);
-  //     } catch (err) {
-  //       console.error(err);
-  //     }
-  //   }
-  //   fetchCount();
-  // }, []);
 
   const toggleDropdown = (name: string) => {
     setSelectedDropdown(selectedDropdown === name ? "" : name);
@@ -135,8 +123,12 @@ export default function Sidebar({ openSidebar, setOpenSidebar }: Props) {
     <aside
       // onClick={() => setOpenSidebar(false)}
       className={`sidebar flex h-screen  flex-col overflow-y-auto 
-        ${openSidebar ? "opacity-100   " : "opacity-0 hidden "} 
-        `}
+        ${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0  " : "-translate-x-full "} 
+
+
+
+
+         fixed top-0 left-0 flex h-screen w-[300px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0 -translate-x-full        `}
 
     // className="w-full bg-red-900"
     >
