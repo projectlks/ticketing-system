@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, JSX, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, JSX, SetStateAction,  useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -15,7 +15,6 @@ import {
   AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
-import { getUnseenTicketCount } from "@/libs/action";
 import { useTicketCount } from "@/context/TicketCountContext";
 // import { getTicketCount } from "@/libs/action";
 

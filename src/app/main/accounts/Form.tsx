@@ -47,7 +47,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     const selectRef = useRef<HTMLSelectElement>(null);
     const { data } = useSession();
     const isSuperAdmin = data?.user.role === "SUPER_ADMIN";
-    const isEditing = !!updateID;
 
     // Load account data if updating
     useEffect(() => {

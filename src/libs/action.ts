@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "@/app/main/tickets/action";
-import { NextResponse } from "next/server";
 
 // ====================
 // User Utilities

@@ -6,10 +6,9 @@ const prisma = new PrismaClient();
 async function main() {
   // ===== Users =====
   const adminPassword = await bcrypt.hash("QwertyuioP@123!@#", 10);
-  // const agentPassword = await bcrypt.hash("QwertyuioP@123!@#", 10);
 
   await prisma.user.upsert({
-    where: { email: "admin@eastwindmyanmar.com" },
+    where: { email: "support@eastwindmyanmar.com.mm" },
     update: {},
     create: {
       name: "Admin User",

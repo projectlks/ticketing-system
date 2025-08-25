@@ -193,15 +193,20 @@ export async function getAllTickets(
   });
 
   // Role-based filters
-  if (user.role === "REQUESTER") prismaFilters.requesterId = user.id;
-  else if (user.role === "AGENT") prismaFilters.assignedToId = user.id;
+  if (user.role === "REQUESTER") {
+    prismaFilters.requesterId = user.id;
+  } else if (user.role === "AGENT") {
+    prismaFilters.assignedToId = user.id;
+  }
 
   // Seen/Unseen filter
   if (viewedFilter === "SEEN") prismaFilters.views = { some: { userId: user.id } };
   if (viewedFilter === "UNSEEN") prismaFilters.views = { none: { userId: user.id } };
 
+  // Final where condition
   const where: Prisma.TicketWhereInput = {
     ...prismaFilters,
+    ...(user.role !== "SUPER_ADMIN" && { isArchived: false }), // 👈 Only non-SUPER_ADMIN get this
     ...(trimmedQuery && {
       OR: [
         { title: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
@@ -210,6 +215,7 @@ export async function getAllTickets(
     }),
   };
 
+  // Count & fetch tickets
   const total = await prisma.ticket.count({ where });
   const rawData = await prisma.ticket.findMany({
     where,
@@ -225,6 +231,7 @@ export async function getAllTickets(
     },
   });
 
+  // Mark viewed for current user
   const data = rawData.map(ticket => ({
     ...ticket,
     viewed: ticket.views.some(v => v.userId === user.id),
@@ -653,3 +660,18 @@ export async function markTicketAsViewed(ticketId: string) {
     },
   });
 }
+
+
+
+export async function restoreTickets(id: string) {
+  // const session = await getServerSession(authOptions);
+
+  return await prisma.ticket.update({
+    where: { id },
+    data: {
+      isArchived: false,
+      // updaterId: session?.user?.id,
+    },
+  });
+}
+

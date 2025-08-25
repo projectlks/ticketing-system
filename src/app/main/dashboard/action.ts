@@ -1,6 +1,6 @@
 "use server";
 
-import { PrismaClient, Prisma, Priority, Ticket, Role } from "@prisma/client";
+import { PrismaClient, Prisma, Priority,  Role } from "@prisma/client";
 import { TicketWithRelations, AuditWithRelations } from "./page";
 
 const prisma = new PrismaClient();

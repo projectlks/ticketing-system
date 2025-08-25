@@ -14,8 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
-// import { Ticket } from "@prisma/client";
-import { deleteTicket, getAllTickets, markTicketAsViewed } from "./action";
+import { deleteTicket, getAllTickets, markTicketAsViewed, restoreTickets } from "./action";
 import MultiFilter from "./multiFilter";
 import { useSession } from "next-auth/react";
 import type { Ticket } from "@prisma/client";
@@ -36,6 +35,7 @@ export type TicketWithRelations = Ticket & {
     // viewed field, default false
     viewed: boolean;
 }
+
 
 
 
@@ -135,7 +135,18 @@ export default function Page() {
 
             if (result.isConfirmed) {
                 await deleteTicket(id);
-                setTickets(tickets.filter((ticket) => ticket.id !== id));
+
+                if (data?.user.role === "SUPER_ADMIN") {
+                    setTickets(tickets.map(acc => acc.id === id ? { ...acc, isArchived: true } : acc));
+                } else {
+
+                    setTickets(tickets.filter((ticket) => ticket.id !== id));
+                }
+
+
+
+
+
                 Swal.fire({
                     title: "Deleted!",
                     text: "The ticket has been deleted.",
@@ -159,6 +170,46 @@ export default function Page() {
         setUpdateID(id);
         setShowForm(true);
     };
+
+    const handleRestore = async (id: string) => {
+        try {
+            const result = await Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to restore this account?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, restore it!',
+            });
+
+            if (result.isConfirmed) {
+                // Update isArchived to false
+
+                await restoreTickets(id);
+
+
+                // Update UI
+                setTickets(tickets.map(acc => acc.id === id ? { ...acc, isArchived: false } : acc));
+
+                Swal.fire({
+                    title: 'Restored!',
+                    text: 'The account has been restored.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                });
+            }
+        } catch (error) {
+            console.error("Failed to restore account:", error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to restore the account.',
+                icon: 'error',
+            });
+        }
+    };
+
 
 
 
@@ -239,6 +290,8 @@ export default function Page() {
                                             <TableHead data="Requester" />
                                             <TableHead data="Assigned To" />
                                             <TableHead data="Actions" />
+                                            {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />}
+
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -246,7 +299,7 @@ export default function Page() {
                                             <tr
                                                 // onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                 key={ticket.id}
-                                                className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${!ticket.viewed ? "bg-indigo-50" : "bg-white"
+                                                className={`border-b border-gray-100 hover:bg-gray-50  border-l-4 ${ticket.isArchived ? "bg-red-100 hover:bg-red-200 " : ""} ${(!ticket.isArchived && !ticket.viewed) ? "bg-indigo-50 hover:bg-gray-50  " : ""
                                                     } ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
                                                     }`}
                                             >
@@ -320,9 +373,9 @@ export default function Page() {
                                                         option={{
                                                             view: true,
                                                             edit: true,
-                                                            // delete: true,
+                                                            delete: data?.user.role === "SUPER_ADMIN" && !ticket.isArchived,
                                                         }}
-                                                        // onDelete={() => handleDelete(ticket.id)}
+                                                        onDelete={() => handleDelete(ticket.id)}
                                                         onEdit={(e) => handleEdit(e, ticket.id)}
                                                         onView={async () => {
                                                             try {
@@ -330,11 +383,16 @@ export default function Page() {
                                                                 refreshTicketCount()
                                                                 router.push(`/main/tickets/view/${ticket.id}`);
                                                             } catch (err) {
-                                                                console.error(err);
+                                                                console.error(err)
                                                             }
                                                         }}
                                                     />
                                                 </td>
+
+                                                {ticket.isArchived &&
+                                                    (<td className={`px-5 py-4 sm:px-6 `}>
+                                                        <Button buttonLabel={"Restore"} click={() => handleRestore(ticket.id)} />
+                                                    </td>)}
                                             </tr>
                                         ))}
                                     </tbody>

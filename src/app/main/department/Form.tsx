@@ -1,7 +1,6 @@
 'use client';
 
 import Input from '@/components/Input';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import { DepartmentWithRelations } from './page';

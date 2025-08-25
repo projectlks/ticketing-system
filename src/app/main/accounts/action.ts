@@ -5,7 +5,7 @@ import z from "zod";
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-import { Prisma, Role } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { UserWithRelations } from "./page"; // ✅ imported type from Page
 import { AuditChange, getCurrentUserId } from "@/libs/action";
 

@@ -151,7 +151,7 @@ export default function TicketForm({
             formData.append('file', file);
         });
 
-        const res = await fetch('/api/upload', {
+        const res = await fetch('/api/uploads', {
             method: 'POST',
             body: formData,
         });

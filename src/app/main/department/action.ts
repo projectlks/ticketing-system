@@ -7,6 +7,7 @@ import { authOptions } from "@/libs/auth";
 import { Prisma } from "@prisma/client";
 import { DepartmentWithRelations } from "./page";
 import { AuditChange, getCurrentUserId } from "@/libs/action";
+import { getCurrentUser } from "../tickets/action";
 
 // ===== Validation Schemas =====
 const DepartmentFormSchema = z.object({
@@ -121,9 +122,16 @@ export async function getAllDepartments(
   const skip = (page - 1) * take;
   const trimmedQuery = searchQuery.trim();
 
+  const user = await getCurrentUser()
+  if (!user) throw new Error("Unauthorized user");
+
+
+
+
   const where = {
 
-    isArchived: false,
+    // ...(user.role !== "SUPER_ADMIN" && { isArchived: false }),
+    ...(user?.role !== "SUPER_ADMIN" && { isArchived: false }),
     ...(trimmedQuery && {
       OR: [
         {
@@ -162,6 +170,19 @@ export async function deleteDepartment(id: string) {
     where: { id },
     data: {
       isArchived: true, // uncomment if you add this field
+      updaterId: session?.user?.id, // if you track updater for department
+    },
+  });
+}
+
+
+export async function restoreDepartment(id: string) {
+  const session = await getServerSession(authOptions);
+
+  return await prisma.department.update({
+    where: { id },
+    data: {
+      isArchived: false, // uncomment if you add this field
       updaterId: session?.user?.id, // if you track updater for department
     },
   });

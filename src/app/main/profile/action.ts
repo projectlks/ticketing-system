@@ -3,7 +3,6 @@
 import { getCurrentUserId } from "@/libs/action"
 import { prisma } from "@/libs/prisma"
 import bcrypt from "bcrypt";
-import { UserFullData } from "./page";
 
 
 

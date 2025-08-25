@@ -1,8 +1,6 @@
 "use client";
 import { useState } from "react";
-import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import WorkAndPersonalDetails from "./WorkAndPersonalDetails";
-import Input from "@/components/Input";
 import ProfileCard from "./ProfileCard";
 import PersonalInformation from "./PersonalInformation";
 import { UserFullData } from "./page";

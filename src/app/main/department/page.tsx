@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import { useEffect, useState } from "react";
 import Portal from "@/components/Portal";
 import Form from "./Form";
-import { deleteDepartment, getAllDepartments } from "./action";
+import { deleteDepartment, getAllDepartments, restoreDepartment } from "./action";
 import { Department } from "@prisma/client";
 import TableBody from "@/components/TableBody";
 import DotMenu from "@/components/DotMenu";
@@ -15,6 +15,8 @@ import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outli
 import { useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
 import { useSession } from "next-auth/react";
+import { useRestore } from "@/hooks/useRestore";
+import { useDelete } from "@/hooks/useDelete";
 
 export type DepartmentWithRelations = Department & {
     creator?: {
@@ -58,6 +60,8 @@ export default function Page() {
 
 
     const router = useRouter();
+    const { handleRestore } = useRestore();
+    const { handleDelete } = useDelete();
 
 
     const fetchAccounts = async (currentPage: number) => {
@@ -94,39 +98,6 @@ export default function Page() {
     }, [searchQuery]);
 
 
-    const handleDelete = async (id: string) => {
-        try {
-            const result = await Swal.fire({
-                title: 'Are you sure?',
-                text: 'You won’t be able to revert this!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!',
-            });
-
-            if (result.isConfirmed) {
-                await deleteDepartment(id);
-                setDepartments(departments.filter(department => department.id !== id));
-
-                Swal.fire({
-                    title: 'Deleted!',
-                    text: 'The department has been deleted.',
-                    icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false,
-                });
-            }
-        } catch (error) {
-            console.error("Failed to delete account:", error);
-            Swal.fire({
-                title: 'Error!',
-                text: 'Failed to delete the account.',
-                icon: 'error',
-            });
-        }
-    };
 
 
 
@@ -169,6 +140,8 @@ export default function Page() {
                                             <TableHead data="Department Contact" />
 
                                             <TableHead data="Actions" />
+                                            {(session?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />}
+
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -176,8 +149,9 @@ export default function Page() {
                                             <tr
 
                                                 // onClick={() => router.push(`/main/department/view/${department.id}`)}
+
                                                 key={department.id}
-                                                className="border-b border-gray-100 hover:bg-gray-50"
+                                                className={` border-b border-gray-100 hover:bg-gray-50  ${department.isArchived ? "bg-red-100" : ""} `}
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={department.name} />
@@ -202,13 +176,19 @@ export default function Page() {
                                                     <DotMenu isBottom={index >= departments.length - 2} option={{
                                                         view: true,
                                                         edit: true,
-                                                        delete: false
+                                                        delete: session?.user.role === "SUPER_ADMIN"
                                                     }}
-                                                        //  onDelete={() => handleDelete(department.id)}
+                                                        onDelete={() => handleDelete(department.id, setDepartments, deleteDepartment)}
                                                         onEdit={(e) => handleEdit(e, department.id)}
                                                         onView={() => { router.push(`/main/department/view/${department.id}`) }}
                                                     />
                                                 </td>
+
+                                                {/* ticket.id, setTickets, restoreTickets */}
+                                                {department.isArchived &&
+                                                    (<td className={`px-5 py-4 sm:px-6 `}>
+                                                        <Button buttonLabel={"Restore"} click={() => handleRestore(department.id, setDepartments, restoreDepartment)} />
+                                                    </td>)}
                                             </tr>
                                         ))}
                                     </tbody>

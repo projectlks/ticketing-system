@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-  "build": "prisma generate && prisma migrate deploy && node prisma/seed.js && next build",
+    "build": " next build",
     "start": "next start",
     "seed": "node prisma/seed.js",
     "lint": "next lint",
@@ -54,3 +54,6 @@
     "typescript": "^5"
   }
 }
+
+
+
