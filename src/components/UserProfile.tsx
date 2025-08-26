@@ -4,10 +4,10 @@ import {
   PencilSquareIcon,
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import Avatar from "./Avatar";
 import { useRouter } from "next/navigation";
-// import { useRouter } from "next/";
+import { useUserData } from "@/context/UserProfileContext";
 
 type Props = {
   menuToggle: boolean;
@@ -18,7 +18,9 @@ export default function UserMenu({ menuToggle }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data: session } = useSession(); // ✅ Correct way for client components
+  // const { data: session } = useSession(); // ✅ Correct way for client components
+
+  const { userData } = useUserData();
 
   // close dropdown if clicked outside
   useEffect(() => {
@@ -50,14 +52,12 @@ export default function UserMenu({ menuToggle }: Props) {
           aria-expanded={dropdownOpen}
         >
           <span className="relative mr-3 overflow-hidden rounded-full h-11 w-11">
-            {/* <span className="flex items-center justify-center w-full h-full text-2xl text-gray-100 bg-blue-500 rounded-full z-10 select-none">
-              {session?.user?.name?.charAt(0).toUpperCase() ?? "?"}
-            </span> */}
 
-            <Avatar name={session?.user?.name} profileUrl={session?.user.image} />
+
+            <Avatar name={userData?.name} profileUrl={userData.profileUrl} />
           </span>
           <span className="hidden mr-1 text-sm font-medium sm:inline-block">
-            {session?.user?.name ?? "Loading..."}
+            {userData?.name ?? "Loading..."}
           </span>
           <ChevronDownIcon className="hidden w-5 h-5 stroke-gray-500 sm:inline-block" />
         </button>
@@ -67,10 +67,10 @@ export default function UserMenu({ menuToggle }: Props) {
           <div className="absolute right-0 mt-4 w-[260px] rounded-2xl border border-gray-200 bg-white p-3 shadow-lg z-50">
             <div>
               <span className="block text-sm font-medium text-gray-700">
-                {session?.user?.name}
+                {userData?.name}
               </span>
               <span className="block text-xs text-gray-500 mt-0.5">
-                {session?.user?.email}
+                {userData?.email}
               </span>
             </div>
             <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200">

@@ -82,7 +82,7 @@ export default function AssignBox({ users, ticket }: Props) {
             />
 
             {
-              show && (
+                show && (
                     <>
 
                         <SelectBox

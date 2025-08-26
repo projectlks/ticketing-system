@@ -18,7 +18,7 @@ const stringToColor = (str: string) => {
 
 const Avatar: React.FC<AvatarProps> = ({ name, size = 40, className = "", profileUrl }) => {
     const char = name?.charAt(0).toUpperCase() ?? "?";
-    const bgColor = stringToColor(char);
+    const bgColor = name ? stringToColor(char) : "#e0e7ff";; 
 
     if (profileUrl) {
         return (

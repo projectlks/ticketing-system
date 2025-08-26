@@ -159,6 +159,37 @@ export async function deleteAccount(id: string) {
     },
   });
 }
+
+export async function permanentDeleteAccounts() {
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  await prisma.user.deleteMany({
+    where: {
+      isArchived: true,
+      updatedAt: { lt: threeMonthsAgo },
+    },
+  });
+}
+
+
+
+
+
+export async function permanentDeleteAccount(id: string) {
+  await prisma.user.delete({
+    where: {
+      id: id,
+    },
+  });
+}
+
+
+
+
+
+
+
 export async function restoreAccount(id: string) {
   const session = await getServerSession(authOptions);
 

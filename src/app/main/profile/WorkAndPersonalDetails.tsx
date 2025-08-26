@@ -1,7 +1,7 @@
 'use client'
 
 import Loading from '@/components/Loading';
-import React, { JSX, ReactNode, useState } from 'react';
+import React, { JSX, ReactNode, useEffect, useState } from 'react';
 import { UserFullData } from './page';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import Input from '@/components/Input';
@@ -28,8 +28,13 @@ export default function WorkAndPersonalDetails({ data, Modal }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   const [showForm, setShowForm] = useState<boolean>(false);
 
-  // Fully type-safe Partial<UserFullData>
-  const [editData, setEditData] = useState<Partial<UserFullData>>({ ...data });
+  // ...
+  const [editData, setEditData] = useState<Partial<UserFullData>>({});
+
+  useEffect(() => {
+    setEditData({ ...data });
+  }, [data]);
+
 
   const fields: { label: string; key: EditableField; type?: 'text' | 'number' | 'date' }[] = [
     { label: 'Employee ID', key: 'employeeId' },

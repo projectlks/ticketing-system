@@ -2,7 +2,7 @@
 
 import Avatar from '@/components/Avatar'
 import { CameraIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
-import React, { Dispatch, JSX, ReactNode, SetStateAction, useState } from 'react'
+import React, { Dispatch, JSX, ReactNode, SetStateAction, useEffect, useState } from 'react'
 import Image from "next/image";
 import Input from '@/components/Input';
 import Swal from 'sweetalert2';
@@ -140,6 +140,17 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        setEditData({
+            name: data.name || '',
+            workEmail: data.email || '',
+            personalEmail: data.personalEmail || '',
+            workPhone: data.workMobile || '',
+            personalPhone: data.personalPhone || '',
+        });
+    }, [data]);
+
 
     return (
         <>

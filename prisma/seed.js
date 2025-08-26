@@ -11,7 +11,7 @@ async function main() {
     where: { email: "support@eastwindmyanmar.com.mm" },
     update: {},
     create: {
-      name: "Admin User",
+      name: "Super Admin",
       email: "support@eastwindmyanmar.com.mm",
       password: adminPassword,
       role: "SUPER_ADMIN",

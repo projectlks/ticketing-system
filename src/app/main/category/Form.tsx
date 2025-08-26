@@ -6,7 +6,6 @@ import Swal from 'sweetalert2';
 import { CategoryWithRelations } from './page';
 import { createCategory, getCategory, updateCategory } from './action';
 import Loading from '@/components/Loading';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 import Button from '@/components/Button';
 
 interface AccountCreateFormProps {
@@ -33,9 +32,9 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
     };
 
     // Remove job
-    const removeSubCategories = (index: number) => {
-        setSubCategories(prev => prev.filter((_, i) => i !== index));
-    };
+    // const removeSubCategories = (index: number) => {
+    //     setSubCategories(prev => prev.filter((_, i) => i !== index));
+    // };
 
     // Update job title inline
     const updateSubCategories = (index: number, newTitle: string) => {
@@ -156,7 +155,7 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
 
         try {
             if (updateID) {
-                const { success, data } = await updateCategory(formData, updateID);
+                const { success, data } = await updateCategory(formData, updateID, subCategories);
 
                 if (success) {
                     setCategories((prev) => prev.map((item) => (item.id === updateID ? data : item)));
@@ -302,13 +301,13 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
                                                 />
 
                                                 {/* Delete button */}
-                                                <button
+                                                {/* <button
                                                     type="button"
                                                     onClick={() => removeSubCategories(idx)}
                                                     className="text-red-500 hover:text-red-700 cursor-pointer hover:bg-red-300 rounded-full p-1"
                                                 >
                                                     <XMarkIcon className="w-4 h-4" />
-                                                </button>
+                                                </button> */}
                                             </div>
 
                                             {/* Inline error message */}

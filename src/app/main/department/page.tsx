@@ -140,7 +140,7 @@ export default function Page() {
                                             <TableHead data="Department Contact" />
 
                                             <TableHead data="Actions" />
-                                            {(session?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />}
+                                            {/* {(session?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />} */}
 
                                         </tr>
                                     </thead>
@@ -176,7 +176,7 @@ export default function Page() {
                                                     <DotMenu isBottom={index >= departments.length - 2} option={{
                                                         view: true,
                                                         edit: true,
-                                                        delete: session?.user.role === "SUPER_ADMIN"
+                                                        // delete: session?.user.role === "SUPER_ADMIN"
                                                     }}
                                                         onDelete={() => handleDelete(department.id, setDepartments, deleteDepartment)}
                                                         onEdit={(e) => handleEdit(e, department.id)}
@@ -185,10 +185,10 @@ export default function Page() {
                                                 </td>
 
                                                 {/* ticket.id, setTickets, restoreTickets */}
-                                                {department.isArchived &&
+                                                {/* {department.isArchived &&
                                                     (<td className={`px-5 py-4 sm:px-6 `}>
                                                         <Button buttonLabel={"Restore"} click={() => handleRestore(department.id, setDepartments, restoreDepartment)} />
-                                                    </td>)}
+                                                    </td>)} */}
                                             </tr>
                                         ))}
                                     </tbody>

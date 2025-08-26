@@ -7,7 +7,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import Providers from "@/components/Provider";
 import { TicketCountProvider } from "@/context/TicketCountContext";
+import { UserDataProvider } from "@/context/UserProfileContext";
 // import Providers from "@/components/Providers";
+
+
+
+import "@/libs/cron"; // <- starts cron job when server boots
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,9 +23,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
-// const session = await getServerSession(authOptions);
-
 
 
 // Update title and description here:
@@ -35,6 +37,7 @@ export default async function RootLayout({
 }>) {
   const session = await getServerSession(authOptions);
 
+
   return (
     <html lang="en">
       <head>
@@ -42,17 +45,21 @@ export default async function RootLayout({
         <link rel="icon" href="/logo.png" />
         <title>
           {session?.user?.name
-            ? `${session.user.name} – Ticketing System`
+            ? `${session.user.name} - Ticketing System`
             : "Ticketing System"}
         </title>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <TicketCountProvider>
-          <Providers session={session}>
-            {children}
-            <PortalRoot />
-          </Providers>
-        </TicketCountProvider>
+        <UserDataProvider>
+          <TicketCountProvider>
+            <Providers session={session}>
+              {children}
+              <PortalRoot />
+            </Providers>
+          </TicketCountProvider>
+        </UserDataProvider>
+
+
       </body>
     </html>
   );

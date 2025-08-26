@@ -1,16 +1,17 @@
 "use client";
-import { useState } from "react";
 import WorkAndPersonalDetails from "./WorkAndPersonalDetails";
 import ProfileCard from "./ProfileCard";
 import PersonalInformation from "./PersonalInformation";
-import { UserFullData } from "./page";
+import { useUserData } from "@/context/UserProfileContext";
 
-interface Props {
-    data: UserFullData
-}
+// interface Props {
+//     data: UserFullData
+// }
 
-export default function ProfilePage({ data }: Props) {
-    const [userData, setUserData] = useState<UserFullData>(data)
+export default function ProfilePage() {
+    // const [userData, setUserData] = useState<UserFullData>(data)
+
+      const { userData, setUserData } = useUserData();
 
     return (
         <>

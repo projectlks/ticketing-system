@@ -147,23 +147,15 @@ export async function TicketView({
                             <div className="col-span-2">
                                 <h3 className="text-lg font-semibold mb-2">Images</h3>
 
-                                <div className="grid grid-cols-3 ">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 ">
                                     {ticket.images.length > 0 ? (
-                                        <ul className="list-disc list-inside space-y-1">
-                                            {ticket.images.map((image) => (
-                                                <div key={image.id} className="overflow-hidden rounded-lg">
-                                                    <Image
-                                                        src={image.url}
-                                                        alt={`Ticket image ${image.id}`}
-                                                        width={500}
-                                                        height={500}
-                                                        className="object-cover w-full h-auto"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </ul>
+                                        ticket.images.map((image) => (
+                                            <div key={image.id} className="overflow-hidden rounded-lg">
+                                                <Image src={image.url} alt={`Ticket image ${image.id}`} width={500} height={500} className="object-cover w-full h-auto" />
+                                            </div>
+                                        ))
                                     ) : (
-                                        <p className="text-sm text-gray-500">No images attached.</p>
+                                        <p>No images attached.</p>
                                     )}
 
                                 </div>
@@ -178,10 +170,10 @@ export async function TicketView({
                         </dl>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* Right side: Audit Log */}
-            <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
+            <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white" >
                 <div className="pb-4 px-6 pt-6">
                     <h2 className="flex items-center gap-2 text-lg font-semibold">
                         <span>Audit Log</span>
@@ -193,8 +185,8 @@ export async function TicketView({
                 <div className="pt-2 px-6 pb-6">
                     <AuditLogList items={auditLog} />
                 </div>
-            </div>
-        </section>
+            </div >
+        </section >
     );
 }
 

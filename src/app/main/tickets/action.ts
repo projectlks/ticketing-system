@@ -10,6 +10,9 @@ import { Prisma, Status } from "@prisma/client";
 import { TicketWithRelations } from "./page";
 // import { CommentWithRelations } from "./view/[id]/TicketView";
 
+import fs from "fs/promises";
+import path from "path";
+
 
 const TicketSchema = z.object({
   title: z.string().min(1, "Title cannot be empty"),
@@ -237,8 +240,12 @@ export async function getAllTickets(
     viewed: ticket.views.some(v => v.userId === user.id),
   }));
 
+
+
+
   return { data, total };
 }
+
 
 
 export async function updateTicket(
@@ -351,13 +358,96 @@ export async function updateTicket(
 }
 
 
+// export async function permanentDeleteTickets() {
+//   const threeMonthsAgo = new Date();
+//   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+//   await prisma.ticket.deleteMany({
+//     where: {
+//       isArchived: true,
+//       updatedAt: { lt: threeMonthsAgo },
+//     },
+//   });
+// }
+
+
+
+export async function permanentDeleteTickets() {
+  // ၂ မိနစ်အရင်က tickets တွေကိုရှာမယ်
+  // const twoMinutesAgo = new Date();
+  // twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  const ticketsToDelete = await prisma.ticket.findMany({
+    where: {
+      isArchived: true,
+      updatedAt: { lt: threeMonthsAgo },
+    },
+    include: {
+      images: true,   // TicketImage
+      comments: { include: { likes: true } }, // Comment + CommentLike
+      views: true,
+    },
+  });
+
+  if (ticketsToDelete.length === 0) return;
+
+  const idsToDelete = ticketsToDelete.map(t => t.id);
+
+  // =====================
+  // Step 0: Delete files from uploads folder
+  // =====================
+  for (const ticket of ticketsToDelete) {
+    if (ticket.images.length > 0) {
+      await Promise.all(ticket.images.map(async (img) => {
+        const safeName = path.basename(img.url);
+        const filePath = path.join(process.cwd(), "uploads", safeName);
+        try {
+          await fs.unlink(filePath);
+          console.log(`Deleted file: ${img.url}`);
+        } catch {
+          console.log(`File not found: ${img.url}`);
+        }
+      }));
+    }
+  }
+
+  // =====================
+  // Step 1: Delete related tables
+  // =====================
+  await prisma.commentLike.deleteMany({
+    where: { comment: { ticketId: { in: idsToDelete } } },
+  });
+
+  await prisma.comment.deleteMany({
+    where: { ticketId: { in: idsToDelete } },
+  });
+
+  await prisma.ticketImage.deleteMany({
+    where: { ticketId: { in: idsToDelete } },
+  });
+
+  await prisma.ticketView.deleteMany({
+    where: { ticketId: { in: idsToDelete } },
+  });
+
+  // =====================
+  // Step 2: Delete tickets
+  // =====================
+  await prisma.ticket.deleteMany({
+    where: { id: { in: idsToDelete } },
+  });
+
+  console.log(`[CRON] Deleted ${idsToDelete.length} tickets older than 2 minutes`);
+}
+
 
 
 
 // Delete Ticket (soft delete example)
 export async function deleteTicket(id: string) {
-  // Optional: get logged-in user to track who deleted
-  // const session = await getServerSession(authOptions);
 
   return await prisma.ticket.update({
     where: { id },
@@ -365,6 +455,15 @@ export async function deleteTicket(id: string) {
       isArchived: true, // add this boolean to your Ticket model if not present
       updatedAt: new Date(),
       // updaterId: session?.user?.id, // if you add updater relation
+    },
+  });
+}
+
+
+export async function permanentDeleteTicket(id: string) {
+  await prisma.ticket.delete({
+    where: {
+      id: id,
     },
   });
 }

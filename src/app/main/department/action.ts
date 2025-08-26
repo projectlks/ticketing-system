@@ -14,7 +14,7 @@ const DepartmentFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   contact: z.string().optional(),
   email: z.string().email("Invalid email address").optional(),
-  managerId: z.string(),
+  // managerId: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -35,11 +35,22 @@ export async function createDepartment(
     description: formData.get("description")?.toString() ?? "",
     contact: formData.get("contact")?.toString() ?? "",
     email: formData.get("email")?.toString() ?? "",
-    managerId: formData.get("managerId")?.toString() ?? "",
   };
 
   // Validate input
   const parsed = DepartmentFormSchema.parse(raw);
+
+  const managerId: string | null = formData.get("managerId")?.toString() || null;
+
+  if (managerId) {
+    const userExists = await prisma.user.findUnique({ where: { id: managerId } });
+    if (!userExists) {
+      throw new Error("Selected manager does not exist");
+    }
+  }
+
+
+
 
   const creatorId = await getCurrentUserId();
   if (!creatorId) throw new Error("User must be logged in to create a department");
@@ -60,7 +71,7 @@ export async function createDepartment(
       description: parsed.description,
       contact: parsed.contact,
       email: parsed.email,
-      managerId: parsed.managerId,
+      managerId,
       creatorId,
     },
     include: {

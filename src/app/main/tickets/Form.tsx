@@ -251,7 +251,7 @@ export default function TicketForm({
 
                 <form
                     onSubmit={handleSubmit}
-                    className="w-[90%] md:w-[700px] rounded-2xl  zoom-in border border-gray-200  bg-white z-50"
+                    className="w-[90%] md:w-[700px] rounded-2xl   border border-gray-200  bg-white z-50"
                     onClick={(e) => e.stopPropagation()}
                     noValidate
                 >

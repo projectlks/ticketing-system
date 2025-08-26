@@ -211,10 +211,14 @@ model Ticket {
   priority   Priority @default(MEDIUM)
   isArchived Boolean  @default(false)
 
+  // images   TicketImage[]
+  // comments Comment[]
+
+  // views TicketView[]
+
   images   TicketImage[]
   comments Comment[]
-
-  views TicketView[]
+  views    TicketView[]
 
   @@index([departmentId])
   @@index([assignedToId])
@@ -224,10 +228,11 @@ model Ticket {
 // TicketImage model
 // ======================
 model TicketImage {
-  id        String   @id @default(cuid())
-  url       String
-  ticketId  String
-  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  id       String @id @default(cuid())
+  url      String
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 }
 
@@ -237,7 +242,7 @@ model TicketView {
   userId   String
   viewedAt DateTime @default(now())
 
-  ticket Ticket @relation(fields: [ticketId], references: [id])
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([ticketId, userId]) // တယောက်ကြိမ်တခါထက်မမြောက်နေရအောင် unique ထား
@@ -252,13 +257,13 @@ model Comment {
   imageUrl String?
 
   ticketId String
-  ticket   Ticket @relation(fields: [ticketId], references: [id])
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   commenterId String
   commenter   User   @relation(fields: [commenterId], references: [id])
 
   parentId String?
-  parent   Comment?  @relation("CommentToSubComments", fields: [parentId], references: [id])
+  parent   Comment?  @relation("CommentToSubComments", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentToSubComments")
 
   likes     CommentLike[]

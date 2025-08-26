@@ -35,7 +35,7 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
     // Job positions state
     const [jobPositions, setJobPositions] = useState<{ id?: string; title: string }[]>([]);
     const [newJobTitle, setNewJobTitle] = useState('');
-    const [jobsToDelete, setJobsToDelete] = useState<string[]>([]);
+    // const [jobsToDelete, setJobsToDelete] = useState<string[]>([]);
 
     // Fetch manager list
     useEffect(() => {
@@ -140,7 +140,7 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
         if (!form.email.trim()) { newErrors.email = 'Email is required.'; isValid = false; }
         else if (!/\S+@\S+\.\S+/.test(form.email)) { newErrors.email = 'Please enter a valid email.'; isValid = false; }
         if (!form.contact.trim()) { newErrors.contact = 'Contact is required.'; isValid = false; }
-        if (!form.managerId.trim()) { newErrors.managerId = 'Manager is required.'; isValid = false; }
+        // if (!form.managerId.trim()) { newErrors.managerId = 'Manager is required.'; isValid = false; }
 
         return { isValid, newErrors };
     };
@@ -156,15 +156,15 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
         setJobPositions(prev => prev.map((job, i) => i === index ? { ...job, title: newTitle } : job));
     };
 
-    const removeJobPositionField = (index: number) => {
-        setJobPositions(prev => {
-            const jobToRemove = prev[index];
-            if (jobToRemove.id) {
-                setJobsToDelete(prevDelete => [...prevDelete, jobToRemove.id!]);
-            }
-            return prev.filter((_, i) => i !== index);
-        });
-    };
+    // const removeJobPositionField = (index: number) => {
+    //     setJobPositions(prev => {
+    //         const jobToRemove = prev[index];
+    //         if (jobToRemove.id) {
+    //             setJobsToDelete(prevDelete => [...prevDelete, jobToRemove.id!]);
+    //         }
+    //         return prev.filter((_, i) => i !== index);
+    //     });
+    // };
 
     // Submit handler
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -201,7 +201,7 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
         }
 
         const formData = new FormData(e.currentTarget);
-        formData.set('managerId', form.managerId);
+        // formData.set('managerId', form.managerId);
 
         try {
             if (updateID) {
@@ -266,7 +266,7 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
                             Effortlessly manage your departments: {updateID ? "update existing details" : "add a new department"}.
                         </p>
                     </div>
-                    <section className="p-5 space-y-6 border-t max-h-[75vh] overflow-y-auto border-gray-100 sm:p-6">
+                    <section className="p-5 space-y-6 border-t max-h-[75vh] overflow-y-auto overflow-x-hidden border-gray-100 sm:p-6">
                         <Input id="name" name="name" placeholder="Enter department name" value={form.name} onChange={handleChange} error={!!errors.name} disable={loading} label='Name' require={true} errorMessage={errors.name} />
                         <div>
                             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
@@ -277,13 +277,13 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
                         <SelectBox label="Manager" id="managerId" name="managerId" value={form.managerId} options={userIdsAndEmails} onChange={handleChange} error={errors.managerId} showEmail={true} />
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Job Positions</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Job Positions  <span className="text-red-500">*</span> </label>
                             <div className="flex space-x-2 items-center mb-3">
                                 <input type="text" placeholder="Job title" value={newJobTitle} onChange={(e) => setNewJobTitle(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50" />
                                 <Button click={addJobPosition} buttonLabel="Add" disabled={!newJobTitle.trim()} />
                             </div>
                             {jobPositions.length > 0 && (
-                                <div className="flex flex-col gap-2 mt-2 border border-gray-300 rounded-xl p-3">
+                                <div className="flex flex-wrap gap-2 mt-2 border border-gray-300 rounded-xl p-3">
                                     {jobPositions.map((job, idx) => (
                                         <div key={job.id ?? idx} className="flex flex-col">
                                             <div className="flex items-center w-fit space-x-2 bg-gray-100 border border-gray-300 rounded-full px-3 py-1 pr-1 text-sm relative">
