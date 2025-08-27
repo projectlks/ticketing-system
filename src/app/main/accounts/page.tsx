@@ -307,7 +307,7 @@ export default function Page() {
                                             <TableHead data="Updated At" /> */}
                                             <TableHead data="Creator" />
                                             <TableHead data="Actions" />
-                                            {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />}
+                                            {/* {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />} */}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -337,8 +337,7 @@ export default function Page() {
                                                 <TableBody data={account.department?.name || ''} />
                                                 <TableBody data={account.jobPosition?.name || ''} />
 
-                                                {/* <TableBody data={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-                                                <TableBody data={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} /> */}
+
 
 
                                                 <td className={`px-5 py-4 sm:px-6 `}>
@@ -356,19 +355,26 @@ export default function Page() {
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu isBottom={index >= accounts.length - 2} option={{
                                                         view: true,
-                                                        edit: true,
-                                                        delete: data?.user.role === "SUPER_ADMIN" && !account.isArchived
+                                                        edit:
+                                                            data?.user.role === "SUPER_ADMIN" ||
+                                                            (
+                                                                data?.user.role === "ADMIN" &&
+                                                                account.creatorId === data.user.id &&
+                                                                account.role !== "ADMIN"
+                                                            ), delete: data?.user.role === "SUPER_ADMIN" && !account.isArchived,
+                                                        restore: data?.user.role === "SUPER_ADMIN" && account.isArchived
                                                     }}
 
                                                         onDelete={() => handleDelete(account.id)}
                                                         onEdit={(e) => handleEdit(e, account.id)}
                                                         onView={() => router.push(`/main/accounts/view/${account.id}`)}
+                                                        onRestore={() => handleRestore(account.id)}
                                                     />
                                                 </td>
-                                                {account.isArchived &&
+                                                {/* {account.isArchived &&
                                                     (<td className={`px-5 py-4 sm:px-6 `}>
                                                         <Button buttonLabel={"Restore"} click={() => handleRestore(account.id)} />
-                                                    </td>)}
+                                                    </td>)} */}
 
                                             </tr>
                                         ))}

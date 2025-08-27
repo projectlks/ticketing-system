@@ -60,8 +60,8 @@ export default function Page() {
 
 
     const router = useRouter();
-    const { handleRestore } = useRestore();
-    const { handleDelete } = useDelete();
+    // const { handleRestore } = useRestore();
+    // const { handleDelete } = useDelete();
 
 
     const fetchAccounts = async (currentPage: number) => {
@@ -175,20 +175,20 @@ export default function Page() {
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu isBottom={index >= departments.length - 2} option={{
                                                         view: true,
-                                                        edit: true,
-                                                        // delete: session?.user.role === "SUPER_ADMIN"
+                                                        edit:
+                                                            session?.user.role === "SUPER_ADMIN" ||
+                                                            (
+                                                                session?.user.role === "ADMIN" &&
+                                                                department.managerId === session.user.id
+                                                            ),
+
                                                     }}
-                                                        onDelete={() => handleDelete(department.id, setDepartments, deleteDepartment)}
                                                         onEdit={(e) => handleEdit(e, department.id)}
                                                         onView={() => { router.push(`/main/department/view/${department.id}`) }}
                                                     />
                                                 </td>
 
-                                                {/* ticket.id, setTickets, restoreTickets */}
-                                                {/* {department.isArchived &&
-                                                    (<td className={`px-5 py-4 sm:px-6 `}>
-                                                        <Button buttonLabel={"Restore"} click={() => handleRestore(department.id, setDepartments, restoreDepartment)} />
-                                                    </td>)} */}
+
                                             </tr>
                                         ))}
                                     </tbody>

@@ -9,13 +9,15 @@ interface DotMenuProps {
         view?: boolean;
         edit?: boolean;
         delete?: boolean;
+        restore?: boolean;
     };
     onDelete?: (e: React.MouseEvent<HTMLButtonElement>) => void;
     onEdit?: (e: React.MouseEvent<HTMLButtonElement>) => void;
     onView?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    onRestore?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-export default function DotMenu({ isBottom, option, onDelete, onEdit, onView }: DotMenuProps) {
+export default function DotMenu({ isBottom, option, onDelete, onEdit, onView, onRestore }: DotMenuProps) {
     const [showMenu, setShowMenu] = useState<boolean>(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +72,11 @@ export default function DotMenu({ isBottom, option, onDelete, onEdit, onView }: 
                     {option?.delete && (
                         <button onClick={onDelete} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
                             Delete
+                        </button>
+                    )}
+                    {option?.restore && (
+                        <button onClick={onRestore} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
+                            Restore
                         </button>
                     )}
                 </div>

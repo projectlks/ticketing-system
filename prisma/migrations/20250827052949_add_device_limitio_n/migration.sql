@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "public"."UserSession" ADD COLUMN     "lastSeen" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

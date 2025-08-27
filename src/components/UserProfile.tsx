@@ -8,6 +8,8 @@ import { signOut } from "next-auth/react";
 import Avatar from "./Avatar";
 import { useRouter } from "next/navigation";
 import { useUserData } from "@/context/UserProfileContext";
+import { prisma } from "@/libs/prisma";
+import { deleteUserSession } from "@/libs/action";
 
 type Props = {
   menuToggle: boolean;
@@ -84,7 +86,22 @@ export default function UserMenu({ menuToggle }: Props) {
               </li>
             </ul>
             <button
-              onClick={() => { signOut(); }}
+              onClick={async () => {
+                try {
+
+
+
+                  await deleteUserSession(userData.id)
+
+
+                  // ✅ Sign out from NextAuth
+                  signOut();
+
+
+                } catch (error) {
+                  console.error("Failed to sign out:", error);
+                }
+              }}
               className="flex items-center justify-center w-full gap-3 px-3 py-2 mt-3 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100"
             >
               <ArrowRightOnRectangleIcon className="w-6 h-6" />

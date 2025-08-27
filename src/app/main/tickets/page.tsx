@@ -290,7 +290,7 @@ export default function Page() {
                                             <TableHead data="Requester" />
                                             <TableHead data="Assigned To" />
                                             <TableHead data="Actions" />
-                                            {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />}
+                                            {/* {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />} */}
 
                                         </tr>
                                     </thead>
@@ -374,7 +374,9 @@ export default function Page() {
                                                             view: true,
                                                             edit: true,
                                                             delete: data?.user.role === "SUPER_ADMIN" && !ticket.isArchived,
+                                                            restore: data?.user.role === "SUPER_ADMIN" && ticket.isArchived,
                                                         }}
+                                                        onRestore={() => handleRestore(ticket.id)}
                                                         onDelete={() => handleDelete(ticket.id)}
                                                         onEdit={(e) => handleEdit(e, ticket.id)}
                                                         onView={async () => {
@@ -388,11 +390,11 @@ export default function Page() {
                                                         }}
                                                     />
                                                 </td>
-
+                                                {/* 
                                                 {ticket.isArchived &&
                                                     (<td className={`px-5 py-4 sm:px-6 `}>
                                                         <Button buttonLabel={"Restore"} click={() => handleRestore(ticket.id)} />
-                                                    </td>)}
+                                                    </td>)} */}
                                             </tr>
                                         ))}
                                     </tbody>

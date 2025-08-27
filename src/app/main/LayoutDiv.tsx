@@ -1,14 +1,18 @@
 "use client";
 import Aside from "@/components/Aside";
+import Heartbeat from "@/components/Heartbeat";
 import TopBar from "@/components/TopBar";
 import React, { useState } from "react";
 
 export default function LayoutDiv({ children }: { children: React.ReactNode }) {
     const [openSidebar, setOpenSidebar] = useState<boolean>(false);
 
+
+
     return (
         <>
-
+            {/* Heartbeat component */}
+            <Heartbeat />
 
             <Aside openSidebar={openSidebar} setOpenSidebar={setOpenSidebar} />
 

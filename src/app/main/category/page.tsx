@@ -30,7 +30,7 @@ export type CategoryWithRelations = Category & {
         title: string;
         status: string;
     }[] | null;
-        subcategories?: {
+    subcategories?: {
         id: string;
         name: string;
     }[] | null; // Add this for subcategories
@@ -189,7 +189,7 @@ export default function Page() {
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu isBottom={index >= categories.length - 2} option={{
                                                         view: true,
-                                                        edit: true,
+                                                        edit: data?.user.role === "SUPER_ADMIN",
                                                         // delete: true
                                                     }}
                                                         //  onDelete={() => handleDelete(category.id)}

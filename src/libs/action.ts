@@ -5,6 +5,43 @@ import { authOptions } from "./auth";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "@/app/main/tickets/action";
 
+
+
+
+export async function heartbeat() {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Find the active session(s) for this user
+  const userSessions = await prisma.userSession.findMany({
+    where: { userId: session.user.id },
+  });
+
+  const now = new Date();
+  const extendMs = 1000 * 60 * 5; // 5 minutes
+
+  for (const s of userSessions) {
+    // only extend if still using
+    const newExpires = new Date(Math.max(s.expiresAt.getTime(), now.getTime() + extendMs));
+    await prisma.userSession.update({
+      where: { id: s.id },
+      data: {
+        lastSeen: now,
+        expiresAt: newExpires,
+      },
+    });
+  }
+
+  return new Response("OK");
+}
+
+
+export async function deleteUserSession(id: string) {
+  await prisma.userSession.deleteMany({ where: { userId: id } });
+}
+
 // ====================
 // User Utilities
 // ====================
@@ -78,79 +115,6 @@ export interface AuditChange {
 
 
 
-// app/api/tickets/count/route.ts
-
-
-// export async function getTicketCount() {
-//   const user = await getCurrentUser();
-//   if (!user) throw new Error("Unauthorized");
-
-//   let where = {};
-
-//   if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
-//     // အကုန်ပြမယ်
-//     where = {};
-//   } else if (user.role === "AGENT") {
-//     // Agent assigned tickets only
-//     where = { assignedToId: user.id };
-//   } else if (user.role === "REQUESTER") {
-//     // Requester tickets only
-//     where = { requesterId: user.id }; // categoryId -> requesterId
-//   }
-
-//   // Only count non-archived tickets
-//   const count = await prisma.ticket.count({
-//     where: {
-//       ...where,
-//       isArchived: false,
-
-//       // priority: "HIGH", // "အရေးအတွက်" tickets ကို HIGh priority ဆို assume
-//     },
-//   });
-
-//   return count;
-// }
-
-
-// export async function getUnseenTicketCount() {
-//   const user = await getCurrentUser();
-//   if (!user) throw new Error("Unauthorized");
-
-//   let where: any = { isArchived: false };
-
-//   if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
-//     // Admin / SuperAdmin → အကုန်မြင်နိုင်
-//     where = {
-//       ...where,
-//       views: {
-//         none: { userId: user.id }, // မကြည့်ရသေးတာများ
-//       },
-//     };
-//   } else if (user.role === "AGENT") {
-//     // Agent → သူ့ကို assign လုပ်ထားတဲ့ ticket တွေထဲက မကြည့်ရသေးတာများ
-//     where = {
-//       ...where,
-//       assignedToId: user.id,
-//       views: {
-//         none: { userId: user.id },
-//       },
-//     };
-//   } else if (user.role === "REQUESTER") {
-//     // Requester → သူဖွင့်ထားတဲ့ ticket တွေကိုသာ ပြ
-//     // count မလိုရင် ဒီထဲမှာမထည့်ဘဲ return 0 လည်း လုပ်နိုင်
-//     where = {
-//       ...where,
-//       requesterId: user.id,
-//     };
-//   }
-
-//   const count = await prisma.ticket.count({
-//     where,
-//   });
-
-//   return count;
-// }
-
 
 export async function getUnseenTicketCount() {
   const user = await getCurrentUser();
@@ -192,3 +156,6 @@ export async function getUnseenTicketCount() {
 
   return 0;
 }
+
+
+

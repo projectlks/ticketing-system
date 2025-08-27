@@ -407,8 +407,12 @@ export async function permanentDeleteTickets() {
         try {
           await fs.unlink(filePath);
           console.log(`Deleted file: ${img.url}`);
-        } catch {
-          console.log(`File not found: ${img.url}`);
+        } catch (err) {
+          if (err instanceof Error) {
+            console.log(`Failed to delete file ${img.url}:`, err.message);
+          } else {
+            console.log(`Failed to delete file ${img.url}:`, String(err));
+          }
         }
       }));
     }
@@ -421,9 +425,39 @@ export async function permanentDeleteTickets() {
     where: { comment: { ticketId: { in: idsToDelete } } },
   });
 
+
+  // Step X: Delete comment images from filesystem
+  const commentsWithImages = await prisma.comment.findMany({
+    where: { ticketId: { in: idsToDelete }, NOT: { imageUrl: null } },
+    select: { imageUrl: true },
+  });
+
+  for (const c of commentsWithImages) {
+    if (c.imageUrl) {
+      const safeName = path.basename(c.imageUrl);
+      const filePath = path.join(process.cwd(), "uploads", safeName);
+      try {
+        await fs.unlink(filePath);
+        console.log(`Deleted comment image: ${c.imageUrl}`);
+      } catch (err) {
+        if (err instanceof Error) {
+          console.log(`Failed to delete comment image ${c.imageUrl}:`, err.message);
+        } else {
+          console.log(`Failed to delete comment image ${c.imageUrl}:`, String(err));
+        }
+      }
+    }
+  }
+
+  // Then delete the comments themselves
   await prisma.comment.deleteMany({
     where: { ticketId: { in: idsToDelete } },
   });
+
+
+  // await prisma.comment.deleteMany({
+  //   where: { ticketId: { in: idsToDelete } },
+  // });
 
   await prisma.ticketImage.deleteMany({
     where: { ticketId: { in: idsToDelete } },
@@ -440,7 +474,8 @@ export async function permanentDeleteTickets() {
     where: { id: { in: idsToDelete } },
   });
 
-  console.log(`[CRON] Deleted ${idsToDelete.length} tickets older than 2 minutes`);
+  console.log(`[CRON] Deleted ${idsToDelete.length} tickets older than 3 months`);
+
 }
 
 

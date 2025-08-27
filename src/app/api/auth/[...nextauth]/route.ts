@@ -5,6 +5,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/libs/prisma";
 import bcrypt from "bcrypt";
 
+const MAX_SESSION_AGE_MS = 1000 * 60 * 60 * 24; // 1 day
+// const HEARTBEAT_INTERVAL_MS = 1000 * 60 * 15;   // 15 min
+
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
 
@@ -21,20 +24,51 @@ const handler = NextAuth({
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+
+      async authorize(credentials, req) {
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
 
-        if (!email || !password) {
-          throw new Error("Email and password are required");
-        }
+        if (!email || !password) throw new Error("Email and password are required");
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: { sessions: true },
+        });
+
         if (!user || !user.password) throw new Error("No user found");
-        if (user.isArchived) throw new Error("Account is deleted or does not exist");
+        if (user.isArchived) throw new Error("Account is deleted");
 
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) throw new Error("Invalid password");
+
+        const now = new Date();
+
+        // heartbeat / keep-alive logic
+        // const extendMs = HEARTBEAT_INTERVAL_MS;
+
+        // Check existing sessions
+        for (const s of user.sessions) {
+          // If lastSeen is within 1 day → still active
+          const lastSeen = s.lastSeen ?? s.createdAt;
+          const expiresAt = new Date(lastSeen.getTime() + MAX_SESSION_AGE_MS);
+
+          if (expiresAt > now) {
+            // Still active session → block new login
+            throw new Error("Already logged in from another device");
+          }
+        }
+
+        // ✅ Create new session for this login
+        await prisma.userSession.create({
+          data: {
+            userId: user.id,
+            device: req.headers?.["user-agent"] ?? "Unknown Device",
+            createdAt: now,
+            lastSeen: now,
+            expiresAt: new Date(now.getTime() + MAX_SESSION_AGE_MS),
+          },
+        });
 
         return user;
       },
@@ -46,12 +80,13 @@ const handler = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        token.picture = user.profileUrl || null; // profile image
+        token.picture = user.profileUrl || null;
         token.name = user.name || null;
         token.email = user.email || null;
       }
       return token;
     },
+
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
