@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function Page({ params }: { params: { locale: string } }) {
-  redirect(`lang/${params.locale}/main/dashboard`);
+export default function Page() {
+  redirect(`lang/en/main/dashboard`);
 }
