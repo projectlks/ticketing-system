@@ -4,7 +4,7 @@ import {
   PencilSquareIcon,
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Avatar from "./Avatar";
 import { useRouter } from "next/navigation";
 import { useUserData } from "@/context/UserProfileContext";
@@ -20,7 +20,7 @@ export default function UserMenu({ menuToggle }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // const { data: session } = useSession(); // ✅ Correct way for client components
+  const { data: session } = useSession(); // ✅ Correct way for client components
 
   const { userData } = useUserData();
 
@@ -39,6 +39,8 @@ export default function UserMenu({ menuToggle }: Props) {
   }, []);
 
   const router = useRouter()
+
+  if (!session?.user) { return null }
 
   return (
     <div
@@ -88,9 +90,10 @@ export default function UserMenu({ menuToggle }: Props) {
               </li>
             </ul>
             <button
+              disabled={!userData?.id || !userData?.email || !!session?.user.id}   // 👈 ဒီမှာ စစ်
               onClick={async () => {
                 try {
-                  const success = await deleteUserSession(userData.id);
+                  const success = await deleteUserSession(session?.user.id);
 
                   if (!success) {
                     alert("Logout failed. Please try again.");
