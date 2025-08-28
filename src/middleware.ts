@@ -20,18 +20,21 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: SECRET });
 
   // Redirect unauthenticated users to sign in
+  // Redirect unauthenticated users to /auth/signin
   if (!token) {
-    return NextResponse.redirect(new URL(`/${getLocale(pathname)}/auth/signin`, req.url));
+    return NextResponse.redirect(new URL(`/auth/signin`, req.url));
   }
 
-  // Remove locale prefix from pathname (e.g., '/en/main/dashboard' => '/main/dashboard')
+  // Remove /lang/{locale} prefix from pathname
   const cleanedPath = removeLocaleFromPath(pathname);
 
   for (const route in roleAccess) {
     if (cleanedPath.startsWith(route)) {
       const allowedRoles = roleAccess[route];
       if (!allowedRoles.includes(token.role)) {
-        return NextResponse.redirect(new URL(`/${getLocale(pathname)}/main/dashboard`, req.url));
+        return NextResponse.redirect(
+          new URL(`/${getLocale(pathname)}/main/dashboard`, req.url)
+        );
       }
       break;
     }
@@ -40,19 +43,19 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Extract locale from the path
+// Extract locale from path like /lang/en/main/dashboard
 function getLocale(pathname: string): string {
   const segments = pathname.split("/");
-  return segments[1] || "en"; // default to 'en' if undefined
+  return segments[2] || "en"; // ['', 'lang', 'en', 'main', 'dashboard']
 }
 
-// Strip the locale prefix from pathname
+// Remove /lang/{locale} prefix from pathname
 function removeLocaleFromPath(pathname: string): string {
   const segments = pathname.split("/");
-  return "/" + segments.slice(2).join("/"); // removes ['', 'en', 'main', 'dashboard'] => '/main/dashboard'
+  return "/" + segments.slice(3).join("/"); // removes ['', 'lang', 'en', 'main', 'dashboard'] => '/main/dashboard'
 }
 
-// Match all locale-based /main/* routes (e.g., /en/main/dashboard)
+// Match all locale-based /lang/*/main/* routes
 export const config = {
-  matcher: ["/(en|mm)/main/:path*"],
+  matcher: ["/lang/(en|mm|ru)/main/:path*"],
 };
