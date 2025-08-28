@@ -62,12 +62,12 @@
     "requester": "Requester",
     "assignedTo": "Assigned To"
   },
-   "dashboard": {
+  "dashboard": {
     "recentTickets": "Recent Tickets",
     "viewAll": "View all",
     "recentActivity": "Recent Activity",
     "changedFromTo": "changed {entity} {field} from {oldValue} to {newValue}"
-  } ,
+  },
   "header": {
     "users": {
       "title": "Users",
@@ -90,48 +90,111 @@
       "placeholder": "Search by title or description"
     },
     "new": "New"
-  } ,
+  },
 
-   "accountForm": {
-      "headings": {
-        "create": "Add New Account",
-        "update": "Update Account",
-        "createDesc": "Effortlessly manage your accounts: add a new account.",
-        "updateDesc": "Effortlessly manage your accounts: update existing details."
+  "accountForm": {
+    "headings": {
+      "create": "Add New Account",
+      "update": "Update Account",
+      "createDesc": "Effortlessly manage your accounts: add a new account.",
+      "updateDesc": "Effortlessly manage your accounts: update existing details."
+    },
+    "placeholders": {
+      "name": "Enter user name",
+      "email": "Enter user email",
+      "password": {
+        "create": "Enter password",
+        "update": "Enter new password"
       },
-      "placeholders": {
-        "name": "Enter user name",
-        "email": "Enter user email",
-        "password": {
-          "create": "Enter password",
-          "update": "Enter new password"
-        },
-        "department": "Select Department",
-        "job_position": "Select Job Position"
+      "department": "Select Department",
+      "job_position": "Select Job Position"
+    },
+    "labels": {
+      "name": "User name",
+      "email": "Email",
+      "password": {
+        "create": "Password",
+        "update": "New Password (leave blank to keep current)"
       },
-      "labels": {
-        "name": "User name",
-        "email": "Email",
-        "password": {
-          "create": "Password",
-          "update": "New Password (leave blank to keep current)"
-        },
-        "role": "Role",
-        "department": "Department",
-        "job_position": "Job Position"
+      "role": "Role",
+      "department": "Department",
+      "job_position": "Job Position"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Account",
+      "update": "Update Account",
+      "creating": "Creating...",
+      "updating": "Updating..."
+    },
+    "errors": {
+      "required": "is required.",
+      "invalidEmail": "Please enter a valid email.",
+      "passwordLength": "Password must be at least 8 characters.",
+      "response": "Something went wrong."
+    },
+    "alerts": {
+      "cancel": {
+        "title": "Are you sure?",
+        "text": "You have unsaved changes. Closing the form will lose them.",
+        "confirm": "Yes, close it",
+        "cancel": "No, keep editing"
       },
-      "buttons": {
-        "cancel": "Cancel",
-        "create": "Create Account",
-        "update": "Update Account",
-        "creating": "Creating...",
-        "updating": "Updating..."
+      "success": {
+        "title": "Success",
+        "create": "Account created successfully!",
+        "update": "Account updated successfully!"
       },
-      "errors": {
-        "required": "is required.",
-        "invalidEmail": "Please enter a valid email.",
-        "passwordLength": "Password must be at least 8 characters.",
-        "response": "Something went wrong."
+      "error": {
+        "title": "Error"
       }
     }
+  },
+
+  "categoryForm" : {
+  "headings": {
+    "create": "Add New Category",
+    "createDesc": "Effortlessly manage your categories: add a new category.",
+    "update": "Update Category",
+    "updateDesc": "Effortlessly manage your categories: update existing details."
+  },
+  "labels": {
+    "name": "Category Name",
+    "subcategories": "Sub categories"
+  },
+  "placeholders": {
+    "name": "Enter category name",
+    "subCategory": "SubCategory name"
+  },
+  "buttons": {
+    "cancel": "Cancel",
+    "create": "Create Category",
+    "creating": "Creating...",
+    "update": "Update Category",
+    "updating": "Updating...",
+    "add": "Add"
+  },
+  "errors": {
+    "required": "is required.",
+    "subCategoryEmpty": "Subcategory name cannot be empty."
+  },
+  "alerts": {
+    "success": {
+      "title": "Success",
+      "create": "Category created successfully!",
+      "update": "Category updated successfully!"
+    },
+    "error": {
+      "title": "Error",
+      "text": "Something went wrong."
+    },
+    "cancel": {
+      "title": "Are you sure?",
+      "text": "You have unsaved changes. Closing the form will lose them.",
+      "confirm": "Yes, close it",
+      "cancel": "No, keep editing"
+    }
+  }
+}
+
 }

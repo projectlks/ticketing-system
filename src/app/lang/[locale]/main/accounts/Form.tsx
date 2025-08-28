@@ -19,6 +19,8 @@ interface AccountCreateFormProps {
 }
 
 export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }: AccountCreateFormProps) {
+    const t = useTranslations('accountForm'); // single translation instance
+
     const [errors, setErrors] = useState({
         name: '',
         email: '',
@@ -27,7 +29,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         job_position: '',
         response: null as string | null,
     });
-
     const [loading, setLoading] = useState(false);
 
     const emptyForm = {
@@ -38,7 +39,6 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         job_position: '',
         role: 'REQUESTER',
     };
-
     const [form, setForm] = useState(emptyForm);
     const [initialForm, setInitialForm] = useState(emptyForm);
 
@@ -49,33 +49,34 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     const { data } = useSession();
     const isSuperAdmin = data?.user.role === "SUPER_ADMIN";
 
-    // Load account data if updating
     useEffect(() => {
         if (updateID) {
             const getData = async () => {
                 const accountData = await getAccount(updateID);
-
-                const normalizedData = {
+                setForm({
                     name: accountData?.name ?? '',
                     email: accountData?.email ?? '',
                     password: '',
-                    role: accountData?.role ?? 'REQUESTER', // keep DB role
+                    role: accountData?.role ?? 'REQUESTER',
                     department: accountData?.departmentId ?? '',
                     job_position: accountData?.jobPositionId ?? '',
-                };
-
-                setForm(normalizedData);
-                setInitialForm(normalizedData);
+                });
+                setInitialForm({
+                    name: accountData?.name ?? '',
+                    email: accountData?.email ?? '',
+                    password: '',
+                    role: accountData?.role ?? 'REQUESTER',
+                    department: accountData?.departmentId ?? '',
+                    job_position: accountData?.jobPositionId ?? '',
+                });
             };
             getData();
         } else {
-            // New account creation
             setForm(isSuperAdmin ? emptyForm : { ...emptyForm, role: 'REQUESTER' });
             setInitialForm(isSuperAdmin ? emptyForm : { ...emptyForm, role: 'REQUESTER' });
         }
     }, [updateID, isSuperAdmin]);
 
-    // Fetch departments
     useEffect(() => {
         const getDepartment = async () => {
             const data = await getAllDepartmentIdAndName();
@@ -84,13 +85,11 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
         getDepartment();
     }, []);
 
-    // Fetch job positions based on selected department
     useEffect(() => {
         if (form.department) {
             const getJobs = async () => {
                 const data = await getJobPositionsByDepartment(form.department);
                 setJobPositions(data);
-
                 if (!data.some((job) => job.id === form.job_position)) {
                     setForm((prev) => ({ ...prev, job_position: '' }));
                 }
@@ -117,18 +116,18 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     const handleCancel = () => {
         if (isFormDirty()) {
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'You have unsaved changes. Closing the form will lose them.',
-                icon: 'warning',
+                title: t("alerts.cancel.title"),
+                text: t("alerts.cancel.text"),
+                icon: "warning",
                 showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, close it',
-                cancelButtonText: 'No, keep editing',
+                confirmButtonColor: "#ef4444",
+                cancelButtonColor: "#6b7280",
+                confirmButtonText: t("alerts.cancel.confirm"),
+                cancelButtonText: t("alerts.cancel.cancel"),
                 customClass: {
-                    popup: 'rounded-lg p-6',
-                    confirmButton: 'bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600',
-                    cancelButton: 'bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-400',
+                    popup: "rounded-lg p-6",
+                    confirmButton: "bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600",
+                    cancelButton: "bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-400",
                 },
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -145,45 +144,42 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        setErrors({ name: '', email: '', password: '', department: '', job_position: '', response: null });
+        setErrors({ name: "", email: "", password: "", department: "", job_position: "", response: null });
 
         let isValid = true;
-        const newErrors = { name: '', email: '', password: '', department: '', job_position: '', response: null };
+        const newErrors = { name: "", email: "", password: "", department: "", job_position: "", response: null };
 
         if (!form.name.trim()) {
-            newErrors.name = 'Name is required.';
+            newErrors.name = t("labels.name") + " " + t("errors.required");
             isValid = false;
         }
         if (!form.email.trim()) {
-            newErrors.email = 'Email is required.';
+            newErrors.email = t("labels.email") + " " + t("errors.required");
             isValid = false;
         } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-            newErrors.email = 'Please enter a valid email.';
+            newErrors.email = t("errors.invalidEmail");
             isValid = false;
         }
         if (!updateID) {
             if (!form.password.trim()) {
-                newErrors.password = 'Password is required.';
+                newErrors.password = t("labels.password.create") + " " + t("errors.required");
                 isValid = false;
             } else if (form.password.length < 8) {
-                newErrors.password = 'Password must be at least 8 characters.';
+                newErrors.password = t("errors.passwordLength");
                 isValid = false;
             }
         }
         if (!form.department.trim()) {
-            newErrors.department = 'Department is required.';
+            newErrors.department = t("labels.department") + " " + t("errors.required");
             isValid = false;
         }
         if (!String(form.job_position).trim()) {
-            newErrors.job_position = 'Job Position is required.';
+            newErrors.job_position = t("labels.job_position") + " " + t("errors.required");
             isValid = false;
         }
-
-        if (updateID && form.password.trim()) {
-            if (form.password.length < 8) {
-                newErrors.password = 'Password must be at least 8 characters.';
-                isValid = false;
-            }
+        if (updateID && form.password.trim() && form.password.length < 8) {
+            newErrors.password = t("errors.passwordLength");
+            isValid = false;
         }
 
         if (!isValid) {
@@ -196,70 +192,48 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
 
         try {
             if (updateID) {
-
-                if (form.password.trim()) {
-                    formData.set('password', form.password);
-
-                }
+                if (form.password.trim()) formData.set("password", form.password);
                 const { success, data } = await updateAccount(formData, updateID);
                 if (success) {
                     setAccounts((prev) => prev.map((item) => (item.id === updateID ? data : item)));
                     Swal.fire({
-                        title: 'Success',
-                        text: 'Account updated successfully!',
-                        icon: 'success',
-                        confirmButtonColor: '#6366f1',
-                        customClass: {
-                            popup: 'rounded-lg p-6',
-                            confirmButton: 'bg-indigo-500 text-white px-4 py-2 rounded text-sm hover:bg-indigo-600',
-                        },
+                        title: t("alerts.success.title"),
+                        text: t("alerts.success.update"),
+                        icon: "success",
+                        confirmButtonColor: "#6366f1",
+                        customClass: { popup: "rounded-lg p-6", confirmButton: "bg-indigo-500 text-white px-4 py-2 rounded text-sm hover:bg-indigo-600" },
                     });
                 }
             } else {
-
-                if (!isSuperAdmin) {
-                    formData.set('role', 'REQUESTER'); // force role for non-SUPER_ADMIN
-                }
+                if (!isSuperAdmin) formData.set("role", "REQUESTER");
                 const { success, data }: { success: boolean; data: UserWithRelations } = await createAccount(formData);
                 if (success) {
                     setAccounts((prev) => [data, ...prev]);
                     Swal.fire({
-                        title: 'Success',
-                        text: 'Account created successfully!',
-                        icon: 'success',
-                        confirmButtonColor: '#6366f1',
-                        customClass: {
-                            popup: 'rounded-lg p-6',
-                            confirmButton: 'bg-indigo-500 text-white px-4 py-2 rounded text-sm hover:bg-indigo-600',
-                        },
+                        title: t("alerts.success.title"),
+                        text: t("alerts.success.create"),
+                        icon: "success",
+                        confirmButtonColor: "#6366f1",
+                        customClass: { popup: "rounded-lg p-6", confirmButton: "bg-indigo-500 text-white px-4 py-2 rounded text-sm hover:bg-indigo-600" },
                     });
                 }
             }
-
             setShowForm(false);
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Something went wrong.';
+            const message = error instanceof Error ? error.message : t("alerts.error.title");
             setErrors((prev) => ({ ...prev, response: message }));
-
             Swal.fire({
-                title: 'Error',
+                title: t("alerts.error.title"),
                 text: message,
-                icon: 'error',
-                confirmButtonColor: '#ef4444',
-                customClass: {
-                    popup: 'rounded-lg p-6',
-                    confirmButton: 'bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600',
-                },
+                icon: "error",
+                confirmButtonColor: "#ef4444",
+                customClass: { popup: "rounded-lg p-6", confirmButton: "bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600" },
             });
         } finally {
             setLoading(false);
         }
     };
 
-
-    const t = useTranslations('accountForm');
-
-    // const { data } = useSession()
     return (
         <>
             {loading && <Loading />}
@@ -348,9 +322,9 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         onChange={handleChange}
                                         className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                     >
-                                        <option value="REQUESTER">{t('roles.requester')}</option>
-                                        <option value="AGENT">{t('roles.agent')}</option>
-                                        <option value="ADMIN">{t('roles.admin')}</option>
+                                        <option value="REQUESTER">REQUESTER</option>
+                                        <option value="AGENT">AGENT</option>
+                                        <option value="ADMIN">ADMIN</option>
                                     </select>
                                     <span
                                         onClick={() => {
