@@ -1,10 +1,9 @@
-// middleware.ts
 import { getToken } from "next-auth/jwt";
 import { NextResponse, NextRequest } from "next/server";
 
 const SECRET = process.env.AUTH_SECRET;
 
-// Define role access based on your navItems
+// Role-based access configuration
 const roleAccess: Record<string, string[]> = {
   "/main/dashboard": ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"],
   "/main/department": ["SUPER_ADMIN", "ADMIN"],
@@ -15,33 +14,45 @@ const roleAccess: Record<string, string[]> = {
 };
 
 export async function middleware(req: NextRequest) {
-  const pathname = req.nextUrl.pathname;
+  const { pathname } = req.nextUrl;
 
   // Get token from next-auth
   const token = await getToken({ req, secret: SECRET });
 
-  // If user is not logged in, redirect to login
+  // Redirect unauthenticated users to sign in
   if (!token) {
-    return NextResponse.redirect(new URL("/auth/signin", req.url));
+    return NextResponse.redirect(new URL(`/${getLocale(pathname)}/auth/signin`, req.url));
   }
 
-  // Check access roles for the pathname
+  // Remove locale prefix from pathname (e.g., '/en/main/dashboard' => '/main/dashboard')
+  const cleanedPath = removeLocaleFromPath(pathname);
+
   for (const route in roleAccess) {
-    if (pathname.startsWith(route)) {
+    if (cleanedPath.startsWith(route)) {
       const allowedRoles = roleAccess[route];
       if (!allowedRoles.includes(token.role)) {
-        // Redirect to unauthorized page or dashboard
-        return NextResponse.redirect(new URL("/main/dashboard", req.url));
+        return NextResponse.redirect(new URL(`/${getLocale(pathname)}/main/dashboard`, req.url));
       }
       break;
     }
   }
 
-  // Allow request to continue
   return NextResponse.next();
 }
 
-// Match all /main/* routes
+// Extract locale from the path
+function getLocale(pathname: string): string {
+  const segments = pathname.split("/");
+  return segments[1] || "en"; // default to 'en' if undefined
+}
+
+// Strip the locale prefix from pathname
+function removeLocaleFromPath(pathname: string): string {
+  const segments = pathname.split("/");
+  return "/" + segments.slice(2).join("/"); // removes ['', 'en', 'main', 'dashboard'] => '/main/dashboard'
+}
+
+// Match all locale-based /main/* routes (e.g., /en/main/dashboard)
 export const config = {
-  matcher: ["/main/:path*"],
+  matcher: ["/(en|mm)/main/:path*"],
 };

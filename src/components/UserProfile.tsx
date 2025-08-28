@@ -8,8 +8,8 @@ import { signOut } from "next-auth/react";
 import Avatar from "./Avatar";
 import { useRouter } from "next/navigation";
 import { useUserData } from "@/context/UserProfileContext";
-import { prisma } from "@/libs/prisma";
 import { deleteUserSession } from "@/libs/action";
+import LanguageSwitcher from "./LanguageSwitch";
 
 type Props = {
   menuToggle: boolean;
@@ -45,6 +45,8 @@ export default function UserMenu({ menuToggle }: Props) {
       className={`${menuToggle ? "flex" : "hidden"
         } flex-col lg:flex lg:flex-row items-center justify-between w-full gap-4 px-5 py-4 shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
     >
+
+      <LanguageSwitcher/>
       {/* User profile dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
@@ -88,16 +90,13 @@ export default function UserMenu({ menuToggle }: Props) {
             <button
               onClick={async () => {
                 try {
+                  await deleteUserSession(userData.id);
 
+                  // ✅ Prevent NextAuth from auto-redirecting
+                  await signOut({ redirect: false });
 
-
-                  await deleteUserSession(userData.id)
-
-
-                  // ✅ Sign out from NextAuth
-                  signOut();
-
-
+                  // ✅ Manually redirect
+                  router.push("/auth/signin");
                 } catch (error) {
                   console.error("Failed to sign out:", error);
                 }

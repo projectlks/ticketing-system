@@ -64,6 +64,8 @@ export default function TopBar({ setOpenSidebar, openSidebar }: Props) {
 
                 </div>
 
+
+
                 {/* right side user menu */}
                 <UserProfile
                     menuToggle={menuToggle}

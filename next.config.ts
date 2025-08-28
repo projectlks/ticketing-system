@@ -1,16 +1,18 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+import withNextIntl from 'next-intl/plugin';
 
 const nextConfig: NextConfig = {
-  // TypeScript
-  typescript: {
-    ignoreBuildErrors: process.env.NODE_ENV === "production", // Production မှာသာ ignore
+  reactStrictMode: true,
+  i18n: {
+    locales: ['en', 'mm', 'ru'],
+    defaultLocale: 'en',
   },
-
-  // ESLint
+  typescript: {
+    ignoreBuildErrors: process.env.NODE_ENV === 'production',
+  },
   eslint: {
-    ignoreDuringBuilds: process.env.NODE_ENV === "production", // Production မှာသာ ignore
+    ignoreDuringBuilds: process.env.NODE_ENV === 'production',
   },
 };
 
-export default nextConfig;
-
+export default withNextIntl()(nextConfig);

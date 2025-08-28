@@ -19,6 +19,7 @@ import MultiFilter from "./multiFilter";
 import { useSession } from "next-auth/react";
 import type { Ticket } from "@prisma/client";
 import { useTicketCount } from "@/context/TicketCountContext";
+import { useTranslations } from "next-intl";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: {
@@ -253,23 +254,24 @@ export default function Page() {
         return priorityColors.DEFAULT[type];
     }
 
-
-
+    const t = useTranslations("table");
+    const tHeader = useTranslations("header");
     const { data } = useSession()
 
     return (
         <>
             {isFetching && <Loading />}
             <div className="w-full min-h-full bg-white pb-10 rounded-lg">
+
+
                 <Header
-                    title="Tickets"
-                    placeholder="Search by title or description"
+                    title={tHeader("tickets.title")}
+                    placeholder={tHeader("tickets.placeholder")}
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
                     showNewBtn={data?.user.role === 'REQUESTER'}
                 >
-
                     <MultiFilter filters={filters} setFilters={setFilters} />
                 </Header>
 
@@ -280,17 +282,19 @@ export default function Page() {
                                 <table className="w-full min-w-[1102px] border border-gray-200">
                                     <thead>
                                         <tr className="border-b border-gray-100">
-                                            <TableHead data="No." />
-                                            <TableHead data="Ticket ID" />
-                                            <TableHead data="Title" />
-                                            <TableHead data="Description" />
-                                            <TableHead data="Status" />
-                                            <TableHead data="Priority" />
-                                            <TableHead data="Created At" />
-                                            <TableHead data="Requester" />
-                                            <TableHead data="Assigned To" />
-                                            <TableHead data="Actions" />
-                                            {/* {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />} */}
+
+
+
+                                            <TableHead data={t("no")} />
+                                            <TableHead data={t("ticketId")} />
+                                            <TableHead data={t("title")} />
+                                            <TableHead data={t("description")} />
+                                            <TableHead data={t("status")} />
+                                            <TableHead data={t("priority")} />
+                                            <TableHead data={t("createdAt")} />
+                                            <TableHead data={t("requester")} />
+                                            <TableHead data={t("assignedTo")} />
+                                            <TableHead data={t("actions")} />
 
                                         </tr>
                                     </thead>

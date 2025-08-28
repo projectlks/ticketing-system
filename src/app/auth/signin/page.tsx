@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import Input from "@/components/Input";
 import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
+// import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,7 +17,6 @@ export default function SignInPage() {
   const [data, setData] = useState<{
     email: string;
     password: string;
-
   }>({
     email: "",
     password: "",
@@ -26,11 +25,11 @@ export default function SignInPage() {
   const [errors, setErrors] = useState<{
     email: string;
     password: string;
-    response: string | null;  // <-- allow null here
+    response: string | null;
   }>({
     email: "",
     password: "",
-    response: null,  // start with null
+    response: null,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,8 +42,8 @@ export default function SignInPage() {
 
     setErrors((prev) => ({
       ...prev,
-      [name]: "", // Clear field-specific error on input
-      response: "", // Clear general response error on any input
+      [name]: "",
+      response: null, // reset correctly
     }));
   };
 
@@ -66,9 +65,7 @@ export default function SignInPage() {
     if (!data.password.trim()) {
       validationErrors.password = "Password is required.";
       isValid = false;
-    }
-
-    if (data.password.length < 8) {
+    } else if (data.password.length < 8) {
       validationErrors.password = "Password must be at least 8 characters.";
       isValid = false;
     }
@@ -92,15 +89,13 @@ export default function SignInPage() {
         response: res.error,
       }));
     } else if (res?.ok) {
-      router.push("/main/dashboard");
+      // Always redirect to English dashboard
+      router.push("/lang/en/main/dashboard");
     }
   };
 
   return (
-
     <>
-
-
       {loading && <Loading />}
       <div className="relative min-h-screen flex items-center justify-center p-6 sm:p-0">
         <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row sm:p-0 mx-auto">
@@ -115,67 +110,54 @@ export default function SignInPage() {
               </div>
 
               <form onSubmit={handleSubmit}>
-                <input
-                  type="hidden"
-                  name="_token"
-                  value="fXk38xbC9KuX7GSW67AIZ4QRUvv5vx1buNSaV3Bu"
-                />
-
                 <div className="space-y-5">
                   {/* Email Input */}
-                  <div>
-
-                    <Input
-                      type="email"
-                      id="email"
-                      name="email"
-                      placeholder="info@gmail.com"
-                      value={data.email}
-                      onChange={handleChange}
-                      error={!!errors.email}
-                      label="Email"
-                      require={true}
-                      errorMessage={errors.email} // added
-                      disable={loading}       // added
-                    />
-
-                  </div>
+                  <Input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="info@gmail.com"
+                    value={data.email}
+                    onChange={handleChange}
+                    error={!!errors.email}
+                    label="Email"
+                    require={true}
+                    errorMessage={errors.email}
+                    disable={loading}
+                  />
 
                   {/* Password Input */}
-                  <div>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      placeholder="Enter your password"
+                      value={data.password}
+                      onChange={handleChange}
+                      error={!!errors.password}
+                      label="Password"
+                      require={true}
+                      errorMessage={errors.password}
+                      disable={loading}
+                    />
 
-
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        value={data.password}
-                        onChange={handleChange}
-                        error={!!errors.password}
-                        label="Password"                    // added
-                        require={true}              // added
-                        errorMessage={errors.password} // added
-                        disable={loading}           // added
-                      />
-
-
-                      {/* <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 transform text-gray-500 focus:outline-none"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? (
-                          <EyeSlashIcon className="w-5 h-5" />
-                        ) : (
-                          <EyeIcon className="w-5 h-5" />
-                        )}
-                      </button> */}
-                    </div>
-
-
+                    {/* Toggle Password Visibility */}
+                    {/* Uncomment if you want to show/hide password */}
+                    {/* 
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 transform text-gray-500 focus:outline-none"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeSlashIcon className="w-5 h-5" />
+                      ) : (
+                        <EyeIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                    */}
                   </div>
 
                   {/* General Response Error */}
@@ -188,7 +170,7 @@ export default function SignInPage() {
                     type="submit"
                     disabled={loading}
                     className={`mt-6 flex w-full items-center justify-center px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md transition
-                    ${loading
+                      ${loading
                         ? "bg-indigo-300 cursor-not-allowed"
                         : "bg-indigo-500 hover:bg-indigo-600"
                       }`}
@@ -237,7 +219,6 @@ export default function SignInPage() {
           </div>
         </div>
       </div>
-
     </>
   );
 }

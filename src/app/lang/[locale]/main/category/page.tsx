@@ -4,8 +4,8 @@ import Header from "@/components/Header";
 import { useEffect, useState } from "react";
 import Portal from "@/components/Portal";
 import Form from "./Form";
-import { deleteDepartment, getAllDepartments, restoreDepartment } from "./action";
-import { Department } from "@prisma/client";
+import { deleteCategory, getAllCategories } from "./action";
+import { Category } from "@prisma/client";
 import TableBody from "@/components/TableBody";
 import DotMenu from "@/components/DotMenu";
 import TableHead from "@/components/TableHead";
@@ -15,10 +15,9 @@ import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outli
 import { useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
 import { useSession } from "next-auth/react";
-import { useRestore } from "@/hooks/useRestore";
-import { useDelete } from "@/hooks/useDelete";
+import { useTranslations } from "next-intl";
 
-export type DepartmentWithRelations = Department & {
+export type CategoryWithRelations = Category & {
     creator?: {
         name: string | null;
         email: string | null;
@@ -27,31 +26,23 @@ export type DepartmentWithRelations = Department & {
         name: string | null;
         email: string | null;
     } | null;
-    manager?: {
-        name: string | null;
-        email: string | null;
-    } | null;
     tickets?: {
         id: string;
         title: string;
         status: string;
     }[] | null;
-    positions?: {
+    subcategories?: {
         id: string;
         name: string;
-        creator?: {
-            name: string | null;
-            email: string | null;
-        } | null;
-    }[] | null;
+    }[] | null; // Add this for subcategories
+
 };
 
 export default function Page() {
 
 
     const [showForm, setShowForm] = useState(false);
-
-    const [departments, setDepartments] = useState<DepartmentWithRelations[]>([]);
+    const [categories, setCategories] = useState<CategoryWithRelations[]>([]);
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const take = 10;
@@ -60,21 +51,18 @@ export default function Page() {
 
 
     const router = useRouter();
-    // const { handleRestore } = useRestore();
-    // const { handleDelete } = useDelete();
 
 
     const fetchAccounts = async (currentPage: number) => {
         try {
-            // setLoading(true);
-            const { data, total } = await getAllDepartments(currentPage, searchQuery);
+            const { data, total } = await getAllCategories(currentPage, searchQuery);
             const totalPages = Math.ceil(total / take);
             // page က totalPages ထက်ကြီးနေပြီး totalPages > 0 ဆိုရင်
             if (currentPage > totalPages && totalPages > 0) {
                 setPage(totalPages); // နောက်ဆုံး valid page ကို သတ်မှတ်ပေး
                 return; // ဒီနေရာမှာ setPage ပြင်လိုက်ပြီး fetch ထပ်လုပ်ဖို့ useEffect က လုပ်ပေးမယ်
             } else {
-                setDepartments(data);
+                setCategories(data);
             }
         } catch (error) {
             console.error("Failed to fetch accounts:", error);
@@ -98,97 +86,124 @@ export default function Page() {
     }, [searchQuery]);
 
 
+    const handleDelete = async (id: string) => {
+        try {
+            const result = await Swal.fire({
+                title: 'Are you sure?',
+                text: 'You won’t be able to revert this!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+            });
+
+            if (result.isConfirmed) {
+                await deleteCategory(id);
+                setCategories(categories.filter(category => category.id !== id));
+
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'The category has been deleted.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                });
+            }
+        } catch (error) {
+            console.error("Failed to delete account:", error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to delete the account.',
+                icon: 'error',
+            });
+        }
+    };
 
 
 
     const handleEdit = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
-        e.stopPropagation();
+        e.stopPropagation()
         setUpdateID(id);
         setShowForm(true);
     }
 
-    const { data: session } = useSession(); // ✅ Correct way for client components
 
-    // alert(session)
+    const { data } = useSession()
+    const t = useTranslations("table")
+    const tHeader = useTranslations("header");
 
     return (
         <>
 
-            {isFetching && <Loading />}
-            <div className="max-w-full min-h-full  overflow-x-auto bg-white pb-10 rounded-lg">
+            {isFetching && (<Loading />)}
+            <div className="w-full min-h-full bg-white pb-10 rounded-lg">
+
+
                 <Header
-                    title="Departments"
-                    placeholder="Search by Department name"
-                    click={() => { if (session?.user.role === "SUPER_ADMIN") setShowForm(true) }}
+                    title={tHeader("categories.title")}
+                    placeholder={tHeader("categories.placeholder")}
+                    click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
-                    showNewBtn={session?.user.role === "SUPER_ADMIN"}
+                    showNewBtn={data?.user.role === 'SUPER_ADMIN'}
                 />
 
                 <div className="p-5">
-                    {departments.length > 0 ? (
+                    {categories.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
                                 <table className="w-full min-w-[1102px] border border-gray-200">
                                     <thead>
                                         <tr className="border-b border-gray-100">
-                                            <TableHead data="No." />
-                                            <TableHead data="Name" />
-                                            <TableHead data="Description" />
-                                            <TableHead data="Manager" />
-                                            <TableHead data="Department Email" />
-                                            <TableHead data="Department Contact" />
 
-                                            <TableHead data="Actions" />
-                                            {/* {(session?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />} */}
+                                            <TableHead data={t("no")} />
+                                            <TableHead data={t("name")} />
+                                            <TableHead data={t("createdAt")} />
+                                            <TableHead data={t("updatedAt")} />
+                                            <TableHead data={t("creator")} />
+                                            <TableHead data={t("actions")} />
 
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {departments.map((department, index) => (
+                                        {categories.map((category, index) => (
                                             <tr
-
-                                                // onClick={() => router.push(`/main/department/view/${department.id}`)}
-
-                                                key={department.id}
-                                                className={` border-b border-gray-100 hover:bg-gray-50  ${department.isArchived ? "bg-red-100" : ""} `}
+                                                // onClick={() => router.push(`/main/category/view/${category.id}`)}
+                                                key={category.id}
+                                                className="border-b border-gray-100 hover:bg-gray-50"
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
-                                                <TableBody data={department.name} />
-                                                <TableBody data={department.description || "-"} />
-                                                {/* <TableBody data={department.manager?.name || "-"} /> */}
+                                                <TableBody data={category.name} />
+                                                {/* <TableBody data={category.email} /> */}
+                                                {/* <TableBody data={category.role} /> */}
+                                                <TableBody data={new Date(category.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+                                                <TableBody data={new Date(category.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+
+
                                                 <td className={`px-5 py-4 sm:px-6 `}>
-                                                    <p className="text-gray-500 truncate">{department.manager
-                                                        ? department.manager.name || "-"
+                                                    <p className="text-gray-500 truncate">{category.creator
+                                                        ? category.creator.name || "-"
                                                         : "-"}</p>
 
                                                     <p className="text-gray-500 text-xs truncate">
-                                                        {department.manager
-                                                            ? department.manager.email || "-"
+                                                        {category.creator
+                                                            ? category.creator.email || "-"
                                                             : "-"}
                                                     </p>
                                                 </td>
 
-                                                <TableBody data={department.email || "-"} />
-                                                <TableBody data={department.contact || "-"} />
-
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
-                                                    <DotMenu isBottom={index >= departments.length - 2} option={{
+                                                    <DotMenu isBottom={index >= categories.length - 2} option={{
                                                         view: true,
-                                                        edit:
-                                                            session?.user.role === "SUPER_ADMIN" ||
-                                                            (
-                                                                session?.user.role === "ADMIN" &&
-                                                                department.managerId === session.user.id
-                                                            ),
-
+                                                        edit: data?.user.role === "SUPER_ADMIN",
+                                                        // delete: true
                                                     }}
-                                                        onEdit={(e) => handleEdit(e, department.id)}
-                                                        onView={() => { router.push(`/main/department/view/${department.id}`) }}
+                                                        //  onDelete={() => handleDelete(category.id)}
+                                                        onEdit={(e) => handleEdit(e, category.id)}
+                                                        onView={() => router.push(`/main/category/view/${category.id}`)}
                                                     />
                                                 </td>
-
-
                                             </tr>
                                         ))}
                                     </tbody>
@@ -196,7 +211,6 @@ export default function Page() {
 
 
                             </div>
-
 
                             <div className="flex justify-end gap-2 mt-4">
 
@@ -213,7 +227,7 @@ export default function Page() {
 
                                 <Button
                                     click={() => setPage((prev) => prev + 1)}
-                                    disabled={departments.length < take || isFetching}
+                                    disabled={categories.length < take || isFetching}
                                     buttonLabel={
                                         <>
                                             <span>Next </span>
@@ -226,14 +240,16 @@ export default function Page() {
                             </div>
                         </div>
                     ) : (
-                        <p className="text-base text-center text-gray-500">No Department found.</p>
+                        <p className="text-base text-center text-gray-500">No categories found.</p>
                     )}
                 </div>
             </div>
 
             {showForm && (
                 <Portal>
-                    <Form setShowForm={setShowForm} setDepartments={setDepartments} updateID={updateID} setUpdateID={setUpdateID} />
+                    <Form setShowForm={setShowForm} setCategories={setCategories} updateID={updateID} setUpdateID={setUpdateID} />
+
+                    <></>
                 </Portal>
             )}
         </>

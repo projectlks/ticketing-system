@@ -1,6 +1,8 @@
-import { permanentDeleteTickets } from "@/app/main/tickets/action";
+// import { permanentDeleteTickets } from "@/app/main/tickets/action";
 import cron from "node-cron";
 import { prisma } from "@/libs/prisma";
+import { permanentDeleteTickets } from "@/app/lang/[locale]/main/tickets/action";
+// import { permanentDeleteTickets } from "@/app/[locale]/main/tickets/action";
 
 cron.schedule(
     "0 17 * * 0", // Sunday 5 PM Myanmar Time

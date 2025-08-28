@@ -7,6 +7,7 @@ import {
   ClockIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
+import { useTranslations } from "next-intl";
 
 interface CardData {
   title: string;
@@ -88,10 +89,11 @@ const DashboardCard: React.FC<CardData> = ({
 };
 
 const DashboardCards: React.FC<DashboardCardsProps> = ({ stats }) => {
+  const t = useTranslations();
   const cards: CardData[] = [
     {
-      title: "Total",
-      subtitle: "All Support Tickets",
+      title: t("dashboardCards.total.title"),
+      subtitle: t("dashboardCards.total.subtitle"),
       count: `${stats.thisMonth.all} tickets`,
       iconColor: "text-red-600",
       iconBorder: "border-red-100",
@@ -101,8 +103,8 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({ stats }) => {
       badgeIconRotate: stats.trends.all === "down",
     },
     {
-      title: "Open",
-      subtitle: "Currently Open Tickets",
+      title: t("dashboardCards.open.title"),
+      subtitle: t("dashboardCards.open.subtitle"),
       count: `${stats.thisMonth.open}`,
       iconColor: "text-blue-600",
       iconBorder: "border-blue-100",
@@ -112,8 +114,8 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({ stats }) => {
       badgeIconRotate: stats.trends.open === "down",
     },
     {
-      title: "Pending",
-      subtitle: "Awaiting Response",
+      title: t("dashboardCards.pending.title"),
+      subtitle: t("dashboardCards.pending.subtitle"),
       count: `${stats.thisMonth.inProgress}`,
       iconColor: "text-yellow-600",
       iconBorder: "border-yellow-100",
@@ -123,8 +125,8 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({ stats }) => {
       badgeIconRotate: stats.trends.inProgress === "down",
     },
     {
-      title: "Closed",
-      subtitle: "Resolved Tickets",
+      title: t("dashboardCards.closed.title"),
+      subtitle: t("dashboardCards.closed.subtitle"),
       count: `${stats.thisMonth.closed}`,
       iconColor: "text-indigo-600",
       iconBorder: "border-indigo-100",
@@ -133,7 +135,7 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({ stats }) => {
       badgeText: `${stats.percentChange.closed.toFixed(2)}%`,
       badgeIconRotate: stats.trends.closed === "down",
     },
-  ];
+  ];;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

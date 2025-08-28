@@ -2,15 +2,19 @@
 import Aside from "@/components/Aside";
 import Heartbeat from "@/components/Heartbeat";
 import TopBar from "@/components/TopBar";
+// import { useTranslations } from "next-intl";
 import React, { useState } from "react";
 
 export default function LayoutDiv({ children }: { children: React.ReactNode }) {
     const [openSidebar, setOpenSidebar] = useState<boolean>(false);
 
 
+    // const t = useTranslations();
 
     return (
         <>
+
+      
             {/* Heartbeat component */}
             <Heartbeat />
 

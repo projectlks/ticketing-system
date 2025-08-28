@@ -3,7 +3,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 import { prisma } from "./prisma";
-import { getCurrentUser } from "@/app/main/tickets/action";
+import { getCurrentUser } from "@/app/lang/[locale]/main/tickets/action";
 
 
 

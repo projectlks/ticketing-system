@@ -20,6 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 import MultiFilter from "../tickets/multiFilter";
 import Button from "@/components/Button";
+import { useTranslations } from "next-intl";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: { id: string; name: string; email: string } | null;
@@ -177,7 +178,8 @@ export default function Page() {
         const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
         saveAs(blob, "tickets.xlsx");
     };
-
+    const t = useTranslations("table");
+    const tHeader = useTranslations("header");
     return (
         <>
 
@@ -192,13 +194,13 @@ export default function Page() {
                 {/* Header */}
                 <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 justify-between items-center">
                     <div className="flex items-center space-x-2">
-                        <h1 className="text-sm text-gray-800">Reports</h1>
+                        <h1 className="text-sm text-gray-800">{tHeader("reports.title")}</h1>
                     </div>
 
                     <div className="relative flex items-center space-x-2">
                         <input
                             type="text"
-                            placeholder="Search"
+                            placeholder={tHeader("reports.placeholder")}
                             className="h-[34px] w-[350px] sm:w-[400px] md:w-[450px] rounded border border-gray-300 bg-transparent px-9 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -243,16 +245,19 @@ export default function Page() {
                                                     checked={selectedTickets.length === tickets.length && tickets.length > 0}
                                                 />
                                             </th>
-                                            <TableHead data="No." />
-                                            <TableHead data="Ticket ID" />
-                                            <TableHead data="Title" />
-                                            <TableHead data="Description" />
-                                            <TableHead data="Status" />
-                                            <TableHead data="Priority" />
-                                            <TableHead data="Created At" />
-                                            <TableHead data="Requester" />
-                                            <TableHead data="Assigned To" />
-                                            <TableHead data="Actions" />
+
+
+
+                                            <TableHead data={t("no")} />
+                                            <TableHead data={t("ticketId")} />
+                                            <TableHead data={t("title")} />
+                                            <TableHead data={t("description")} />
+                                            <TableHead data={t("status")} />
+                                            <TableHead data={t("priority")} />
+                                            <TableHead data={t("createdAt")} />
+                                            <TableHead data={t("requester")} />
+                                            <TableHead data={t("assignedTo")} />
+                                            <TableHead data={t("actions")} />
                                         </tr>
                                     </thead>
                                     <tbody>

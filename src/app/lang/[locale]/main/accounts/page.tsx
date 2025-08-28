@@ -18,6 +18,7 @@ import { useSession } from "next-auth/react";
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { useTranslations } from "next-intl";
 
 export type UserWithRelations = User & {
     creator?: {
@@ -253,25 +254,39 @@ export default function Page() {
         const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
         const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
         saveAs(blob, "users.xlsx");
+
+
     };
+
+    const t = useTranslations("table")
+
+    const tHeader = useTranslations("header");
 
     return (
         <>
 
             {isFetching && <Loading />}
             <div className="w-full min-h-full bg-white pb-10 rounded-lg">
+       
+
+
                 <Header
-                    title="Users"
-                    placeholder="Search by name or email"
+                    title={tHeader("users.title")}
+                    placeholder={tHeader("users.placeholder")}
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
                     showNewBtn={["ADMIN", "SUPER_ADMIN"].includes(data?.user.role ?? "")}
-                    downloadBtn={<div>
-                        <button onClick={() => downloadExcel(accounts, selectedAccounts)} className="bg-indigo-500 px-2 py-1 rounded text-gray-100">
-                            <ArrowDownCircleIcon className="w-6 h-6" />
-                        </button>
-                    </div>}
+                    downloadBtn={
+                        <div>
+                            <button
+                                onClick={() => downloadExcel(accounts, selectedAccounts)}
+                                className="bg-indigo-500 px-2 py-1 rounded text-gray-100"
+                            >
+                                <ArrowDownCircleIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+                    }
                 />
 
                 {/*  */}
@@ -297,17 +312,16 @@ export default function Page() {
                                                     checked={selectedAccounts.length === accounts.length && accounts.length > 0}
                                                 />
                                             </th>
-                                            <TableHead data="No." />
-                                            <TableHead data="Name" />
-                                            <TableHead data="Email" />
-                                            <TableHead data="Role" />
-                                            <TableHead data="Department" />
-                                            <TableHead data="Job Position" />
-                                            {/* <TableHead data="Created At" />
-                                            <TableHead data="Updated At" /> */}
-                                            <TableHead data="Creator" />
-                                            <TableHead data="Actions" />
-                                            {/* {(data?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />} */}
+
+                                            <TableHead data={t("no")} />
+                                            <TableHead data={t("name")} />
+                                            <TableHead data={t("email")} />
+                                            <TableHead data={t("role")} />
+                                            <TableHead data={t("department")} />
+                                            <TableHead data={t("jobPosition")} />
+                                            <TableHead data={t("creator")} />
+                                            <TableHead data={t("actions")} />
+
                                         </tr>
                                     </thead>
                                     <tbody>

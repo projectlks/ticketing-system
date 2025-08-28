@@ -1,0 +1,134 @@
+{
+  "sidebar": {
+    "main": "အဓိက",
+    "management": "စီမံခန့်ခွဲမှု",
+    "dashboard": "ဒိုင်ခွက်",
+    "department": "ဌာန",
+    "tickets": "စာရင်းများ",
+    "reports": "အစီရင်ခံစာများ",
+    "accounts": "အကောင့်များ",
+    "category": "အမျိုးအစား",
+    "settings": "ဆက်တင်များ",
+    "account_setting": "အကောင့် ဆက်တင်"
+  },
+  "dashboardCards": {
+    "total": {
+      "title": "စုစုပေါင်း",
+      "subtitle": "အားလုံး Support Tickets"
+    },
+    "open": {
+      "title": "ဖွင့်ထားသော",
+      "subtitle": "လက်ရှိဖွင့်ထားသော Tickets"
+    },
+    "pending": {
+      "title": "မဖြေရှင်းရသေး",
+      "subtitle": "တုံ့ပြန်မှုစောင့်နေခြင်း"
+    },
+    "closed": {
+      "title": "ပြီးစီး",
+      "subtitle": "ဖြေရှင်းပြီးသော Tickets"
+    }
+  },
+  "charts": {
+    "ticketTrends": "လက်ရှိ လုပ်ဆောင်မှုများ",
+    "priorityDistribution": "ဥစ္စာ အဓိပ္ပါယ် အလိုက် ခွဲခြားမှု",
+    "timeFilters": {
+      "last7": "ပြီးခဲ့သည့် ၇ ရက်",
+      "last30": "ပြီးခဲ့သည့် ၃၀ ရက်",
+      "last90": "ပြီးခဲ့သည့် ၉၀ ရက်"
+    }
+  },
+  "table": {
+    "no": "အမှတ်",
+    "name": "အမည်",
+    "email": "အီးမေးလ်",
+    "role": "ရာထူး",
+    "department": "ဌာန",
+    "jobPosition": "အလုပ်ရာထူး",
+    "creator": "ဖန်တီးသူ",
+    "actions": "လုပ်ဆောင်ချက်များ",
+    "createdAt": "ဖန်တီးသည့်ရက်",
+    "updatedAt": "နောက်ဆုံးပြင်ဆင်သည့်ရက်",
+    "description": "ဖော်ပြချက်",
+    "manager": "မန်နေဂျာ",
+    "departmentEmail": "ဌာနအီးမေးလ်",
+    "departmentContact": "ဌာနဆက်သွယ်ရန်",
+    "ticketId": "တစ်ကတ်အိုင်ဒီ",
+    "title": "ခေါင်းစဉ်",
+    "status": "အခြေအနေ",
+    "priority": "ဦးစားပေးမှု",
+    "requester": "တောင်းခံသူ",
+    "assignedTo": "တာဝန်ပေးသူ"
+  },
+  "dashboard": {
+    "recentTickets": "နောက်ဆုံး Ticket များ",
+    "viewAll": "အားလုံးကြည့်ရန်",
+    "recentActivity": "နောက်ဆုံး လှုပ်ရှားမှုများ",
+    "changedFromTo": "{entity} {field} ကို {oldValue} မှ {newValue} သို့ ပြောင်းလဲခဲ့သည်"
+  },
+  "header": {
+    "users": {
+      "title": "အသုံးပြုသူများ",
+      "placeholder": "နာမည် သို့မဟုတ် အီးမေးလ် ဖြင့် ရှာရန်"
+    },
+    "categories": {
+      "title": "အမျိုးအစားများ",
+      "placeholder": "အမျိုးအစားအမည်ဖြင့် ရှာရန်"
+    },
+    "departments": {
+      "title": "ဌာနများ",
+      "placeholder": "ဌာနအမည်ဖြင့် ရှာရန်"
+    },
+    "reports": {
+      "title": "အစီရင်ခံစာများ",
+      "placeholder": "ခေါင်းစဉ် သို့မဟုတ် ဖော်ပြချက်ဖြင့် ရှာရန်"
+    },
+    "tickets": {
+      "title": "လက်မှတ်များ",
+      "placeholder": "ခေါင်းစဉ် သို့မဟုတ် ဖော်ပြချက်ဖြင့် ရှာရန်"
+    },
+    "new": "အသစ်"
+  },
+   "accountForm": {
+    "headings": {
+      "create": "အကောင့်အသစ်ထည့်ရန်",
+      "update": "အကောင့်ကိုပြင်ဆင်ရန်",
+      "createDesc": "သင့်အကောင့်များကို လွယ်ကူစွာ စီမံနိုင်သည်။ အကောင့်အသစ်ထည့်ပါ။",
+      "updateDesc": "သင့်အကောင့်များကို လွယ်ကူစွာ စီမံနိုင်သည်။ ရှိပြီးသားအကောင့်ကိုပြင်ဆင်ပါ။"
+    },
+    "placeholders": {
+      "name": "အသုံးပြုသူအမည်ထည့်ပါ",
+      "email": "အီးမေးလ်ထည့်ပါ",
+      "password": {
+        "create": "စကားဝှက်ထည့်ပါ",
+        "update": "စကားဝှက်အသစ်ထည့်ပါ"
+      },
+      "department": "ဌာနကိုရွေးပါ",
+      "job_position": "ရာထူးကိုရွေးပါ"
+    },
+    "labels": {
+      "name": "အသုံးပြုသူအမည်",
+      "email": "အီးမေးလ်",
+      "password": {
+        "create": "စကားဝှက်",
+        "update": "စကားဝှက်အသစ် (မပြောင်းပါက အလက်မှတ်ကိုထားပါ)"
+      },
+      "role": "အခန်းကဏ္ဍ",
+      "department": "ဌာန",
+      "job_position": "ရာထူး"
+    },
+    "buttons": {
+      "cancel": "ပယ်ဖျက်ရန်",
+      "create": "အကောင့်အသစ်ဖန်တီးရန်",
+      "update": "အကောင့်ကိုပြင်ဆင်ရန်",
+      "creating": "ဖန်တီးနေပါသည်...",
+      "updating": "ပြင်ဆင်နေပါသည်..."
+    },
+    "errors": {
+      "required": "လိုအပ်ပါသည်။",
+      "invalidEmail": "ကျေးဇူးပြုပြီး မှန်ကန်သော အီးမေးလ်ထည့်ပါ။",
+      "passwordLength": "စကားဝှက်မှာ အနည်းဆုံး 8 လုံးဖြစ်ရမည်။",
+      "response": "အမှားတစ်ခုဖြစ်နေသည်။"
+    }
+  }
+}

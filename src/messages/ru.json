@@ -1,0 +1,135 @@
+{
+  "sidebar": {
+    "main": "Главное",
+    "management": "Управление",
+    "dashboard": "Панель",
+    "department": "Отдел",
+    "tickets": "Тикеты",
+    "reports": "Отчёты",
+    "accounts": "Аккаунты",
+    "category": "Категория",
+    "settings": "Настройки",
+    "account_setting": "Настройка аккаунта"
+  },
+
+  "dashboardCards": {
+    "total": {
+      "title": "Всего",
+      "subtitle": "Все тикеты поддержки"
+    },
+    "open": {
+      "title": "Открытые",
+      "subtitle": "Текущие открытые тикеты"
+    },
+    "pending": {
+      "title": "В ожидании",
+      "subtitle": "Ожидание ответа"
+    },
+    "closed": {
+      "title": "Закрытые",
+      "subtitle": "Решённые тикеты"
+    }
+  },
+  "charts": {
+    "ticketTrends": "Тенденции заявок",
+    "priorityDistribution": "Распределение приоритетов",
+    "timeFilters": {
+      "last7": "Последние 7 дней",
+      "last30": "Последние 30 дней",
+      "last90": "Последние 90 дней"
+    }
+  },
+  "table": {
+    "no": "№",
+    "name": "Имя",
+    "email": "Эл. почта",
+    "role": "Роль",
+    "department": "Отдел",
+    "jobPosition": "Должность",
+    "creator": "Создатель",
+    "actions": "Действия",
+    "createdAt": "Создано",
+    "updatedAt": "Обновлено",
+    "description": "Описание",
+    "manager": "Менеджер",
+    "departmentEmail": "Эл. почта отдела",
+    "departmentContact": "Контакты отдела",
+    "ticketId": "ID заявки",
+    "title": "Заголовок",
+    "status": "Статус",
+    "priority": "Приоритет",
+    "requester": "Запрашивающий",
+    "assignedTo": "Ответственный"
+  },
+  "dashboard": {
+    "recentTickets": "Последние заявки",
+    "viewAll": "Смотреть все",
+    "recentActivity": "Недавняя активность",
+    "changedFromTo": "изменил {entity} {field} с {oldValue} на {newValue}"
+  },
+  "header": {
+    "users": {
+      "title": "Пользователи",
+      "placeholder": "Поиск по имени или email"
+    },
+    "categories": {
+      "title": "Категории",
+      "placeholder": "Поиск по названию категории"
+    },
+    "departments": {
+      "title": "Отделы",
+      "placeholder": "Поиск по названию отдела"
+    },
+    "reports": {
+      "title": "Отчеты",
+      "placeholder": "Поиск по заголовку или описанию"
+    },
+    "tickets": {
+      "title": "Тикеты",
+      "placeholder": "Поиск по заголовку или описанию"
+    },
+    "new": "Новый"
+  },
+  "accountForm": {
+    "headings": {
+      "create": "Добавить новый аккаунт",
+      "update": "Обновить аккаунт",
+      "createDesc": "Управляйте своими аккаунтами легко: добавьте новый аккаунт.",
+      "updateDesc": "Управляйте своими аккаунтами легко: обновите существующие данные."
+    },
+    "placeholders": {
+      "name": "Введите имя пользователя",
+      "email": "Введите email пользователя",
+      "password": {
+        "create": "Введите пароль",
+        "update": "Введите новый пароль"
+      },
+      "department": "Выберите отдел",
+      "job_position": "Выберите должность"
+    },
+    "labels": {
+      "name": "Имя пользователя",
+      "email": "Email",
+      "password": {
+        "create": "Пароль",
+        "update": "Новый пароль (оставьте пустым, чтобы сохранить текущий)"
+      },
+      "role": "Роль",
+      "department": "Отдел",
+      "job_position": "Должность"
+    },
+    "buttons": {
+      "cancel": "Отмена",
+      "create": "Создать аккаунт",
+      "update": "Обновить аккаунт",
+      "creating": "Создание...",
+      "updating": "Обновление..."
+    },
+    "errors": {
+      "required": "обязательное поле.",
+      "invalidEmail": "Пожалуйста, введите действительный email.",
+      "passwordLength": "Пароль должен быть не менее 8 символов.",
+      "response": "Что-то пошло не так."
+    }
+  }
+}

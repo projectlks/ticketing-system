@@ -1,0 +1,137 @@
+{
+  "sidebar": {
+    "main": "Main",
+    "management": "Management",
+    "dashboard": "Dashboard",
+    "department": "Department",
+    "tickets": "Tickets",
+    "reports": "Reports",
+    "accounts": "Accounts",
+    "category": "Category",
+    "settings": "Settings",
+    "account_setting": "Account Setting"
+  },
+  "dashboardCards": {
+    "total": {
+      "title": "Total",
+      "subtitle": "All Support Tickets"
+    },
+    "open": {
+      "title": "Open",
+      "subtitle": "Currently Open Tickets"
+    },
+    "pending": {
+      "title": "Pending",
+      "subtitle": "Awaiting Response"
+    },
+    "closed": {
+      "title": "Closed",
+      "subtitle": "Resolved Tickets"
+    }
+  },
+
+  "charts": {
+    "ticketTrends": "Ticket Trends",
+    "priorityDistribution": "Priority Distribution",
+    "timeFilters": {
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "last90": "Last 90 days"
+    }
+  },
+
+  "table": {
+    "no": "No.",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "department": "Department",
+    "jobPosition": "Job Position",
+    "creator": "Creator",
+    "actions": "Actions",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "description": "Description",
+    "manager": "Manager",
+    "departmentEmail": "Department Email",
+    "departmentContact": "Department Contact",
+    "ticketId": "Ticket ID",
+    "title": "Title",
+    "status": "Status",
+    "priority": "Priority",
+    "requester": "Requester",
+    "assignedTo": "Assigned To"
+  },
+   "dashboard": {
+    "recentTickets": "Recent Tickets",
+    "viewAll": "View all",
+    "recentActivity": "Recent Activity",
+    "changedFromTo": "changed {entity} {field} from {oldValue} to {newValue}"
+  } ,
+  "header": {
+    "users": {
+      "title": "Users",
+      "placeholder": "Search by name or email"
+    },
+    "categories": {
+      "title": "Categories",
+      "placeholder": "Search by category name"
+    },
+    "departments": {
+      "title": "Departments",
+      "placeholder": "Search by Department name"
+    },
+    "reports": {
+      "title": "Reports",
+      "placeholder": "Search by title or description"
+    },
+    "tickets": {
+      "title": "Tickets",
+      "placeholder": "Search by title or description"
+    },
+    "new": "New"
+  } ,
+
+   "accountForm": {
+      "headings": {
+        "create": "Add New Account",
+        "update": "Update Account",
+        "createDesc": "Effortlessly manage your accounts: add a new account.",
+        "updateDesc": "Effortlessly manage your accounts: update existing details."
+      },
+      "placeholders": {
+        "name": "Enter user name",
+        "email": "Enter user email",
+        "password": {
+          "create": "Enter password",
+          "update": "Enter new password"
+        },
+        "department": "Select Department",
+        "job_position": "Select Job Position"
+      },
+      "labels": {
+        "name": "User name",
+        "email": "Email",
+        "password": {
+          "create": "Password",
+          "update": "New Password (leave blank to keep current)"
+        },
+        "role": "Role",
+        "department": "Department",
+        "job_position": "Job Position"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "create": "Create Account",
+        "update": "Update Account",
+        "creating": "Creating...",
+        "updating": "Updating..."
+      },
+      "errors": {
+        "required": "is required.",
+        "invalidEmail": "Please enter a valid email.",
+        "passwordLength": "Password must be at least 8 characters.",
+        "response": "Something went wrong."
+      }
+    }
+}

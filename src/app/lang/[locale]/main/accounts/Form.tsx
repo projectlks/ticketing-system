@@ -9,6 +9,7 @@ import { UserWithRelations } from './page';
 import Loading from '@/components/Loading';
 import { getAllDepartmentIdAndName, getJobPositionsByDepartment } from '@/libs/action';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 
 interface AccountCreateFormProps {
     setShowForm: (value: boolean) => void;
@@ -256,6 +257,8 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     };
 
 
+    const t = useTranslations('accountForm');
+
     // const { data } = useSession()
     return (
         <>
@@ -275,24 +278,23 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                 >
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
                         <h1 className="text-2xl text-gray-800 font-bold mb-3 mt-5">
-                            {updateID ? 'Update Account' : 'Add New Account'}
+                            {updateID ? t('headings.update') : t('headings.create')}
                         </h1>
                         <p className="text-gray-500 text-sm font-semibold">
-                            Effortlessly manage your accounts: {updateID ? 'update existing details' : 'add a new account'}.
+                            {updateID ? t('headings.updateDesc') : t('headings.createDesc')}
                         </p>
                     </div>
-
                     <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
                         <Input
                             id="name"
                             name="name"
-                            placeholder="Enter user name"
+                            placeholder={t('placeholders.name')}
                             value={form.name}
                             onChange={handleChange}
                             error={!!errors.name}
                             aria-invalid={!!errors.name}
                             aria-describedby={errors.name ? 'name-error' : undefined}
-                            label="User name"
+                            label={t('labels.name')}
                             require
                             disable={loading}
                             errorMessage={errors.name}
@@ -302,42 +304,40 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                             id="email"
                             name="email"
                             type="email"
-                            placeholder="Enter user email"
+                            placeholder={t('placeholders.email')}
                             value={form.email}
                             onChange={handleChange}
                             error={!!errors.email}
                             aria-invalid={!!errors.email}
                             aria-describedby={errors.email ? 'email-error' : undefined}
-                            label="Email"
+                            label={t('labels.email')}
                             require
                             disable={loading || !!updateID}
                             errorMessage={errors.email}
                         />
 
-                        {(data?.user.role === "SUPER_ADMIN" || !updateID) && (
+                        {(isSuperAdmin || !updateID) && (
                             <Input
                                 id="password"
-                                name="password" // keep this as "password"
+                                name="password"
                                 type="password"
-                                placeholder={updateID ? "Enter new password" : "Enter password"}
+                                placeholder={updateID ? t('placeholders.password.update') : t('placeholders.password.create')}
                                 value={form.password}
                                 onChange={handleChange}
                                 error={!!errors.password}
                                 aria-invalid={!!errors.password}
                                 aria-describedby={errors.password ? 'password-error' : undefined}
-                                label={updateID ? "New Password (leave blank to keep current)" : "Password"}
+                                label={updateID ? t('labels.password.update') : t('labels.password.create')}
                                 require
                                 disable={loading}
                                 errorMessage={errors.password}
                             />
                         )}
 
-
-                        {/* Role */}
                         {isSuperAdmin && (
                             <div>
                                 <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    Role
+                                    {t('labels.role')}
                                 </label>
                                 <div className="relative">
                                     <select
@@ -348,9 +348,9 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         onChange={handleChange}
                                         className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                     >
-                                        <option value="REQUESTER">Requester</option>
-                                        <option value="AGENT">Agent</option>
-                                        <option value="ADMIN">Admin</option>
+                                        <option value="REQUESTER">{t('roles.requester')}</option>
+                                        <option value="AGENT">{t('roles.agent')}</option>
+                                        <option value="ADMIN">{t('roles.admin')}</option>
                                     </select>
                                     <span
                                         onClick={() => {
@@ -368,7 +368,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                         {/* Department */}
                         <div>
                             <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Department <span className="text-red-500">*</span>
+                                {t('labels.department')} <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
                                 <select
@@ -378,13 +378,9 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     onChange={handleChange}
                                     className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                 >
-                                    <option value="" disabled>
-                                        Select Department
-                                    </option>
+                                    <option value="" disabled>{t('placeholders.department')}</option>
                                     {departments.map((dept) => (
-                                        <option key={dept.id} value={dept.id}>
-                                            {dept.name}
-                                        </option>
+                                        <option key={dept.id} value={dept.id}>{dept.name}</option>
                                     ))}
                                 </select>
                                 <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
@@ -397,7 +393,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                         {/* Job Position */}
                         <div>
                             <label htmlFor="jobPosition" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Job Position
+                                {t('labels.job_position')}
                             </label>
                             <div className="relative">
                                 <select
@@ -408,13 +404,9 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                     disabled={!form.department}
                                 >
-                                    <option value="" disabled>
-                                        Select Job Position
-                                    </option>
+                                    <option value="" disabled>{t('placeholders.job_position')}</option>
                                     {jobPositions.map((job) => (
-                                        <option key={job.id} value={job.id}>
-                                            {job.name}
-                                        </option>
+                                        <option key={job.id} value={job.id}>{job.name}</option>
                                     ))}
                                 </select>
                                 <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
@@ -436,15 +428,16 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                 onClick={handleCancel}
                                 className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]"
                             >
-                                Cancel
+                                {t('buttons.cancel')}
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'
-                                    }`}
+                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'}`}
                             >
-                                {loading ? (updateID ? 'Updating...' : 'Creating...') : updateID ? 'Update Account' : 'Create Account'}
+                                {loading
+                                    ? (updateID ? t('buttons.updating') : t('buttons.creating'))
+                                    : updateID ? t('buttons.update') : t('buttons.create')}
                             </button>
                         </div>
                     </section>

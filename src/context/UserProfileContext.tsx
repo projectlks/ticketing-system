@@ -1,7 +1,9 @@
 "use client";
 
-import { getCurrentUserData } from "@/app/main/profile/action";
-import { UserFullData } from "@/app/main/profile/page";
+
+
+import { getCurrentUserData } from "@/app/lang/[locale]/main/profile/action";
+import { UserFullData } from "@/app/lang/[locale]/main/profile/page";
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
 
 // Default user object (empty values to prevent undefined)

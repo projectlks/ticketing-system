@@ -1,6 +1,10 @@
+
+"use client"
+
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import React, { ReactNode } from 'react'
 import Button from './Button'
+import { useTranslations } from 'next-intl'
 
 interface HeaderProps {
     title?: string
@@ -27,12 +31,15 @@ export default function Header({
 
 }: HeaderProps) {
 
+
+    const t = useTranslations("header")
+
     return (
         <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 justify-between items-center">
             <div className="flex items-center space-x-2">
 
                 {
-                    showNewBtn && (<Button click={click} buttonLabel={buttonLabel} />)
+                    showNewBtn && (<Button click={click} buttonLabel={t("new")} />)
                 }
                 <h1 className="text-sm text-gray-800">{title}</h1>
             </div>
