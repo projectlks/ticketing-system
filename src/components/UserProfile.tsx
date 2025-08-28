@@ -90,7 +90,7 @@ export default function UserMenu({ menuToggle }: Props) {
               </li>
             </ul>
             <button
-              disabled={!userData?.id || !userData?.email || !!session?.user.id}   // 👈 ဒီမှာ စစ်
+              disabled={!userData?.id || !userData?.email}   // 👈 ဒီမှာ စစ်
               onClick={async () => {
                 try {
                   const success = await deleteUserSession(session?.user.id);
