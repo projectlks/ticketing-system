@@ -38,9 +38,20 @@ export async function heartbeat() {
 }
 
 
-export async function deleteUserSession(id: string) {
-  await prisma.userSession.deleteMany({ where: { userId: id } });
+export async function deleteUserSession(userId: string) {
+  try {
+    const deleted = await prisma.userSession.deleteMany({
+      where: { userId },
+    });
+
+    console.log(`Deleted ${deleted.count} session(s) for user ${userId}`);
+    return true;
+  } catch (error) {
+    console.error("Failed to delete user session:", error);
+    return false;
+  }
 }
+
 
 // ====================
 // User Utilities

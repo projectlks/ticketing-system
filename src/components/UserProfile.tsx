@@ -46,7 +46,7 @@ export default function UserMenu({ menuToggle }: Props) {
         } flex-col lg:flex lg:flex-row items-center justify-between w-full gap-4 px-5 py-4 shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
     >
 
-      <LanguageSwitcher/>
+      <LanguageSwitcher />
       {/* User profile dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
@@ -90,17 +90,24 @@ export default function UserMenu({ menuToggle }: Props) {
             <button
               onClick={async () => {
                 try {
-                  await deleteUserSession(userData.id);
+                  const success = await deleteUserSession(userData.id);
 
-                  // ✅ Prevent NextAuth from auto-redirecting
+                  if (!success) {
+                    alert("Logout failed. Please try again.");
+                    return;
+                  }
+
+                  // Prevent NextAuth auto-redirect
                   await signOut({ redirect: false });
 
-                  // ✅ Manually redirect
+                  // Manually redirect to signin
                   router.push("/auth/signin");
                 } catch (error) {
                   console.error("Failed to sign out:", error);
+                  alert("Logout failed. Please try again.");
                 }
               }}
+
               className="flex items-center justify-center w-full gap-3 px-3 py-2 mt-3 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100"
             >
               <ArrowRightOnRectangleIcon className="w-6 h-6" />
