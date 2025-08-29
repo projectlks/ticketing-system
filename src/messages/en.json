@@ -151,50 +151,181 @@
     }
   },
 
-  "categoryForm" : {
-  "headings": {
-    "create": "Add New Category",
-    "createDesc": "Effortlessly manage your categories: add a new category.",
-    "update": "Update Category",
-    "updateDesc": "Effortlessly manage your categories: update existing details."
-  },
-  "labels": {
-    "name": "Category Name",
-    "subcategories": "Sub categories"
-  },
-  "placeholders": {
-    "name": "Enter category name",
-    "subCategory": "SubCategory name"
-  },
-  "buttons": {
-    "cancel": "Cancel",
-    "create": "Create Category",
-    "creating": "Creating...",
-    "update": "Update Category",
-    "updating": "Updating...",
-    "add": "Add"
-  },
-  "errors": {
-    "required": "is required.",
-    "subCategoryEmpty": "Subcategory name cannot be empty."
-  },
-  "alerts": {
-    "success": {
-      "title": "Success",
-      "create": "Category created successfully!",
-      "update": "Category updated successfully!"
+  "categoryForm": {
+    "headings": {
+      "create": "Add New Category",
+      "createDesc": "Effortlessly manage your categories: add a new category.",
+      "update": "Update Category",
+      "updateDesc": "Effortlessly manage your categories: update existing details."
     },
-    "error": {
-      "title": "Error",
-      "text": "Something went wrong."
+    "labels": {
+      "name": "Category Name",
+      "subcategories": "Sub categories"
     },
-    "cancel": {
-      "title": "Are you sure?",
-      "text": "You have unsaved changes. Closing the form will lose them.",
-      "confirm": "Yes, close it",
-      "cancel": "No, keep editing"
+    "placeholders": {
+      "name": "Enter category name",
+      "subCategory": "SubCategory name"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Category",
+      "creating": "Creating...",
+      "update": "Update Category",
+      "updating": "Updating...",
+      "add": "Add"
+    },
+    "errors": {
+      "required": "is required.",
+      "subCategoryEmpty": "Subcategory name cannot be empty."
+    },
+    "alerts": {
+      "success": {
+        "title": "Success",
+        "create": "Category created successfully!",
+        "update": "Category updated successfully!"
+      },
+      "error": {
+        "title": "Error",
+        "text": "Something went wrong."
+      },
+      "cancel": {
+        "title": "Are you sure?",
+        "text": "You have unsaved changes. Closing the form will lose them.",
+        "confirm": "Yes, close it",
+        "cancel": "No, keep editing"
+      }
     }
-  }
+  },
+  "departmentForm": {
+    "headings": {
+      "create": "Add New Department",
+      "createDesc": "Effortlessly manage your departments: add a new department.",
+      "update": "Update Department",
+      "updateDesc": "Effortlessly manage your departments: update existing details."
+    },
+    "labels": {
+      "name": "Department Name",
+      "description": "Description",
+      "contact": "Contact Number",
+      "email": "Email",
+      "manager": "Manager",
+      "jobPositions": "Job Positions"
+    },
+    "placeholders": {
+      "name": "Enter department name",
+      "description": "Enter department description",
+      "contact": "Enter contact number",
+      "email": "Enter department email",
+      "jobTitle": "Job title"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Department",
+      "creating": "Creating...",
+      "update": "Update Department",
+      "updating": "Updating...",
+      "addJob": "Add"
+    },
+    "errors": {
+      "required": "is required.",
+      "invalidEmail": "Please enter a valid email.",
+      "jobEmpty": "Job title cannot be empty.",
+      "response": "Something went wrong."
+    },
+    "alerts": {
+      "cancel": {
+        "title": "Are you sure?",
+        "text": "You have unsaved changes. Closing the form will lose them.",
+        "confirm": "Yes, close it",
+        "cancel": "No, keep editing"
+      },
+      "success": {
+        "title": "Success",
+        "create": "Department created successfully!",
+        "update": "Department updated successfully!"
+      },
+      "error": {
+        "title": "Error",
+        "text": "Something went wrong."
+      }
+    }
+  },
+  "ticketForm": {
+    "headings": {
+      "create": "Create New Ticket",
+      "createDesc": "Fill out the form to create a ticket",
+      "update": "Update Ticket",
+      "updateDesc": "Update ticket details"
+    },
+    "labels": {
+      "title": "Title",
+      "description": "Description",
+      "department": "Department",
+      "category": "Category",
+      "subcategory": "Subcategory",
+      "priority": "Priority"
+    },
+    "placeholders": {
+      "title": "Enter ticket title",
+      "description": "Enter ticket description",
+      "department": "Select Department",
+      "category": "Select Category",
+      "subcategory": "Select Subcategory",
+      "priority": "Select Priority"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Ticket",
+      "update": "Update Ticket",
+      "creating": "Creating...",
+      "updating": "Updating..."
+    },
+    "alerts": {
+      "successCreate": "Ticket created successfully!",
+      "successUpdate": "Ticket updated successfully!"
+    },
+    "errors": {
+      "title": "Title is required",
+      "description": "Description is required",
+      "category": "Category is required",
+      "department": "Department is required",
+      "subcategory": "Subcategory is required",
+      "priority": "Priority is required",
+      "response": "Something went wrong."
+    },
+    "confirm": {
+      "cancelTitle": "Are you sure?",
+      "cancelText": "Any unsaved changes will be lost.",
+      "cancelConfirm": "Yes, close it",
+      "cancelDeny": "No, keep editing"
+    }
+  },
+  "viewContext":{
+  "id": "User ID",
+  "name": "Name",
+  "email": "Email",
+  "role": "Role",
+  "isArchived": "Archived",
+  "createdAt": "Created At",
+  "updatedAt": "Last Updated At",
+  "createdBy": "Created By",
+  "updatedBy": "Last Updated By",
+  "ticketsCount": "Tickets Count",
+  "status": "Status",
+  "priority": "Priority",
+  "assignedTo": "Assigned To",
+  "category": "Category",
+  "subCategory": "Sub Category",
+  "department": "Department",
+  "requester": "Requester",
+  "title": "Title",
+  "description": "Description",
+  "contact": "Department Contact",
+  "managerName": "Manager Name",
+  "managerEmail": "Manager Email",
+  "positions": "Job Positions",
+  "images": "Images",
+  "comments": "Comments"
 }
 
 }

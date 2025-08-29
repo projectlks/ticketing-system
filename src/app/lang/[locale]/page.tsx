@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function page({ prop }: { prop: string }) {
+export default function page() {
 
   return (
     <div>page</div>

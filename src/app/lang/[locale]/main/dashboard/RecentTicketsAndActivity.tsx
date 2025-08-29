@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Audit } from "@prisma/client";
 import { AuditWithRelations, TicketWithRelations } from "./page";
 import TableBody from "@/components/TableBody";
@@ -49,6 +49,10 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
         const key = status as StatusType;
         return statusColors[key]?.[type] ?? statusColors.DEFAULT[type];
     };
+    const pathname = usePathname();
+    const segments = pathname.split("/");
+    const locale = segments[2] || "en";
+
 
     return (
         <div className="lg:col-span-2 bg-white rounded-lg shadow">
@@ -89,7 +93,7 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                                         <span
                                             className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}
                                         ></span>
-                                        <p className="text-xs truncate">{tTable(ticket.status.toLowerCase())}</p>
+                                        <p className="text-xs truncate">{ticket.status}</p>
                                     </div>
                                 </td>
                                 <TableBody
@@ -101,12 +105,13 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                                     <DotMenu
                                         isBottom={index >= tickets.length - 2}
                                         option={{ view: true }}
-                                        onView={() => router.push(`/main/tickets/view/${ticket.id}`)}
+                                        onView={() => router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`)}
+
                                     />
                                 </td>
                             </tr>
                         ))}
-                    </tbody>
+                    </tbody>\
                 </table>
             </div>
         </div>

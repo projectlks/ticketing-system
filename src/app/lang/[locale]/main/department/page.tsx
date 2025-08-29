@@ -11,7 +11,7 @@ import DotMenu from "@/components/DotMenu";
 import TableHead from "@/components/TableHead";
 import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
@@ -59,9 +59,7 @@ export default function Page() {
 
 
     const router = useRouter();
-    // const { handleRestore } = useRestore();
-    // const { handleDelete } = useDelete();
-
+ 
 
     const fetchAccounts = async (currentPage: number) => {
         try {
@@ -111,6 +109,10 @@ export default function Page() {
 
     const tHeader = useTranslations("header");
     // alert(session)
+
+        const pathname = usePathname();
+        const segments = pathname.split("/");
+        const locale = segments[2] || "en";
 
     return (
         <>
@@ -167,7 +169,6 @@ export default function Page() {
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={department.name} />
                                                 <TableBody data={department.description || "-"} />
-                                                {/* <TableBody data={department.manager?.name || "-"} /> */}
                                                 <td className={`px-5 py-4 sm:px-6 `}>
                                                     <p className="text-gray-500 truncate">{department.manager
                                                         ? department.manager.name || "-"
@@ -195,7 +196,7 @@ export default function Page() {
 
                                                     }}
                                                         onEdit={(e) => handleEdit(e, department.id)}
-                                                        onView={() => { router.push(`/main/department/view/${department.id}`) }}
+                                                        onView={() => { router.push(`lang/${locale}/main/department/view/${department.id}`) }}
                                                     />
                                                 </td>
 
@@ -243,7 +244,7 @@ export default function Page() {
             </div>
 
             {showForm && (
-                <Portal>
+                  <Portal containerId="modal-root">
                     <Form setShowForm={setShowForm} setDepartments={setDepartments} updateID={updateID} setUpdateID={setUpdateID} />
                 </Portal>
             )}

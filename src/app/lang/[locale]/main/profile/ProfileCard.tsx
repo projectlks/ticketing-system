@@ -8,6 +8,8 @@ import Input from '@/components/Input';
 import Swal from 'sweetalert2';
 import { changePersonalInfo, changeProfileUrl } from './action';
 import { UserFullData } from './page';
+import { useUserData } from "@/context/UserProfileContext";
+
 
 interface Props {
     data: UserFullData;
@@ -83,6 +85,11 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
             await changeProfileUrl(data.id, uploadedUrl);
             setCurrentProfileUrl(uploadedUrl);
             setUserData(prev => ({ ...prev, profileUrl: uploadedUrl }));
+            setUserDataForContext(prev => ({ ...prev, profileUrl: uploadedUrl }));
+
+
+
+
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
@@ -124,6 +131,8 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
         try {
             const updatedUser = await changePersonalInfo(formData);
             setUserData(prev => ({ ...prev, ...updatedUser }));
+            setUserDataForContext(prev => ({ ...prev, ...updatedUser }));
+
             setProfileInfoModal(false);
             Swal.fire({
                 icon: 'success',
@@ -151,6 +160,7 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
         });
     }, [data]);
 
+    const { setUserData: setUserDataForContext } = useUserData()
 
     return (
         <>

@@ -4,7 +4,22 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "@/app/lang/[locale]/main/tickets/action";
+import { BasicUserData } from "@/context/UserProfileContext";
 
+// Slim version (only basic info)
+export async function getBasicUserData(): Promise<BasicUserData> {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error("No logged-in user found");
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, profileUrl: true }
+  });
+
+  if (!user) throw new Error("User not found");
+
+  return user;
+}
 
 
 

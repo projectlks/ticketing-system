@@ -19,7 +19,7 @@ export default function RootLayout({
       </LayoutDiv>
 
     </section>
-    <div id="portal-root"></div>
+  
   </>
 
 

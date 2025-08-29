@@ -9,13 +9,13 @@ import { TicketWithRelations } from './page';
 import { getAllCategoryIdAndName, getAllDepartmentIdAndName } from '@/libs/action';
 import SelectBox from '@/components/SelectBox';
 import ImageInput from './ImageInput';
+import { useTranslations } from 'next-intl';
 
 interface TicketFormProps {
     setShowForm: (value: boolean) => void;
     setTickets: Dispatch<SetStateAction<TicketWithRelations[]>>;
     updateID: string | null;
     setUpdateID: Dispatch<SetStateAction<string | null>>
-
 }
 
 const emptyForm = {
@@ -33,6 +33,8 @@ export default function TicketForm({
     updateID,
     setUpdateID
 }: TicketFormProps) {
+    const t = useTranslations('ticketForm'); // translation instance
+
     const [form, setForm] = useState(emptyForm);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
@@ -40,34 +42,29 @@ export default function TicketForm({
     const [subcategories, setSubcategories] = useState<{ id: string; name: string }[]>([]);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
     const [images, setImages] = useState<File[]>([]);
-
-
     const [existingImages, setExistingImages] = useState<{ id: string; url: string }[]>([]);
-    // const [newImages, setNewImages] = useState<File[]>([]);
 
+    // Fetch categories and departments
     useEffect(() => {
-        // Fetch categories and departments once
         const fetchData = async () => {
             const cats = await getAllCategoryIdAndName();
             const depts = await getAllDepartmentIdAndName();
-
             setCategories(cats);
             setDepartments(depts);
-
         };
         fetchData();
     }, []);
+
+    // Update subcategories when category changes
     useEffect(() => {
         const selectedCat = categories.find(c => c.id === form.categoryId);
         setSubcategories(selectedCat?.subcategories || []);
-
-        // တစ်ခါလောက်သာ reset လုပ်ချင်ရင်
-        if (!updateID) {  // updateID မရှိရင် create mode
+        if (!updateID) {
             setForm(prev => ({ ...prev, subcategoryId: '' }));
         }
     }, [form.categoryId, categories, updateID]);
 
-
+    // Fetch ticket for update
     useEffect(() => {
         if (updateID) {
             getTicket(updateID).then((data) => {
@@ -80,8 +77,6 @@ export default function TicketForm({
                         subcategoryId: data.subcategoryId ?? '',
                         priority: data.priority ?? 'MEDIUM',
                     });
-
-
                     setExistingImages(data.images || [])
                 }
             });
@@ -90,138 +85,92 @@ export default function TicketForm({
         }
     }, [updateID]);
 
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-    ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
-        setErrors((prev) => ({ ...prev, [name]: null }));
+        setForm(prev => ({ ...prev, [name]: value }));
+        setErrors(prev => ({ ...prev, [name]: null }));
     };
-
 
     const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { value } = e.target;
-
-        // category value update
-        setForm(prev => ({
-            ...prev,
-            categoryId: value,
-            subcategoryId: '' // category ပြောင်းတိုင်း subcategory reset
-        }));
-
-        // subcategories update
+        setForm(prev => ({ ...prev, categoryId: value, subcategoryId: '' }));
         const selectedCat = categories.find(c => c.id === value);
         setSubcategories(selectedCat?.subcategories || []);
     };
 
-
     const handleCancel = () => {
         Swal.fire({
-            title: 'Are you sure?',
-            text: 'Any unsaved changes will be lost.',
+            title: t('confirm.cancelTitle'),
+            text: t('confirm.cancelText'),
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, close it',
-            cancelButtonText: 'No, keep editing',
+            confirmButtonText: t('confirm.cancelConfirm'),
+            cancelButtonText: t('confirm.cancelDeny'),
         }).then((result) => {
             if (result.isConfirmed) {
                 setShowForm(false);
             }
         });
-        setUpdateID(null)
+        setUpdateID(null);
     };
 
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
-        if (!form.title.trim()) newErrors.title = 'Title is required';
-        if (!form.description.trim()) newErrors.description = 'Description is required';
-        if (!form.categoryId) newErrors.categoryId = 'Category is required';
-        if (!form.departmentId) newErrors.departmentId = 'DepartmentId is required';
-        if (!form.subcategoryId) newErrors.subcategoryId = 'SubcategoryId is required';
-        if (!form.priority) newErrors.priority = 'Priority is required';
+        if (!form.title.trim()) newErrors.title = t('errors.title');
+        if (!form.description.trim()) newErrors.description = t('errors.description');
+        if (!form.categoryId) newErrors.categoryId = t('errors.category');
+        if (!form.departmentId) newErrors.departmentId = t('errors.department');
+        if (!form.subcategoryId) newErrors.subcategoryId = t('errors.subcategory');
+        if (!form.priority) newErrors.priority = t('errors.priority');
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-
     const uploadImages = async (files: FileList | File[]) => {
         const formData = new FormData();
-        Array.from(files).forEach((file) => {
-            formData.append('file', file);
-        });
-
-        const res = await fetch('/api/uploads', {
-            method: 'POST',
-            body: formData,
-        });
-
+        Array.from(files).forEach(file => formData.append('file', file));
+        const res = await fetch('/api/uploads', { method: 'POST', body: formData });
         const data = await res.json();
-        return data.urls as string[]; // returned URLs from your upload API
+        return data.urls as string[];
     };
-
-
-
-
-
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-
         if (!validate()) return;
 
         setLoading(true);
-
         try {
-            // 1. Upload images and get their URLs
             const imageUrls = await uploadImages(images);
-            // console.log(imageUrls, "images uploaded");
-
-            // 2. Create FormData and append form fields
             const formData = new FormData();
-            Object.entries(form).forEach(([key, value]) => {
-                formData.append(key, value);
-            });
+            Object.entries(form).forEach(([key, value]) => formData.append(key, value));
 
-            // 3. Append image URLs as JSON string (your backend should parse this accordingly)
-
-
-            // 4. Call your create or update API function with FormData
             let response;
             if (updateID) {
-
                 formData.append("newImages", JSON.stringify(imageUrls));
-                formData.append('existingImageIds', JSON.stringify(existingImages.map(i => i.id)))
+                formData.append('existingImageIds', JSON.stringify(existingImages.map(i => i.id)));
                 response = await updateTicket(formData, updateID);
             } else {
-
                 formData.append("images", JSON.stringify(imageUrls));
                 response = await createTicket(formData);
             }
 
-            // 5. If success, update local tickets state and notify user
             if (response.success) {
-
-
-
                 if (updateID) {
-                    setTickets((prev) =>
-                        prev.map((ticket) => (ticket.id === updateID ? response.data : ticket))
-                    );
-                    Swal.fire("Success", "Ticket updated successfully!", "success");
+                    setTickets(prev => prev.map(ticket => ticket.id === updateID ? response.data : ticket));
+                    Swal.fire(t('alerts.success'), t('alerts.updateSuccess'), 'success');
                 } else {
-                    setTickets((prev) => [response.data, ...prev]);
-                    Swal.fire("Success", "Ticket created successfully!", "success");
+                    setTickets(prev => [response.data, ...prev]);
+                    Swal.fire(t('alerts.success'), t('alerts.createSuccess'), 'success');
                 }
                 setShowForm(false);
-                // setUpdateID(null);
             }
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Something went wrong.";
+            const message = error instanceof Error ? error.message : t('alerts.error');
             Swal.fire({
-                title: "Error",
+                title: t('alerts.error'),
                 text: message,
-                icon: "error",
+                icon: 'error',
                 confirmButtonColor: "#ef4444",
                 customClass: {
                     popup: "rounded-lg p-6",
@@ -236,165 +185,107 @@ export default function TicketForm({
     return (
         <>
             {loading && <Loading />}
-            <section
-                className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50"
-                aria-modal="true"
-                role="dialog"
-            >
-                <div
-                    className="w-full h-full  fixed top-0 left-0 bg-black opacity-20"
-                    onClick={handleCancel}
-                    aria-hidden="true"
-                />
+            <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50" aria-modal="true" role="dialog">
+                <div className="w-full h-full fixed top-0 left-0 bg-black opacity-20" onClick={handleCancel} aria-hidden="true" />
 
-
-
-                <form
-                    onSubmit={handleSubmit}
-                    className="w-[90%] md:w-[700px] rounded-2xl   border border-gray-200  bg-white z-50"
-                    onClick={(e) => e.stopPropagation()}
-                    noValidate
-                >
+                <form onSubmit={handleSubmit} className="w-[90%] md:w-[700px] rounded-2xl border border-gray-200 bg-white z-50" onClick={(e) => e.stopPropagation()} noValidate>
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
-                        <h1 className="text-2xl font-bold mb-3 mt-5">
-                            {updateID ? 'Update Ticket' : 'Create New Ticket'}
-                        </h1>
-                        <p className="text-gray-500 text-sm mb-3">
-                            {updateID ? 'Update ticket details' : 'Fill out the form to create a ticket'}
-                        </p>
+                        <h1 className="text-2xl font-bold mb-3 mt-5">{updateID ? t('headings.update') : t('headings.create')}</h1>
+                        <p className="text-gray-500 text-sm mb-3">{updateID ? t('headings.updateDesc') : t('headings.createDesc')}</p>
                     </div>
 
                     <section className="p-5 space-y-6 border-t max-h-[80vh] overflow-y-auto border-gray-100 sm:p-6">
-                        {/* Title */}
-
                         <Input
                             id="title"
                             name="title"
-                            placeholder="Enter ticket title"
+                            placeholder={t('placeholders.title')}
+                            label={t('labels.title')}
                             value={form.title}
                             onChange={handleChange}
                             error={!!errors.title}
-                            aria-invalid={!!errors.title}
-                            aria-describedby={errors.title ? 'title-error' : undefined}
-                            label='Title'
-                            errorMessage={errors.title ? errors.title : ""}
+                            errorMessage={errors.title ?? ""}
                             disable={loading}
                             require={true}
                         />
 
-
-
-                        {/* Description */}
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                                Description
-                            </label>
+                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">{t('labels.description')}</label>
                             <textarea
                                 id="description"
                                 name="description"
                                 rows={4}
-                                placeholder="Enter ticket description"
+                                placeholder={t('placeholders.description')}
                                 value={form.description}
                                 onChange={handleChange}
-                                className={`w-full rounded-lg border ${errors.description ? "border-red-500" : "border-gray-300"} bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50
-                                    }`}
+                                className={`w-full rounded-lg border ${errors.description ? "border-red-500" : "border-gray-300"} bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50`}
                                 aria-invalid={!!errors.description}
                                 aria-describedby={errors.description ? 'description-error' : undefined}
                             />
-                            {errors.description && (
-                                <p id="description-error" className="text-red-600 text-sm mt-1">
-                                    {errors.description}
-                                </p>
-                            )}
+                            {errors.description && <p id="description-error" className="text-red-600 text-sm mt-1">{errors.description}</p>}
                         </div>
-                        {/* Department */}
+
                         <SelectBox
-                            label="Department"
+                            label={t('labels.department')}
                             id="departmentId"
                             name="departmentId"
                             value={form.departmentId}
-                            options={departments}  // departments is [{ id, name }]
+                            options={departments}
                             onChange={handleChange}
                             error={errors.departmentId}
-                            placeholder="Select Department"
+                            placeholder={t('placeholders.department')}
                         />
 
-
                         <div className='grid grid-cols-2 gap-3'>
-
-
-                            {/* Category */}
                             <SelectBox
-                                label="Category"
+                                label={t('labels.category')}
                                 id="categoryId"
                                 name="categoryId"
                                 value={form.categoryId}
-                                options={categories}  // categories is [{ id, name }]
+                                options={categories}
                                 onChange={handleCategoryChange}
                                 error={errors.categoryId}
-                                placeholder="Select Category"
+                                placeholder={t('placeholders.category')}
                             />
 
-                            {/* setSubcategories */}
                             <SelectBox
-                                label="Subcategory"
+                                label={t('labels.subcategory')}
                                 id="subcategoryId"
                                 name="subcategoryId"
                                 value={form.subcategoryId}
-                                options={subcategories}  // setSubcategories state ကိုသုံး
+                                options={subcategories}
                                 onChange={handleChange}
                                 error={errors.subcategoryId}
-                                placeholder="Select Subcategory"
-                                disabled={!form.categoryId}  // categoryId မရှိရင် ပိတ်ထားမယ်
+                                placeholder={t('placeholders.subcategory')}
+                                disabled={!form.categoryId}
                             />
                         </div>
-                        {/* Priority */}
+
                         <SelectBox
-                            label="Priority"
+                            label={t('labels.priority')}
                             id="priority"
                             name="priority"
                             value={form.priority}
                             options={[
-                                { id: 'LOW', name: 'Low' },
-                                { id: 'MEDIUM', name: 'Medium' },
-                                { id: 'HIGH', name: 'High' },
-                                { id: 'URGENT', name: 'Urgent' },
+                                { id: 'LOW', name: 'LOW' },
+                                { id: 'MEDIUM', name: 'MEDIUM' },
+                                { id: 'HIGH', name: 'HIGH' },
+                                { id: 'URGENT', name: 'URGENT' },
                             ]}
                             onChange={handleChange}
                             error={errors.priority}
-                            placeholder="Select Priority"
+                            placeholder={t('placeholders.priority')}
                         />
-
-
-
-
 
                         <ImageInput images={images} setImages={setImages} existingImages={existingImages} setExistingImages={setExistingImages} />
 
-
-
-
-                        {/* Buttons */}
                         <div className="mt-6 flex justify-end space-x-3">
-                            <button
-                                type="button"
-                                onClick={handleCancel}
-                                className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'
-                                    }`}
-                            >
-                                {loading ? (updateID ? 'Updating...' : 'Creating...') : updateID ? 'Update Ticket' : 'Create Ticket'}
+                            <button type="button" onClick={handleCancel} className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]">{t('buttons.cancel')}</button>
+                            <button type="submit" disabled={loading} className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'}`}>
+                                {loading ? (updateID ? t('buttons.updating') : t('buttons.creating')) : updateID ? t('buttons.update') : t('buttons.create')}
                             </button>
                         </div>
                     </section>
                 </form>
-
             </section>
         </>
     );

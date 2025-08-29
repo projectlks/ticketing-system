@@ -12,7 +12,7 @@ import TableHead from "@/components/TableHead";
 import Swal from 'sweetalert2';
 import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon } from "@heroicons/react/24/outline";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
@@ -133,6 +133,10 @@ export default function Page() {
     const t = useTranslations("table")
     const tHeader = useTranslations("header");
 
+    const pathname = usePathname();
+    const segments = pathname.split("/");
+    const locale = segments[2] || "en";
+
     return (
         <>
 
@@ -201,7 +205,7 @@ export default function Page() {
                                                     }}
                                                         //  onDelete={() => handleDelete(category.id)}
                                                         onEdit={(e) => handleEdit(e, category.id)}
-                                                        onView={() => router.push(`/main/category/view/${category.id}`)}
+                                                        onView={() => router.push(`/lang/${locale}/main/category/view/${category.id}`)}
                                                     />
                                                 </td>
                                             </tr>
@@ -246,7 +250,7 @@ export default function Page() {
             </div>
 
             {showForm && (
-                <Portal>
+                <Portal containerId="modal-root">
                     <Form setShowForm={setShowForm} setCategories={setCategories} updateID={updateID} setUpdateID={setUpdateID} />
 
                     <></>

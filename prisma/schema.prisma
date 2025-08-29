@@ -311,18 +311,6 @@ model Audit {
   @@map("audit")
 }
 
-// 
-
-// model UserSession {
-//   id        String   @id @default(cuid())
-//   userId    String
-//   user      User     @relation(fields: [userId], references: [id])
-//   device    String? // optional: device info like "Chrome on Windows"
-//   createdAt DateTime @default(now())
-//   expiresAt DateTime
-// }
-
-
 model UserSession {
   id        String   @id @default(cuid())
   userId    String
@@ -330,5 +318,5 @@ model UserSession {
   device    String?
   createdAt DateTime @default(now())
   expiresAt DateTime
-  lastSeen  DateTime @default(now())  // heartbeat timestamp
+  lastSeen  DateTime @default(now()) // heartbeat timestamp
 }

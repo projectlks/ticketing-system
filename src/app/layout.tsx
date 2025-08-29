@@ -50,6 +50,7 @@ export default async function RootLayout({
         </title>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+
         <UserDataProvider>
           <TicketCountProvider>
             <Providers session={session}>
@@ -59,7 +60,7 @@ export default async function RootLayout({
           </TicketCountProvider>
         </UserDataProvider>
 
-
+        <div id="portal-root"></div>
       </body>
     </html>
   );

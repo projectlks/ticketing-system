@@ -1,6 +1,7 @@
 import React from 'react';
 import ProfilePage from './Profile';
 import { User, Department, JobPosition, Category, Ticket, Comment, CommentLike, Audit } from "@prisma/client";
+import { getCurrentUserData } from './action';
 
 
 export type DepartmentWithManager = Department & {
@@ -29,10 +30,13 @@ export type UserFullData = User & {
 
 export default async function Page() {
 
+    const data = await getCurrentUserData()
+
+
+
     return (
         <>
-
-            <ProfilePage />
+            <ProfilePage data={data} />
         </>
     );
 }

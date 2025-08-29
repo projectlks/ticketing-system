@@ -2,16 +2,16 @@
 import WorkAndPersonalDetails from "./WorkAndPersonalDetails";
 import ProfileCard from "./ProfileCard";
 import PersonalInformation from "./PersonalInformation";
-import { useUserData } from "@/context/UserProfileContext";
+import { UserFullData } from "./page";
+import { useState } from "react";
 
-// interface Props {
-//     data: UserFullData
-// }
+interface Props {
+    data: UserFullData
+}
 
-export default function ProfilePage() {
-    // const [userData, setUserData] = useState<UserFullData>(data)
+export default function ProfilePage({data} : Props) {
+    const [userData, setUserData] = useState<UserFullData>(data)
 
-      const { userData, setUserData } = useUserData();
 
     return (
         <>

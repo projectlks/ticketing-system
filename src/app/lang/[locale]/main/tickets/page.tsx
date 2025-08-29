@@ -13,7 +13,7 @@ import {
     ArrowLongRightIcon, ArrowLongLeftIcon
 } from "@heroicons/react/24/outline";
 import Loading from "@/components/Loading";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { deleteTicket, getAllTickets, markTicketAsViewed, restoreTickets } from "./action";
 import MultiFilter from "./multiFilter";
 import { useSession } from "next-auth/react";
@@ -258,6 +258,11 @@ export default function Page() {
     const tHeader = useTranslations("header");
     const { data } = useSession()
 
+    const pathname = usePathname();
+    const segments = pathname.split("/");
+    const locale = segments[2] || "en";
+
+
     return (
         <>
             {isFetching && <Loading />}
@@ -387,18 +392,14 @@ export default function Page() {
                                                             try {
                                                                 await markTicketAsViewed(ticket.id);
                                                                 refreshTicketCount()
-                                                                router.push(`/main/tickets/view/${ticket.id}`);
+                                                                router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
                                                             } catch (err) {
                                                                 console.error(err)
                                                             }
                                                         }}
                                                     />
                                                 </td>
-                                                {/* 
-                                                {ticket.isArchived &&
-                                                    (<td className={`px-5 py-4 sm:px-6 `}>
-                                                        <Button buttonLabel={"Restore"} click={() => handleRestore(ticket.id)} />
-                                                    </td>)} */}
+
                                             </tr>
                                         ))}
                                     </tbody>
@@ -436,7 +437,7 @@ export default function Page() {
             </div>
 
             {showForm && (
-                <Portal>
+                <Portal containerId="modal-root">
                     <Form setShowForm={setShowForm} setTickets={setTickets} updateID={updateID} setUpdateID={setUpdateID} />
                     <></>
                 </Portal>

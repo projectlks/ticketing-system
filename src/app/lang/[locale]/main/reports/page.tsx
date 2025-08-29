@@ -5,7 +5,7 @@ import TableBody from "@/components/TableBody";
 import DotMenu from "@/components/DotMenu";
 import TableHead from "@/components/TableHead";
 import Loading from "@/components/Loading";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Ticket } from "@prisma/client";
 import { getAllTickets } from "./action";
 import * as XLSX from "xlsx";
@@ -180,6 +180,13 @@ export default function Page() {
     };
     const t = useTranslations("table");
     const tHeader = useTranslations("header");
+            const pathname = usePathname();
+            const segments = pathname.split("/");
+            const locale = segments[2] || "en";
+    
+
+                                                {/* <TableBody data={department.manager?.name || "-"} /> */}
+
     return (
         <>
 
@@ -326,7 +333,7 @@ export default function Page() {
                                                     <DotMenu
                                                         isBottom={index >= tickets.length - 2}
                                                         option={{ view: true }}
-                                                        onView={() => router.push(`/main/tickets/view/${ticket.id}`)}
+                                                        onView={() => router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`)}
                                                     />
                                                 </td>
                                             </tr>

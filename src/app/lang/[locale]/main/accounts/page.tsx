@@ -13,7 +13,7 @@ import Swal from 'sweetalert2';
 import Button from "@/components/Button";
 import { ArrowLongRightIcon, ArrowLongLeftIcon, ChevronDownIcon, ArrowDownCircleIcon } from "@heroicons/react/24/outline";
 import Loading from "@/components/Loading";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import * as XLSX from "xlsx";
@@ -197,6 +197,10 @@ export default function Page() {
 
     const { data } = useSession()
 
+    const pathname = usePathname();
+    const segments = pathname.split("/");
+    const locale = segments[2] || "en";
+
 
 
 
@@ -267,7 +271,7 @@ export default function Page() {
 
             {isFetching && <Loading />}
             <div className="w-full min-h-full bg-white pb-10 rounded-lg">
-       
+
 
 
                 <Header
@@ -381,14 +385,10 @@ export default function Page() {
 
                                                         onDelete={() => handleDelete(account.id)}
                                                         onEdit={(e) => handleEdit(e, account.id)}
-                                                        onView={() => router.push(`/main/accounts/view/${account.id}`)}
+                                                        onView={() => router.push(`/lang/${locale}/main/accounts/view/${account.id}`)}
                                                         onRestore={() => handleRestore(account.id)}
                                                     />
                                                 </td>
-                                                {/* {account.isArchived &&
-                                                    (<td className={`px-5 py-4 sm:px-6 `}>
-                                                        <Button buttonLabel={"Restore"} click={() => handleRestore(account.id)} />
-                                                    </td>)} */}
 
                                             </tr>
                                         ))}
@@ -458,7 +458,7 @@ export default function Page() {
             </div>
 
             {showForm && (
-                <Portal>
+                <Portal containerId="modal-root">
                     <Form setShowForm={setShowForm} setAccounts={setAccounts} updateID={updateID} setUpdateID={setUpdateID} />
                 </Portal>
             )}

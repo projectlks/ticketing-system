@@ -1,81 +1,63 @@
 "use client";
 
-
-
 import { getCurrentUserData } from "@/app/lang/[locale]/main/profile/action";
 import { UserFullData } from "@/app/lang/[locale]/main/profile/page";
-import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
+import { getBasicUserData } from "@/libs/action";
+import { useSession } from "next-auth/react";
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+} from "react";
 
-// Default user object (empty values to prevent undefined)
-const defaultUserData: UserFullData = {
-  id: "",
-  name: "",
-  email: "",
-  password: "",
-  role: "REQUESTER",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  isArchived: false,
-  profileUrl: null,
-  employeeId: null,
-  status: null,
-  workMobile: null,
-  personalPhone: null,
-  address: null,
-  personalEmail: null,
-  language: null,
-  emergencyContact: null,
-  emergencyPhone: null,
-  nationality: null,
-  identificationNo: null,
-  passportNo: null,
-  dateOfBirth: null,
-  maritalStatus: null,
-  numberOfChildren: null,
-  creatorId: null,
-  updaterId: null,
-  createdDepartments: [],
-  managedDepartments: [],
-  updatedDepartments: [],
-  departmentId: null,
-  createdCategories: [],
-  updatedCategories: [],
-  jobPositionId: null,
-  createdJobPositions: [],
-  requestTickets: [],
-  assignedTickets: [],
-  likes: [],
-  audits: [],
-  comments: [],
-  jobPosition: null,
-};
-
-// Context type
-interface UserDataContextType {
-  userData: UserFullData;
-  setUserData: Dispatch<SetStateAction<UserFullData>>;
+// Basic user info type
+export interface BasicUserData {
+  id: string;
+  name: string;
+  email: string;
+  profileUrl: string | null;
 }
 
-// Default context value
-const defaultContext: UserDataContextType = {
-  userData: defaultUserData,
-  setUserData: () => { },
-};
+// Union so context can hold either
+export type UserData = BasicUserData;
 
-const UserDataContext = createContext<UserDataContextType>(defaultContext);
+interface UserDataContextType {
+  userData: UserData;
+  setUserData: Dispatch<SetStateAction<UserData>>;
+}
+
+const UserDataContext = createContext<UserDataContextType | undefined>(
+  undefined
+);
 
 export const UserDataProvider = ({ children }: { children: ReactNode }) => {
-  const [userData, setUserData] = useState<UserFullData>(defaultUserData);
-  const fetchUserData = async () => {
-    try {
-      const data: UserFullData = await getCurrentUserData();
-      setUserData(data);
-    } catch (err) {
-      console.error(err);
-    }
+  // const { data: session } = useSession();
+
+  // preload from session
+  const initialUser: BasicUserData = {
+    id: "", // id only exists if you've extended next-auth user type
+    name: "",
+    email: "",
+    profileUrl: null,
   };
 
+  const [userData, setUserData] = useState<BasicUserData>(initialUser);
+
+  // overwrite with full DB user
   useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const data: BasicUserData = await getBasicUserData();
+        setUserData(data);
+      } catch (err) {
+        console.error("Failed to fetch full user data:", err);
+      }
+    }
+
     fetchUserData();
   }, []);
 
@@ -87,4 +69,10 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 };
 
 // Hook
-export const useUserData = () => useContext(UserDataContext);
+export function useUserData() {
+  const context = useContext(UserDataContext);
+  if (!context) {
+    throw new Error("useUserData must be used within a UserDataProvider");
+  }
+  return context;
+}
