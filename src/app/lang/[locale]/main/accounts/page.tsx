@@ -330,8 +330,8 @@ export default function Page() {
 
 
                                             {/* lastSeen */}
-                                            <TableHead data={t("creator")} />
-                                            <TableHead data={t("actions")} />
+                                            {/* <TableHead data={t("creator")} />
+                                            <TableHead data={t("actions")} /> */}
 
                                         </tr>
                                     </thead>
@@ -362,7 +362,7 @@ export default function Page() {
                                                 <TableBody data={account.department?.name || ''} />
                                                 <TableBody data={account.jobPosition?.name || ''} />
                                                 {/* <TableBody data={String(account.userSession?.createdAt) || ''} /> */}
-                                                <TableBody
+                                                {/* <TableBody
                                                     data={
                                                         account.sessions?.[0]?.createdAt
                                                             ? new Date(account.sessions[0].createdAt).toLocaleString("en-GB", { timeZone: "Asia/Yangon" })
@@ -374,7 +374,7 @@ export default function Page() {
                                                             ? new Date(account.sessions[0].expiresAt).toLocaleString("en-GB", { timeZone: "Asia/Yangon" })
                                                             : ""
                                                     }
-                                                />
+                                                /> */}
 
 
 
