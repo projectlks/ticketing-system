@@ -9,7 +9,7 @@ interface Props {
     data: UserFullData
 }
 
-export default function ProfilePage({data} : Props) {
+export default function ProfilePage({ data }: Props) {
     const [userData, setUserData] = useState<UserFullData>(data)
 
 

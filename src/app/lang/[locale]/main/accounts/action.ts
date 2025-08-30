@@ -141,7 +141,8 @@ export async function getAllAccounts(
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
       department: { select: { id: true, name: true } },
-      jobPosition: { select: { id: true, name: true } }
+      jobPosition: { select: { id: true, name: true } },
+      sessions: true
     },
   });
 

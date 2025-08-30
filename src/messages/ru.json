@@ -61,6 +61,12 @@
     "requester": "Запрашивающий",
     "assignedTo": "Ответственный"
   },
+  "dotMenu": {
+    "view": "Просмотр",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "restore": "Восстановить"
+  },
   "dashboard": {
     "recentTickets": "Последние заявки",
     "viewAll": "Смотреть все",
@@ -323,6 +329,84 @@
     "managerEmail": "Электронная почта менеджера",
     "positions": "Должности",
     "images": "Изображения",
-    "comments": "Комментарии"
+    "comments": "Комментарии",
+    "selectUserToAssign": "Выберите пользователя для назначения",
+
+    "employeeId": "ID сотрудника",
+    "address": "Адрес",
+    "language": "Язык",
+    "emergencyContact": "Экстренный контакт",
+    "emergencyPhone": "Экстренный телефон",
+    "nationality": "Национальность",
+    "identificationNo": "Идентификационный номер",
+    "passportNo": "Номер паспорта",
+    "dateOfBirth": "Дата рождения",
+    "maritalStatus": "Семейное положение",
+    "numberOfChildren": "Количество детей",
+
+    "changeStatus": "Изменить статус",
+    "selectStatus": "Выберите статус",
+    "confirmStatusChange": "Подтвердите изменение статуса",
+    "changeStatusText": "Вы уверены, что хотите изменить статус на {status}?",
+    "yesChange": "Да, изменить",
+    "cancel": "Отмена",
+    "statusUpdated": "Статус обновлен!",
+    "statusChangedTo": "Статус тикета изменен на {status}.",
+    "open": "Открыт",
+    "in_progress": "В процессе",
+    "resolved": "Решено",
+    "closed": "Закрыт"
+  },
+
+  "profileCard": {
+    "editPersonalInfo": "Редактировать личную информацию",
+    "edit": "Редактировать",
+    "loading": "Загрузка...",
+    "name": "Имя",
+    "workEmail": "Рабочий Email",
+    "personalEmail": "Личный Email",
+    "workPhone": "Рабочий телефон",
+    "personalPhone": "Личный телефон",
+    "successProfileImage": "Изображение профиля успешно обновлено.",
+    "successPersonalInfo": "Личная информация успешно обновлена.",
+    "errorProfileImage": "Не удалось обновить изображение профиля.",
+    "errorPersonalInfo": "Не удалось обновить личную информацию."
+  },
+
+  "personal": {
+    "personalInfo": "Личная информация",
+    "name": "Имя",
+    "role": "Роль",
+    "workEmail": "Рабочая электронная почта",
+    "personalEmail": "Личная электронная почта",
+    "workPhone": "Рабочий телефон",
+    "personalPhone": "Личный телефон",
+    "changePassword": "Сменить пароль",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "enterCurrentPassword": "Введите текущий пароль",
+    "enterNewPassword": "Введите новый пароль",
+    "confirmNewPassword": "Подтвердите новый пароль",
+    "passwordChanged": "Пароль изменен!",
+    "passwordChangedText": "Ваш пароль успешно обновлен."
+  },
+
+  "workAndPersonal": {
+    "hrPersonalInfo": "HR и личная информация",
+    "edit": "Редактировать",
+    "employeeId": "ID сотрудника",
+    "status": "Статус",
+    "address": "Адрес",
+    "language": "Язык",
+    "emergencyContact": "Контакт на случай чрезвычайной ситуации",
+    "emergencyPhone": "Экстренный телефон",
+    "nationality": "Гражданство",
+    "identificationNo": "Номер удостоверения",
+    "passportNo": "Номер паспорта",
+    "dateOfBirth": "Дата рождения",
+    "maritalStatus": "Семейное положение",
+    "numberOfChildren": "Количество детей",
+    "enterField": "Введите {field}"
   }
 }

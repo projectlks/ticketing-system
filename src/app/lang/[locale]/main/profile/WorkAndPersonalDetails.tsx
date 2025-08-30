@@ -6,6 +6,7 @@ import { UserFullData } from './page';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import Input from '@/components/Input';
 import { changeHRInfo } from './action';
+import { useTranslations } from 'next-intl';
 
 interface Props {
   data: UserFullData;
@@ -25,43 +26,34 @@ interface Props {
 type EditableField = keyof UserFullData;
 
 export default function WorkAndPersonalDetails({ data, Modal }: Props) {
+  const t = useTranslations("workAndPersonal");
+
   const [loading, setLoading] = useState<boolean>(false);
   const [showForm, setShowForm] = useState<boolean>(false);
-
-  // ...
   const [editData, setEditData] = useState<Partial<UserFullData>>({});
 
-  useEffect(() => {
-    setEditData({ ...data });
-  }, [data]);
-
+  useEffect(() => { setEditData({ ...data }); }, [data]);
 
   const fields: { label: string; key: EditableField; type?: 'text' | 'number' | 'date' }[] = [
-    { label: 'Employee ID', key: 'employeeId' },
-    { label: 'Status', key: 'status' },
-    { label: 'Address', key: 'address' },
-    { label: 'Language', key: 'language' },
-    { label: 'Emergency Contact', key: 'emergencyContact' },
-    { label: 'Emergency Phone', key: 'emergencyPhone' },
-    { label: 'Nationality', key: 'nationality' },
-    { label: 'Identification No', key: 'identificationNo' },
-    { label: 'Passport No', key: 'passportNo' },
-    { label: 'Date of Birth', key: 'dateOfBirth', type: 'date' },
-    { label: 'Marital Status', key: 'maritalStatus' },
-    { label: 'Number of Children', key: 'numberOfChildren', type: 'number' },
-
+    { label: t("employeeId"), key: 'employeeId' },
+    { label: t("status"), key: 'status' },
+    { label: t("address"), key: 'address' },
+    { label: t("language"), key: 'language' },
+    { label: t("emergencyContact"), key: 'emergencyContact' },
+    { label: t("emergencyPhone"), key: 'emergencyPhone' },
+    { label: t("nationality"), key: 'nationality' },
+    { label: t("identificationNo"), key: 'identificationNo' },
+    { label: t("passportNo"), key: 'passportNo' },
+    { label: t("dateOfBirth"), key: 'dateOfBirth', type: 'date' },
+    { label: t("maritalStatus"), key: 'maritalStatus' },
+    { label: t("numberOfChildren"), key: 'numberOfChildren', type: 'number' },
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     setEditData(prev => {
-      // type-safe conversion
-      if (type === 'number') {
-        return { ...prev, [name]: value === '' ? undefined : Number(value) } as Partial<UserFullData>;
-      }
-      if (type === 'date') {
-        return { ...prev, [name]: value === '' ? undefined : new Date(value) } as Partial<UserFullData>;
-      }
+      if (type === 'number') return { ...prev, [name]: value === '' ? undefined : Number(value) } as Partial<UserFullData>;
+      if (type === 'date') return { ...prev, [name]: value === '' ? undefined : new Date(value) } as Partial<UserFullData>;
       return { ...prev, [name]: value } as Partial<UserFullData>;
     });
   };
@@ -69,37 +61,22 @@ export default function WorkAndPersonalDetails({ data, Modal }: Props) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Convert editData to FormData
       const formData = new FormData();
-      formData.append("userId", data.id); // user id is required
-
+      formData.append("userId", data.id);
       fields.forEach(field => {
         const value = editData[field.key];
         if (value !== undefined && value !== null) {
-          if (field.type === "date" && value instanceof Date) {
-            formData.append(field.key, value.toISOString().split("T")[0]);
-          } else {
-            formData.append(field.key, String(value));
-          }
-        } else {
-          formData.append(field.key, ""); // empty to null
-        }
+          if (field.type === "date" && value instanceof Date) formData.append(field.key, value.toISOString().split("T")[0]);
+          else formData.append(field.key, String(value));
+        } else formData.append(field.key, "");
       });
-
       const updatedUser = await changeHRInfo(formData);
-      console.log("Updated user:", updatedUser);
-
-      // Update local state with returned user
       setEditData({ ...updatedUser });
-
       setShowForm(false);
     } catch (err) {
       console.error("Failed to update personal info:", err);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const renderValue = (value: UserFullData[EditableField]) => {
@@ -111,19 +88,14 @@ export default function WorkAndPersonalDetails({ data, Modal }: Props) {
   return (
     <>
       {loading && <Loading />}
-
       <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
         <div className="flex justify-between items-center">
-          <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">
-            HR & Personal Information
-          </h4>
-          <button
-            onClick={() => setShowForm(true)}
+          <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">{t("hrPersonalInfo")}</h4>
+          <button onClick={() => setShowForm(true)}
             className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            disabled={loading}
-          >
+            disabled={loading}>
             <PencilSquareIcon className="w-5 h-5" />
-            {loading ? 'Loading...' : 'Edit'}
+            {loading ? 'Loading...' : t("edit")}
           </button>
         </div>
 
@@ -140,19 +112,14 @@ export default function WorkAndPersonalDetails({ data, Modal }: Props) {
       </div>
 
       {showForm && (
-        <Modal
-          title="Edit Personal Information"
-          onSubmit={handleSubmit}
-          onClose={() => setShowForm(false)}
-        >
+        <Modal title={t("hrPersonalInfo")} onSubmit={handleSubmit} onClose={() => setShowForm(false)}>
           <div className="space-y-4">
             {fields.map(field => (
-              <Input
-                key={field.key}
+              <Input key={field.key}
                 label={field.label}
                 id={`edit-${field.key}`}
                 name={field.key}
-                placeholder={`Enter ${field.label}`}
+                placeholder={t("enterField", { field: field.label })}
                 value={editData[field.key] !== undefined && editData[field.key] !== null
                   ? field.type === 'date' && editData[field.key] instanceof Date
                     ? (editData[field.key] as Date).toISOString().split('T')[0]
@@ -160,7 +127,7 @@ export default function WorkAndPersonalDetails({ data, Modal }: Props) {
                   : ''
                 }
                 type={field.type || 'text'}
-                require={false} // all optional
+                require={false}
                 error={false}
                 errorMessage=""
                 disable={false}

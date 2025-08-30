@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Portal from "@/components/Portal";
 import Form from "./Form";
 import { deleteAccount, getAllAccounts, restoreAccount } from "./action";
-import { User } from "@prisma/client";
+import { User, UserSession } from "@prisma/client";
 import TableBody from "@/components/TableBody";
 import DotMenu from "@/components/DotMenu";
 import TableHead from "@/components/TableHead";
@@ -43,6 +43,7 @@ export type UserWithRelations = User & {
         id: string;
         name: string;
     } | null;
+    sessions?: UserSession[] | null
 };
 
 export default function Page() {
@@ -323,6 +324,12 @@ export default function Page() {
                                             <TableHead data={t("role")} />
                                             <TableHead data={t("department")} />
                                             <TableHead data={t("jobPosition")} />
+                                            {/* <TableHead data={t("lastSeen")} /> */}
+                                            <TableHead data={"Last Login"} />
+                                            <TableHead data={"ExpireTime At"} />
+
+
+                                            {/* lastSeen */}
                                             <TableHead data={t("creator")} />
                                             <TableHead data={t("actions")} />
 
@@ -354,6 +361,21 @@ export default function Page() {
                                                 <TableBody data={account.role} />
                                                 <TableBody data={account.department?.name || ''} />
                                                 <TableBody data={account.jobPosition?.name || ''} />
+                                                {/* <TableBody data={String(account.userSession?.createdAt) || ''} /> */}
+                                                <TableBody
+                                                    data={
+                                                        account.sessions?.[0]?.createdAt
+                                                            ? new Date(account.sessions[0].createdAt).toLocaleString("en-GB", { timeZone: "Asia/Yangon" })
+                                                            : ""
+                                                    }
+                                                />     <TableBody
+                                                    data={
+                                                        account.sessions?.[0]?.createdAt
+                                                            ? new Date(account.sessions[0].expiresAt).toLocaleString("en-GB", { timeZone: "Asia/Yangon" })
+                                                            : ""
+                                                    }
+                                                />
+
 
 
 
@@ -447,8 +469,6 @@ export default function Page() {
                                     </span>
                                 </div>
 
-
-
                             </div>
                         </div>
                     ) : (
@@ -465,3 +485,4 @@ export default function Page() {
         </>
     );
 }
+// ၀၅၅၅၁

@@ -1,7 +1,9 @@
+"use client"
 import AuditLogList from "@/components/AuditLogList";
 import { Audit } from "@prisma/client";
 import ViewContext from "@/components/ViewContext";
 import { CategoryWithRelations } from "../../page";
+import { useTranslations } from "next-intl";
 
 export type CategoryViewProps = {
     category: CategoryWithRelations;
@@ -14,6 +16,9 @@ export function CategoryView({
     auditLog,
     title = "View Category",
 }: CategoryViewProps) {
+
+
+    const t = useTranslations('viewContext');
     return (
         <section
             className="grid gap-6 md:grid-cols-2"
@@ -46,40 +51,40 @@ export function CategoryView({
                         {/* Separator */}
                         <div className="border-t border-gray-200" />
 
-                        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">                      
+                        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+
 
 
                             <ViewContext
-                                label="Created At"
+                                label={t("createdAt")}
                                 value={new Date(category.createdAt).toLocaleString("en-US", {
                                     timeZone: "Asia/Yangon",
                                 })}
                             />
+
                             <ViewContext
-                                label="Created By"
+                                label={t("createdBy")}
                                 value={category.creator?.name || "-"}
                             />
 
                             <ViewContext
-                                label="Last Updated At"
+                                label={t("updatedAt")}
                                 value={new Date(category.updatedAt).toLocaleString("en-US", {
                                     timeZone: "Asia/Yangon",
                                 })}
                             />
+
                             <ViewContext
-                                label="Updated By"
+                                label={t("updatedBy")}
                                 value={category.updater?.name || "-"}
                             />
 
-                            {/* <ViewContext
-                                label="Is Archived"
-                                value={category.isArchived ? "Yes" : "No"}
-                            /> */}
-
                             <ViewContext
-                                label="Tickets Count"
+                                label={t("ticketsCount")}
                                 value={category.tickets?.length?.toString() || "0"}
                             />
+
 
                         </dl>
                     </div>

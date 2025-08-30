@@ -196,7 +196,7 @@ export default function Page() {
 
                                                     }}
                                                         onEdit={(e) => handleEdit(e, department.id)}
-                                                        onView={() => { router.push(`lang/${locale}/main/department/view/${department.id}`) }}
+                                                        onView={() => { router.push(`/lang/${locale}/main/department/view/${department.id}`) }}
                                                     />
                                                 </td>
 

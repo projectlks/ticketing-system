@@ -669,7 +669,7 @@ export async function uploadComment(input: {
 
 
 
-type CommentWithRelations = Prisma.CommentGetPayload<{
+export type CommentWithRelations = Prisma.CommentGetPayload<{
   include: {
     commenter: {
       select: { id: true; name: true; email: true }

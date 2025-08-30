@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
+import { useTranslations } from 'next-intl';
 
 interface DotMenuProps {
     isBottom?: boolean;
@@ -39,6 +40,7 @@ export default function DotMenu({ isBottom, option, onDelete, onEdit, onView, on
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [showMenu]);
+    const t = useTranslations('dotMenu'); // 🎯 single instance
 
     return (
         <div className="relative" ref={menuRef}>
@@ -59,24 +61,24 @@ export default function DotMenu({ isBottom, option, onDelete, onEdit, onView, on
 
                     {option?.view && (
                         <button onClick={onView} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
-                            View
+                            {t('view')}
                         </button>
                     )}
 
                     {option?.edit && (
                         <button onClick={onEdit} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
-                            Edit
+                            {t('edit')}
                         </button>
                     )}
 
                     {option?.delete && (
                         <button onClick={onDelete} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
-                            Delete
+                            {t('delete')}
                         </button>
                     )}
                     {option?.restore && (
                         <button onClick={onRestore} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
-                            Restore
+                            {t('restore')}
                         </button>
                     )}
                 </div>

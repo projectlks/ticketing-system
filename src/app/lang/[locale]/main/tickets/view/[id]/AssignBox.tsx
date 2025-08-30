@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import ViewContext from '@/components/ViewContext';
 import { ticketAssign } from '../../action';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 
 interface Props {
     users: {
@@ -74,19 +75,20 @@ export default function AssignBox({ users, ticket }: Props) {
 
     const { data } = useSession()
     const show = (!ticketData.assignedTo?.id) && (data?.user.role === "ADMIN" || data?.user.role === "SUPER_ADMIN")
+    const t = useTranslations('viewContext');
+
     return (
         <>
             <ViewContext
-                label="Assigned To"
+                label={t('assignedTo')}
                 value={ticketData.assignedTo?.name || "-"}
             />
-
             {
                 show && (
                     <>
 
                         <SelectBox
-                            label="Assigned User"
+                            label={t('selectUserToAssign')}
                             id="assignUser"
                             name="assignUser"
                             value={ticketData.assignedTo?.id || ""}

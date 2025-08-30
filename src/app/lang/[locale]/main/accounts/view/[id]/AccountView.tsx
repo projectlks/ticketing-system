@@ -4,6 +4,7 @@ import AuditLogList from "@/components/AuditLogList";
 import ViewContext from "@/components/ViewContext";
 import { Audit } from "@prisma/client";
 import { UserWithRelations } from "../../page";
+import { useTranslations } from "next-intl";
 
 export type AccountViewProps = {
   account: UserWithRelations;
@@ -13,21 +14,22 @@ export type AccountViewProps = {
 
 export function AccountView({ account, auditLog, title = "View Account" }: AccountViewProps) {
 
-  // Fully type-safe HR & personal fields
+
   const hrFields: { label: string; key: keyof UserWithRelations; type?: 'text' | 'date' | 'number' }[] = [
-    { label: "Employee ID", key: "employeeId" },
-    { label: "Status", key: "status" },
-    { label: "Address", key: "address" },
-    { label: "Language", key: "language" },
-    { label: "Emergency Contact", key: "emergencyContact" },
-    { label: "Emergency Phone", key: "emergencyPhone" },
-    { label: "Nationality", key: "nationality" },
-    { label: "Identification No", key: "identificationNo" },
-    { label: "Passport No", key: "passportNo" },
-    { label: "Date of Birth", key: "dateOfBirth", type: "date" },
-    { label: "Marital Status", key: "maritalStatus" },
-    { label: "Number of Children", key: "numberOfChildren", type: "number" },
+    { label: "employeeId", key: "employeeId" },
+    { label: "status", key: "status" },
+    { label: "address", key: "address" },
+    { label: "language", key: "language" },
+    { label: "emergencyContact", key: "emergencyContact" },
+    { label: "emergencyPhone", key: "emergencyPhone" },
+    { label: "nationality", key: "nationality" },
+    { label: "identificationNo", key: "identificationNo" },
+    { label: "passportNo", key: "passportNo" },
+    { label: "dateOfBirth", key: "dateOfBirth", type: "date" },
+    { label: "maritalStatus", key: "maritalStatus" },
+    { label: "numberOfChildren", key: "numberOfChildren", type: "number" },
   ];
+
 
   // Fully type-safe value renderer
   const renderValue = (value: unknown, type?: 'date' | 'number' | 'text') => {
@@ -35,6 +37,8 @@ export function AccountView({ account, auditLog, title = "View Account" }: Accou
     if (type === "date" && value instanceof Date) return value.toLocaleDateString();
     return String(value);
   };
+
+  const t = useTranslations('viewContext'); // 🎯 single instance
 
   return (
     <section className="grid gap-6 md:grid-cols-3" aria-label="Account details">
@@ -48,15 +52,15 @@ export function AccountView({ account, auditLog, title = "View Account" }: Accou
         <div className="pt-2 px-6 pb-6 space-y-6">
           {/* Basic Info */}
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ViewContext label="User ID" value={account.id} />
-            <ViewContext label="Name" value={account.name} />
-            <ViewContext label="Email" value={account.email} />
-            <ViewContext label="Role" value={account.role} />
-            <ViewContext label="Is Archived" value={account.isArchived ? "Yes" : "No"} />
-            <ViewContext label="Created At" value={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-            <ViewContext label="Created By" value={account.creator?.name || "-"} />
-            <ViewContext label="Last Updated At" value={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-            <ViewContext label="Updated By" value={account.updater?.name || "-"} />
+            <ViewContext label={t("id")} value={account.id} />
+            <ViewContext label={t("name")} value={account.name} />
+            <ViewContext label={t("email")} value={account.email} />
+            <ViewContext label={t("role")} value={account.role} />
+            <ViewContext label={t("isArchived")} value={account.isArchived ? "Yes" : "No"} />
+            <ViewContext label={t("createdAt")} value={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+            <ViewContext label={t("createdBy")} value={account.creator?.name || "-"} />
+            <ViewContext label={t("updatedAt")} value={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+            <ViewContext label={t("updatedBy")} value={account.updater?.name || "-"} />
           </dl>
 
           {/* HR & Personal Info */}
@@ -66,7 +70,7 @@ export function AccountView({ account, auditLog, title = "View Account" }: Accou
               {hrFields.map(field => (
                 <ViewContext
                   key={field.key}
-                  label={field.label}
+                  label={t(field.label)}  // 🔹 ဒီလို string key ကိုပေးရုံပ
                   // Type-safe dynamic access
                   value={renderValue(account[field.key] as unknown, field.type)}
                 />

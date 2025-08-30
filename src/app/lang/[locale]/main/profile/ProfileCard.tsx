@@ -9,7 +9,7 @@ import Swal from 'sweetalert2';
 import { changePersonalInfo, changeProfileUrl } from './action';
 import { UserFullData } from './page';
 import { useUserData } from "@/context/UserProfileContext";
-
+import { useTranslations } from 'next-intl';
 
 interface Props {
     data: UserFullData;
@@ -28,6 +28,8 @@ interface Props {
 }
 
 export default function ProfileCard({ data, Modal, setUserData }: Props) {
+    const t = useTranslations("profileCard");
+
     const [isProfileInfoModal, setProfileInfoModal] = useState(false);
     const [currentProfileUrl, setCurrentProfileUrl] = useState<string | null>(data.profileUrl || null);
     const [errors, setErrors] = useState<{ name?: string; workEmail?: string }>({})
@@ -46,7 +48,6 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
         setEditData(prev => ({ ...prev, [name]: value }));
     };
 
-    // DELETE image by filename from /api/uploads/[filename]
     const deleteImage = async (url: string) => {
         try {
             const filename = url.split("/").pop();
@@ -58,7 +59,6 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
         }
     };
 
-    // UPLOAD image to /api/uploads
     const uploadImage = async (file: File): Promise<string> => {
         try {
             const formData = new FormData();
@@ -66,7 +66,7 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
             const res = await fetch("/api/uploads", { method: "POST", body: formData });
             if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
             const data = await res.json();
-            return data.urls[0]; // return first uploaded image URL
+            return data.urls[0];
         } catch (err: unknown) {
             let message = "Upload failed";
             if (err instanceof Error) message = err.message;
@@ -87,18 +87,9 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
             setUserData(prev => ({ ...prev, profileUrl: uploadedUrl }));
             setUserDataForContext(prev => ({ ...prev, profileUrl: uploadedUrl }));
 
-
-
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'Profile image updated successfully.',
-                timer: 2000,
-                showConfirmButton: false
-            });
+            Swal.fire({ icon: 'success', title: 'Success!', text: t("successProfileImage"), timer: 2000, showConfirmButton: false });
         } catch (err: unknown) {
-            let message = "Failed to update profile image.";
+            let message = t("errorProfileImage");
             if (err instanceof Error) message = err.message;
             Swal.fire({ icon: 'error', title: 'Error', text: message });
         } finally {
@@ -108,15 +99,9 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-
-        // --- Validation ---
         const newErrors: { name?: string } = {};
-        if (!editData.name.trim()) newErrors.name = 'Name is required.';
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
+        if (!editData.name.trim()) newErrors.name = t("name") + " is required.";
+        if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
         setErrors({});
         setLoading(true);
@@ -132,22 +117,13 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
             const updatedUser = await changePersonalInfo(formData);
             setUserData(prev => ({ ...prev, ...updatedUser }));
             setUserDataForContext(prev => ({ ...prev, ...updatedUser }));
-
             setProfileInfoModal(false);
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'Personal information updated successfully.',
-                timer: 2000,
-                showConfirmButton: false
-            });
+            Swal.fire({ icon: 'success', title: 'Success!', text: t("successPersonalInfo"), timer: 2000, showConfirmButton: false });
         } catch (err: unknown) {
-            let message = "Failed to update personal info.";
+            let message = t("errorPersonalInfo");
             if (err instanceof Error) message = err.message;
             Swal.fire({ icon: 'error', title: 'Error', text: message });
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
     useEffect(() => {
@@ -167,65 +143,51 @@ export default function ProfileCard({ data, Modal, setUserData }: Props) {
             <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-                        {/* Profile Image */}
                         <div className="relative group w-20 h-20">
                             {currentProfileUrl ? (
                                 <div className="w-full h-full overflow-hidden rounded-full relative">
-                                    <Image
-                                        src={currentProfileUrl}
-                                        alt={data.name || "User Avatar"}
-                                        fill
-                                        className="object-cover rounded-full"
-                                    />
+                                    <Image src={currentProfileUrl} alt={data.name || "User Avatar"} fill className="object-cover rounded-full" />
                                 </div>
-                            ) : (
-                                <Avatar name={data.name} size={80} profileUrl={data.profileUrl} />
-                            )}
-
+                            ) : (<Avatar name={data.name} size={80} profileUrl={data.profileUrl} />)}
                             <span className="absolute flex justify-center items-center rounded-full inset-0 group-hover:opacity-50 bg-black opacity-0 transition-opacity">
                                 <CameraIcon className="w-6 h-6 text-gray-100" />
                             </span>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                disabled={loading}
-                            />
+                            <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" disabled={loading} />
                         </div>
 
-                        {/* User Info */}
                         <div>
-                            <h4 className="text-lg font-semibold text-center text-gray-800 xl:text-left">
-                                {data.name || "No Name"}
-                            </h4>
+                            <h4 className="text-lg font-semibold text-center text-gray-800 xl:text-left">{data.name || "No Name"}</h4>
                             <p className='text-[10px] mb-2 text-gray-500'>{data.email}</p>
                             <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                                 <p className="text-sm text-gray-500">{data.role}</p>
                                 <div className="hidden h-3.5 w-px bg-gray-300 xl:block"></div>
                                 <p className="text-sm text-gray-500">
-                                    {typeof data.jobPosition === "object"
-                                        ? data.jobPosition?.department?.name || "No Department"
-                                        : "No Department"}
-                                    ({data.jobPosition?.name || "No Position"})
+                                    {typeof data.jobPosition === "object" ? data.jobPosition?.department?.name || "No Department" : "No Department"} ({data.jobPosition?.name || "No Position"})
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => setProfileInfoModal(true)}
+                    <button onClick={() => setProfileInfoModal(true)}
                         className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        disabled={loading}
-                    >
+                        disabled={loading}>
                         <PencilSquareIcon className="w-5 h-5" />
-                        {loading ? 'Loading...' : 'Edit'}
+                        {loading ? t("loading") : t("edit")}
                     </button>
                 </div>
             </div>
 
-            {/* Edit Modal */}
-            {isProfileInfoModal && (<Modal title="Edit Personal Information" onSubmit={handleSubmit} onClose={() => setProfileInfoModal(false)}> <div className="space-y-4"> <Input label="Work Email" id="edit-work-email" name="workEmail" placeholder="Enter work email" value={editData.workEmail} onChange={handleChange} require error={!!errors.workEmail} errorMessage={errors.workEmail || ''} disable={true} /> <Input label="Name" id="edit-name" name="name" placeholder="Enter name" value={editData.name} onChange={handleChange} require error={!!errors.name} errorMessage={errors.name || ''} disable={false} /> <Input label="Personal Email" id="edit-personal-email" name="personalEmail" placeholder="Enter personal email" value={editData.personalEmail} onChange={handleChange} require error={false} errorMessage={''} disable={false} /> <Input label="Work Phone" id="edit-work-phone" name="workPhone" placeholder="Enter work phone" value={editData.workPhone} onChange={handleChange} require={false} error={false} errorMessage="" disable={false} /> <Input label="Personal Phone" id="edit-personal-phone" name="personalPhone" placeholder="Enter personal phone" value={editData.personalPhone} onChange={handleChange} require={false} error={false} errorMessage="" disable={false} /> </div> </Modal>)}
+            {isProfileInfoModal && (
+                <Modal title={t("editPersonalInfo")} onSubmit={handleSubmit} onClose={() => setProfileInfoModal(false)}>
+                    <div className="space-y-4">
+                        <Input label={t("workEmail")} id="edit-work-email" name="workEmail" placeholder={t("workEmail")} value={editData.workEmail} onChange={handleChange} require error={!!errors.workEmail} errorMessage={errors.workEmail || ''} disable />
+                        <Input label={t("name")} id="edit-name" name="name" placeholder={t("name")} value={editData.name} onChange={handleChange} require error={!!errors.name} errorMessage={errors.name || ''} disable={false} />
+                        <Input label={t("personalEmail")} id="edit-personal-email" name="personalEmail" placeholder={t("personalEmail")} value={editData.personalEmail} onChange={handleChange} require={false} error={false} errorMessage={''} disable={false} />
+                        <Input label={t("workPhone")} id="edit-work-phone" name="workPhone" placeholder={t("workPhone")} value={editData.workPhone} onChange={handleChange} require={false} error={false} errorMessage="" disable={false} />
+                        <Input label={t("personalPhone")} id="edit-personal-phone" name="personalPhone" placeholder={t("personalPhone")} value={editData.personalPhone} onChange={handleChange} require={false} error={false} errorMessage="" disable={false} />
+                    </div>
+                </Modal>
+            )}
         </>
     )
 }

@@ -5,6 +5,109 @@ import { authOptions } from "./auth";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "@/app/lang/[locale]/main/tickets/action";
 import { BasicUserData } from "@/context/UserProfileContext";
+// src/actions/yeastar.ts
+// "use server";
+
+import axios from "axios";
+import https from "https";
+
+// Reusable httpsAgent for self-signed Yeastar cert
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false,
+});
+
+// 1. Get access token from Yeastar
+export async function getYeastarAccessToken(): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: process.env.YEASTAR_CLIENT_ID || "",
+      client_secret: process.env.YEASTAR_CLIENT_SECRET || "",
+    });
+
+    const response = await axios.post(
+      "https://103.89.48.183/openapi/oauth/token", // Yeastar OAuth endpoint
+      params,
+      { httpsAgent }
+    );
+
+    console.log("✅ Yeastar Token Response:", response.data);
+
+    return response.data.access_token;
+  } catch (err) {
+    console.error("❌ Failed to get Yeastar token:", err);
+    return null;
+  }
+}
+
+// 2. Define Yeastar Extension interface
+export interface YeastarExtension {
+  id: string;
+  extension: string;
+  name: string;
+  status: string;
+  [key: string]: unknown; // keep flexible for unknown fields
+}
+
+// 3. Fetch Extensions
+export async function fetchYeastarExtensions(): Promise<YeastarExtension[]> {
+  const token = await getYeastarAccessToken();
+  if (!token) return [];
+
+  try {
+    const response = await axios.get(
+      "https://103.89.48.183/openapi/v1.0/extensions",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        httpsAgent,
+      }
+    );
+
+    console.log("✅ Extensions Response:", response.data);
+
+    // Yeastar typically wraps extensions inside `data`
+    return response.data.data ?? [];
+  } catch (err) {
+    console.error("❌ Failed to fetch extensions:", err);
+    return [];
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Slim version (only basic info)
 export async function getBasicUserData(): Promise<BasicUserData> {

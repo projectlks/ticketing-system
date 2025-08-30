@@ -1,7 +1,9 @@
+"use client"
 import AuditLogList from "@/components/AuditLogList";
 import { Audit } from "@prisma/client";
 import { DepartmentWithRelations } from "../../page";
 import ViewContext from "@/components/ViewContext";
+import { useTranslations } from "next-intl";
 
 export type DepartmentViewProps = {
     department: DepartmentWithRelations;
@@ -14,6 +16,8 @@ export function DepartmentView({
     auditLog,
     title = "View Department",
 }: DepartmentViewProps) {
+
+    const t = useTranslations('viewContext');
     return (
         <section
             className="grid gap-6 md:grid-cols-3"
@@ -52,65 +56,68 @@ export function DepartmentView({
                         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
 
+
+
+
                             <ViewContext
-                                label="Department Contact"
+                                label={t("contact")}
                                 value={department.contact ?? "—"}
                                 type="tel"
                             />
                             <ViewContext
-                                label="Department Email"
+                                label={t("email")}
                                 value={department.email ?? "—"}
                                 type="email"
                             />
                             <ViewContext
-                                label="Manager Name"
+                                label={t("managerName")}
                                 value={department.manager?.name ?? "—"}
                             />
                             <ViewContext
-                                label="Manager Email"
+                                label={t("managerEmail")}
                                 value={department.manager?.email ?? "—"}
                                 type="email"
                             />
                             <ViewContext
-                                label="Created By"
+                                label={t("createdBy")}
                                 value={department.creator?.name ?? "—"}
                             />
                             <ViewContext
-                                label="Last Updated By"
+                                label={t("updatedBy")}
                                 value={department.updater?.name ?? "—"}
                             />
                             <ViewContext
-                                label="Created At"
+                                label={t("createdAt")}
                                 value={new Date(department.createdAt).toLocaleString("en-US", {
                                     timeZone: "Asia/Yangon",
                                 })}
                             />
                             <ViewContext
-                                label="Last Updated At"
+                                label={t("updatedAt")}
                                 value={new Date(department.updatedAt).toLocaleString("en-US", {
                                     timeZone: "Asia/Yangon",
                                 })}
                             />
                             <ViewContext
-                                label="Ticket Count"
+                                label={t("ticketsCount")}
                                 value={`${department.tickets?.length ?? 0} Ticket${department.tickets?.length === 1 ? '' : 's'}`}
                             />
-
                             <ViewContext
-                                label="Archived"
+                                label={t("isArchived")}
                                 value={department.isArchived ? "Yes" : "No"}
                             />
 
-                            <div className={`flex flex-col items-start gap-1.5 col-span-2 `}
-
-
-                            >
-                                <h3 className="text-xs tracking-wide text-muted-foreground">Job Position</h3>
+                            <div className="flex flex-col items-start gap-1.5 col-span-2">
+                                <h3 className="text-xs tracking-wide text-muted-foreground">{t("positions")}</h3>
                                 <div className="text-sm font-medium">
-
-                                    {department.positions?.map(job => (<p className="border border-gray-300 rounded-full px-3  py-1" key={job.id}>{job.name}</p>))}
+                                    {department.positions?.map(job => (
+                                        <p className="border border-gray-300 rounded-full px-3 py-1" key={job.id}>
+                                            {job.name}
+                                        </p>
+                                    ))}
                                 </div>
                             </div>
+
                         </dl>
                     </div>
                 </div>

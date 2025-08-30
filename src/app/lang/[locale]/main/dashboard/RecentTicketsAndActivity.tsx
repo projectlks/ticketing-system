@@ -111,7 +111,7 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                                 </td>
                             </tr>
                         ))}
-                    </tbody>\
+                    </tbody>
                 </table>
             </div>
         </div>
