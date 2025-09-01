@@ -94,10 +94,11 @@ model User {
   likes           CommentLike[]
 
   // Audits & Comments
-  audits   Audit[]
-  comments Comment[]
-  views    TicketView[]
-  sessions UserSession[] // ✅ ဒီ line ကို ထည့်ရမယ်
+  audits       Audit[]
+  comments     Comment[]
+  views        TicketView[]
+  sessions     UserSession[] // ✅ ဒီ line ကို ထည့်ရမယ်
+  UserActivity UserActivity[]
 }
 
 // ======================
@@ -319,4 +320,19 @@ model UserSession {
   createdAt DateTime @default(now())
   expiresAt DateTime
   lastSeen  DateTime @default(now()) // heartbeat timestamp
+}
+
+model UserActivity {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  action ActivityAction
+
+  createdAt DateTime @default(now())
+}
+
+enum ActivityAction {
+  LOGIN
+  LOGOUT
 }

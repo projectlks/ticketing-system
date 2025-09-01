@@ -18,6 +18,7 @@ export function DepartmentView({
 }: DepartmentViewProps) {
 
     const t = useTranslations('viewContext');
+    const tHistory = useTranslations("historyLog");
     return (
         <section
             className="grid gap-6 md:grid-cols-3"
@@ -127,10 +128,10 @@ export function DepartmentView({
             <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
                 <div className="pb-4 px-6 pt-6">
                     <h2 className="flex items-center gap-2 text-lg font-semibold">
-                        <span>Audit Log</span>
+                        <span>{tHistory("title")}</span>
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Recent changes to this department.
+                        {tHistory("description.department")}
                     </p>
                 </div>
                 <div className="pt-2 px-6 pb-6">

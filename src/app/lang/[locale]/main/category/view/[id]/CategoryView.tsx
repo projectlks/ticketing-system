@@ -19,13 +19,14 @@ export function CategoryView({
 
 
     const t = useTranslations('viewContext');
+    const tHistory = useTranslations("historyLog");
     return (
         <section
-            className="grid gap-6 md:grid-cols-2"
+            className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
             aria-label="Category details"
         >
             {/* Card Container */}
-            <div className="h-fit md:sticky top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
+            <div className="h-fit md:sticky col-span-2 top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
                 {/* Card Header */}
                 {/* < className="pb-4 px-6 pt-6"> */}
                 <div className=" gap-2 pb-4 px-6 pt-6" >
@@ -95,10 +96,10 @@ export function CategoryView({
             <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
                 <div className="pb-4 px-6 pt-6">
                     <h2 className="flex items-center gap-2 text-lg font-semibold">
-                        <span>Audit Log</span>
+                        <span>{tHistory("title")}</span>
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Recent changes to this department.
+                        {tHistory("description.category")}
                     </p>
                 </div>
                 <div className="pt-2 px-6 pb-6">

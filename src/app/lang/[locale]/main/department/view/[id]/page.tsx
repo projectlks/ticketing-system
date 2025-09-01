@@ -7,6 +7,7 @@
 import DepartmentView from './DepartmentView';
 import { getDepartment, getDepartmentAuditLogs } from '../../action';
 import BackBtn from '@/components/BackBtn';
+import ViewHeader from '@/components/ViewHeader';
 
 
 
@@ -31,17 +32,7 @@ export default async function DepartmentPage({
 
   return (
     <div className="w-full min-h-full bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-8">
-      <header className="mb-8 md:mb-10 flex items-center ">
-
-
-        <BackBtn />
-
-        <div>
-
-          <h1 className="text-2xl font-semibold tracking-tight">Department</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Review details and recent changes.</p>
-        </div>
-      </header>
+      <ViewHeader name="departments" />
 
 
       <DepartmentView department={department} auditLog={audit} />

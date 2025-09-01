@@ -1,5 +1,12 @@
-import { redirect } from 'next/navigation';
+"use client";
+
+import { useEffect } from "react";
 
 export default function Page() {
-  redirect(`lang/en/main/dashboard`);
+  useEffect(() => {
+    const lang = localStorage.getItem("lang") || "en"; // default to "en"
+    window.location.href = `/lang/${lang}/main/dashboard`;
+  }, []);
+
+  return null; // or a loader/spinner
 }

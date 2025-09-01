@@ -70,6 +70,23 @@ const handler = NextAuth({
           },
         });
 
+
+        await prisma.userActivity.deleteMany({
+          where: {
+            userId: user.id,
+            action: "LOGIN", // only remove previous login activities
+          },
+        });
+
+        // login handler
+        await prisma.userActivity.create({
+          data: {
+            userId: user.id,
+            action: "LOGIN",
+
+          }
+        });
+
         return user;
       },
     }),

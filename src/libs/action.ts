@@ -162,6 +162,22 @@ export async function deleteUserSession(userId: string) {
       where: { userId },
     });
 
+    // Delete previous logout activities
+    await prisma.userActivity.deleteMany({
+      where: {
+        userId,
+        action: "LOGOUT",
+      },
+    });
+
+    // Create new logout activity
+    await prisma.userActivity.create({
+      data: {
+        userId: userId,
+        action: "LOGOUT",
+      },
+    });
+
     console.log(`Deleted ${deleted.count} session(s) for user ${userId}`);
     return true;
   } catch (error) {
@@ -169,6 +185,7 @@ export async function deleteUserSession(userId: string) {
     return false;
   }
 }
+
 
 
 // ====================

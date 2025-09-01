@@ -89,8 +89,11 @@ export default function SignInPage() {
         response: res.error,
       }));
     } else if (res?.ok) {
-      // Always redirect to English dashboard
-      router.push("/lang/en/main/dashboard");
+      // localStorage မှာ saved language ရှိရင်ယူမယ်, မရှိရင် default "en"
+      const savedLang = localStorage.getItem("lang") || "en";
+
+      // redirect with saved/default language
+      router.push(`/lang/${savedLang}/main/dashboard`);
     }
   };
 
@@ -142,22 +145,7 @@ export default function SignInPage() {
                       disable={loading}
                     />
 
-                    {/* Toggle Password Visibility */}
-                    {/* Uncomment if you want to show/hide password */}
-                    {/* 
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 transform text-gray-500 focus:outline-none"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? (
-                        <EyeSlashIcon className="w-5 h-5" />
-                      ) : (
-                        <EyeIcon className="w-5 h-5" />
-                      )}
-                    </button>
-                    */}
+
                   </div>
 
                   {/* General Response Error */}

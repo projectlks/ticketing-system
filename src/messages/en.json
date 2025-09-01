@@ -359,7 +359,7 @@
     "resolved": "Resolved",
     "closed": "Closed"
   },
-    "profileCard": {
+  "profileCard": {
     "editPersonalInfo": "Edit Personal Information",
     "edit": "Edit",
     "loading": "Loading...",
@@ -408,5 +408,15 @@
     "maritalStatus": "Marital Status",
     "numberOfChildren": "Number of Children",
     "enterField": "Enter {field}"
+  },
+  "historyLog": {
+    "title": "History Log",
+    "description": {
+      "account": "Recent changes to this account.",
+      "category": "Recent changes to this category.",
+      "department": "Recent changes to this department.",
+      "ticket": "Recent changes to this ticket.",
+         "common": "Review details and recent changes."
+    }
   }
 }

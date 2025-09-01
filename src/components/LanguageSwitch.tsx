@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import { ChevronDownIcon, LanguageIcon } from "@heroicons/react/24/outline"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 
 const languages = [
@@ -15,10 +15,19 @@ export default function LanguageSwitcher() {
     const pathname = usePathname()
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
+    const [currentLang, setCurrentLang] = useState("en"); // default
+
+    useEffect(() => {
+        const savedLang = localStorage.getItem("lang");
+        if (savedLang && ["en", "mm", "ru"].includes(savedLang)) {
+            setCurrentLang(savedLang);
+        }
+    }, []);
+
 
     // Extract current language from pathname
-    const currentLangMatch = pathname.match(/^\/lang\/(mm|ru|en)/)
-    const currentLang = currentLangMatch ? currentLangMatch[1] : "en"
+    // const currentLangMatch = pathname.match(/^\/lang\/(mm|ru|en)/)
+    // const currentLang = currentLangMatch ? currentLangMatch[1] : "en"
 
     // Get path without language prefix
     const pathWithoutLang = pathname.replace(/^\/lang\/(mm|ru|en)/, "")
@@ -26,6 +35,8 @@ export default function LanguageSwitcher() {
     const currentLanguage = languages.find((lang) => lang.code === currentLang) || languages[0]
 
     const handleLanguageChange = (langCode: string) => {
+        localStorage.setItem("lang", langCode); // <--- save
+        setCurrentLang(langCode);               // <--- update state
         const newPath = `/lang/${langCode}${pathWithoutLang}`
         router.push(newPath)
         setIsOpen(false)
