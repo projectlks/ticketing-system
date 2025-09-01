@@ -53,7 +53,6 @@ export function AccountView({ account, auditLog, title = "View Account" }: Accou
         <div className="pt-2 px-6 pb-6 space-y-6">
           {/* Basic Info */}
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ViewContext label={t("id")} value={account.id} />
             <ViewContext label={t("name")} value={account.name} />
             <ViewContext label={t("email")} value={account.email} />
             <ViewContext label={t("role")} value={account.role} />

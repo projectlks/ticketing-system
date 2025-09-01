@@ -8,12 +8,13 @@ import { useTranslations } from "next-intl";
 
 import {
   Squares2X2Icon,
-  BuildingStorefrontIcon,
   TicketIcon,
-  ChartBarIcon,
   UserGroupIcon,
   Cog6ToothIcon,
   AdjustmentsHorizontalIcon,
+  PresentationChartBarIcon,
+  BuildingOffice2Icon
+
 } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import { useTicketCount } from "@/context/TicketCountContext";
@@ -43,7 +44,7 @@ const navItems: { section: string; items: NavItem[] }[] = [
       {
         key: "department",
         href: "/main/department",
-        icon: BuildingStorefrontIcon,
+        icon: BuildingOffice2Icon,
         activeCheck: (route) => route.includes("/department"),
         roles: ["SUPER_ADMIN", "ADMIN"],
       },
@@ -63,7 +64,7 @@ const navItems: { section: string; items: NavItem[] }[] = [
       {
         key: "reports",
         href: "/main/reports",
-        icon: ChartBarIcon,
+        icon: PresentationChartBarIcon,
         activeCheck: (route) => route.includes("/report") || route.includes("/reports"),
         roles: ["SUPER_ADMIN", "ADMIN"],
       },
@@ -121,7 +122,7 @@ export default function Sidebar({ openSidebar }: Props) {
     <aside
       className={`sidebar flex h-screen flex-col overflow-y-auto 
         ${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0" : "-translate-x-full"} 
-        fixed top-0 left-0 w-[300px] border-r border-gray-200 bg-white px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0`}
+        fixed top-0 left-0 w-[300px] border-r border-gray-200 bg-white dark:bg-red-400 px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0`}
     >
       {/* Logo */}
       <div className="flex items-center pt-8 space-x-3 pb-7">
