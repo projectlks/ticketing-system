@@ -100,8 +100,8 @@ export default function ImageUploader({
       {...getRootProps()}
       className={`rounded-xl border border-dashed p-5 lg:p-10 w-full block cursor-pointer text-center
         ${isDragActive
-          ? "border-indigo-600 bg-indigo-50"
-          : "border-gray-300 bg-gray-50 hover:border-indigo-600"
+          ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900"
+          : "border-gray-300 bg-gray-50 hover:border-indigo-600 dark:bg-gray-800 dark:border-gray-700"
         }`}
     >
       <input {...getInputProps()} />
@@ -109,14 +109,15 @@ export default function ImageUploader({
       {previews.length === 0 && existingImages.length === 0 ? (
         <div className="text-center">
           <div className="mb-[22px] flex justify-center">
-            <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700">
+            <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200">
               <ArrowUpTrayIcon className="w-[29px] h-[28px]" />
             </div>
           </div>
 
-          <span className="mx-auto mb-5 block max-w-[290px] text-xs text-gray-700">
+          <span className="mx-auto mb-5 block max-w-[290px] text-xs text-gray-700 dark:text-gray-300">
             You can upload up to <strong>3 images</strong>. Each image must be
-            under <strong>1MB</strong>. Supported formats: <strong>PNG, JPG, JPEG</strong>.
+            under <strong>1MB</strong>. Supported formats:{" "}
+            <strong>PNG, JPG, JPEG</strong>.
           </span>
 
           <span className="text-sm text-indigo-500 font-medium underline">
@@ -124,7 +125,7 @@ export default function ImageUploader({
           </span>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full bg-gray-300 p-3 rounded-xl">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full bg-gray-300 dark:bg-gray-700 p-3 rounded-xl">
           {/* Existing images */}
           {existingImages.map((d) => (
             <div
@@ -135,9 +136,11 @@ export default function ImageUploader({
                 deleteImage(d.url, d.id);
               }}
             >
-              <div className="absolute inset-0 bg-transparent flex justify-center items-center
-                  group-hover:bg-[rgba(0,0,0,0.5)] transition-colors ">
-                <span className="w-[50px] aspect-square group-hover:opacity-100 opacity-0 rounded-full bg-gray-100 flex justify-center items-center">
+              <div
+                className="absolute inset-0 bg-transparent flex justify-center items-center
+                  group-hover:bg-[rgba(0,0,0,0.5)] transition-colors "
+              >
+                <span className="w-[50px] aspect-square group-hover:opacity-100 opacity-0 rounded-full bg-gray-100 dark:bg-gray-200 flex justify-center items-center">
                   <TrashIcon className="w-6 h-6 text-red-400" />
                 </span>
               </div>
@@ -163,9 +166,11 @@ export default function ImageUploader({
                 setImages((prev) => prev.filter((f) => f.name !== file.name));
               }}
             >
-              <div className="absolute inset-0 bg-transparent flex justify-center items-center
-                  group-hover:bg-[rgba(0,0,0,0.5)] transition-colors ">
-                <span className="w-[50px] aspect-square group-hover:opacity-100 opacity-0 rounded-full bg-gray-100 flex justify-center items-center">
+              <div
+                className="absolute inset-0 bg-transparent flex justify-center items-center
+                  group-hover:bg-[rgba(0,0,0,0.5)] transition-colors "
+              >
+                <span className="w-[50px] aspect-square group-hover:opacity-100 opacity-0 rounded-full bg-gray-100 dark:bg-gray-200 flex justify-center items-center">
                   <TrashIcon className="w-6 h-6 text-red-400" />
                 </span>
               </div>

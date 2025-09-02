@@ -30,6 +30,7 @@
       "subtitle": "Решённые тикеты"
     }
   },
+
   "charts": {
     "ticketTrends": "Тенденции заявок",
     "priorityDistribution": "Распределение приоритетов",
@@ -39,6 +40,7 @@
       "last90": "Последние 90 дней"
     }
   },
+
   "table": {
     "no": "№",
     "name": "Имя",
@@ -61,18 +63,21 @@
     "requester": "Запрашивающий",
     "assignedTo": "Ответственный"
   },
+
   "dotMenu": {
     "view": "Просмотр",
     "edit": "Редактировать",
     "delete": "Удалить",
     "restore": "Восстановить"
   },
+
   "dashboard": {
     "recentTickets": "Последние заявки",
     "viewAll": "Смотреть все",
     "recentActivity": "Недавняя активность",
     "changedFromTo": "изменил {entity} {field} с {oldValue} на {newValue}"
   },
+
   "header": {
     "users": {
       "title": "Пользователи",
@@ -96,6 +101,7 @@
     },
     "new": "Новый"
   },
+
   "accountForm": {
     "headings": {
       "create": "Добавить новый аккаунт",
@@ -132,7 +138,7 @@
       "updating": "Обновление..."
     },
     "errors": {
-      "required": "обязательное поле.",
+      "required": "Обязательное поле.",
       "invalidEmail": "Пожалуйста, введите действительный email.",
       "passwordLength": "Пароль должен быть не менее 8 символов.",
       "response": "Что-то пошло не так."
@@ -154,6 +160,7 @@
       }
     }
   },
+
   "categoryForm": {
     "headings": {
       "create": "Добавить новую категорию",
@@ -178,7 +185,7 @@
       "add": "Добавить"
     },
     "errors": {
-      "required": "обязательное поле.",
+      "required": "Обязательное поле.",
       "subCategoryEmpty": "Название подкатегории не может быть пустым."
     },
     "alerts": {
@@ -199,6 +206,7 @@
       }
     }
   },
+
   "departmentForm": {
     "headings": {
       "create": "Добавить новый отдел",
@@ -230,7 +238,7 @@
       "addJob": "Добавить"
     },
     "errors": {
-      "required": "обязательно.",
+      "required": "Обязательное поле.",
       "invalidEmail": "Пожалуйста, введите действительный адрес электронной почты.",
       "jobEmpty": "Название должности не может быть пустым.",
       "response": "Что-то пошло не так."
@@ -238,14 +246,14 @@
     "alerts": {
       "cancel": {
         "title": "Вы уверены?",
-        "text": "У вас есть несохраненные изменения. Закрытие формы приведет к их потере.",
+        "text": "У вас есть несохранённые изменения. Закрытие формы приведёт к их потере.",
         "confirm": "Да, закрыть",
         "cancel": "Нет, продолжить редактирование"
       },
       "success": {
         "title": "Успех",
         "create": "Отдел успешно создан!",
-        "update": "Отдел успешно обновлен!"
+        "update": "Отдел успешно обновлён!"
       },
       "error": {
         "title": "Ошибка",
@@ -286,7 +294,7 @@
     },
     "alerts": {
       "successCreate": "Тикет успешно создан!",
-      "successUpdate": "Тикет успешно обновлен!"
+      "successUpdate": "Тикет успешно обновлён!"
     },
     "errors": {
       "title": "Заголовок обязателен",
@@ -299,11 +307,12 @@
     },
     "confirm": {
       "cancelTitle": "Вы уверены?",
-      "cancelText": "Все несохраненные изменения будут потеряны.",
+      "cancelText": "Все несохранённые изменения будут потеряны.",
       "cancelConfirm": "Да, закрыть",
       "cancelDeny": "Нет, продолжить редактирование"
     }
   },
+
   "viewContext": {
     "id": "ID пользователя",
     "name": "Имя",
@@ -350,8 +359,8 @@
     "changeStatusText": "Вы уверены, что хотите изменить статус на {status}?",
     "yesChange": "Да, изменить",
     "cancel": "Отмена",
-    "statusUpdated": "Статус обновлен!",
-    "statusChangedTo": "Статус тикета изменен на {status}.",
+    "statusUpdated": "Статус обновлён!",
+    "statusChangedTo": "Статус тикета изменён на {status}.",
     "open": "Открыт",
     "in_progress": "В процессе",
     "resolved": "Решено",
@@ -388,8 +397,8 @@
     "enterCurrentPassword": "Введите текущий пароль",
     "enterNewPassword": "Введите новый пароль",
     "confirmNewPassword": "Подтвердите новый пароль",
-    "passwordChanged": "Пароль изменен!",
-    "passwordChangedText": "Ваш пароль успешно обновлен."
+    "passwordChanged": "Пароль изменён!",
+    "passwordChangedText": "Ваш пароль успешно обновлён."
   },
 
   "workAndPersonal": {
@@ -409,6 +418,7 @@
     "numberOfChildren": "Количество детей",
     "enterField": "Введите {field}"
   },
+
   "historyLog": {
     "title": "Журнал истории",
     "description": {
