@@ -50,6 +50,7 @@ const PriorityChart: React.FC<PriorityChartProps> = ({ role, userId }) => {
             {
               data: priorityData.counts,
               backgroundColor: ["#EF4444", "#F59E0B", "#3B82F6", "#10B981"],
+              borderColor: theme === "dark" ? "#1F2937" : "#FFFFFF", // dark gray in dark mode, white in light
             },
           ],
         },

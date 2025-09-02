@@ -7,6 +7,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "@/app/ThemeToggle";
 // import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function SignInPage() {
@@ -103,11 +104,13 @@ export default function SignInPage() {
       <div className="relative min-h-screen flex items-center justify-center p-6 sm:p-0">
         <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row sm:p-0 mx-auto">
           {/* Left: Form Section */}
-          <div className="flex flex-col flex-1 w-full lg:w-1/2 p-6">
+          <div className="flex flex-col flex-1 w-full bg-white dark:bg-gray-800 lg:w-1/2 p-6">
             <div className="flex flex-col justify-center w-full max-w-md mx-auto flex-1">
               <div className="mb-8">
-                <h1 className="text-4xl font-semibold text-gray-800 mb-2">Sign In</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-4xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                  Sign In
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-300">
                   Please sign in to access your tickets and support.
                 </p>
               </div>
@@ -144,24 +147,22 @@ export default function SignInPage() {
                       errorMessage={errors.password}
                       disable={loading}
                     />
-
-
                   </div>
 
                   {/* General Response Error */}
                   {errors.response && (
-                    <p className="mt-1 text-xs text-red-500">{errors.response}</p>
+                    <p className="mt-1 text-xs text-red-500 dark:text-red-400">{errors.response}</p>
                   )}
 
                   {/* Submit Button */}
                   <button
                     type="submit"
                     disabled={loading}
-                    className={`mt-6 flex w-full items-center justify-center px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md transition
-                      ${loading
-                        ? "bg-indigo-300 cursor-not-allowed"
-                        : "bg-indigo-500 hover:bg-indigo-600"
-                      }`}
+                    className={`mt-6 flex w-full items-center justify-center px-4 py-3 text-sm font-medium rounded-lg shadow-md transition
+                ${loading
+                        ? "bg-indigo-300 cursor-not-allowed dark:bg-indigo-500/60"
+                        : "bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                      } text-white`}
                   >
                     {loading ? "Signing In..." : "Sign In"}
                   </button>
@@ -170,43 +171,14 @@ export default function SignInPage() {
             </div>
           </div>
 
-          {/* Right: Visual Section */}
-          <div className="hidden lg:flex relative items-center justify-center w-1/2 bg-[#161950] p-10">
-            {/* Top Grid Image */}
-            <div className="absolute top-0 right-0 z-0 w-full max-w-[250px] xl:max-w-[450px]">
-              <Image src="/grid-01.svg" alt="grid" width={450} height={254} />
-            </div>
-
-            {/* Bottom Grid Image */}
-            <div className="absolute bottom-0 left-0 z-0 w-full max-w-[250px] rotate-180 xl:max-w-[450px]">
-              <Image src="/grid-01.svg" alt="grid" width={450} height={254} />
-            </div>
-
-            {/* Logo and Description */}
-            <div className="flex flex-col items-center w-[80%] z-10">
-              <Link href="/">
-                <Image
-                  src="/logo.png"
-                  alt="Logo"
-                  width={96}
-                  height={96}
-                  className="h-24 w-24"
-                />
-              </Link>
-
-              <h3 className="mb-4 text-4xl font-semibold text-center text-white">
-                East Wind Myanmar Company Limited
-              </h3>
-
-              <p className="text-center text-gray-400 font-semibold">
-                To be Premier and Preferred Technology Solutions Provider in ICT
-                industry. We create technologies for more efficient business and
-                more comfortable life.
-              </p>
-            </div>
-          </div>
+          {/* Right: Visual Section */} <div className="hidden lg:flex relative items-center justify-center w-1/2 bg-[#161950] p-10"> {/* Top Grid Image */} <div className="absolute top-0 right-0 z-0 w-full max-w-[250px] xl:max-w-[450px]"> <Image src="/grid-01.svg" alt="grid" width={450} height={254} /> </div> {/* Bottom Grid Image */} <div className="absolute bottom-0 left-0 z-0 w-full max-w-[250px] rotate-180 xl:max-w-[450px]"> <Image src="/grid-01.svg" alt="grid" width={450} height={254} /> </div> {/* Logo and Description */} <div className="flex flex-col items-center w-[80%] z-10"> <Link href="/"> <Image src="/logo.png" alt="Logo" width={96} height={96} className="h-24 w-24" /> </Link> <h3 className="mb-4 text-4xl font-semibold text-center text-white"> East Wind Myanmar Company Limited </h3> <p className="text-center text-gray-400 font-semibold"> To be Premier and Preferred Technology Solutions Provider in ICT industry. We create technologies for more efficient business and more comfortable life. </p> </div> </div>
         </div>
       </div>
+
+      <div className=" absolute top-5 right-5 ">
+        <ThemeToggle />
+      </div>
+
     </>
   );
 }
