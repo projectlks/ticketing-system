@@ -188,13 +188,13 @@ export default function TicketForm({
             <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50" aria-modal="true" role="dialog">
                 <div className="w-full h-full fixed top-0 left-0 bg-black opacity-20" onClick={handleCancel} aria-hidden="true" />
 
-                <form onSubmit={handleSubmit} className="w-[90%] md:w-[700px] rounded-2xl border border-gray-200 bg-white z-50" onClick={(e) => e.stopPropagation()} noValidate>
+                <form onSubmit={handleSubmit} className="w-[90%] md:w-[700px] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-50" onClick={(e) => e.stopPropagation()} noValidate>
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
-                        <h1 className="text-2xl font-bold mb-3 mt-5">{updateID ? t('headings.update') : t('headings.create')}</h1>
-                        <p className="text-gray-500 text-sm mb-3">{updateID ? t('headings.updateDesc') : t('headings.createDesc')}</p>
+                        <h1 className="text-2xl font-bold mb-3 mt-5 text-gray-800 dark:text-gray-100">{updateID ? t('headings.update') : t('headings.create')}</h1>
+                        <p className="text-gray-500 dark:text-gray-300 text-sm mb-3">{updateID ? t('headings.updateDesc') : t('headings.createDesc')}</p>
                     </div>
 
-                    <section className="p-5 space-y-6 border-t max-h-[80vh] overflow-y-auto border-gray-100 sm:p-6">
+                    <section className="p-5 space-y-6 border-t max-h-[80vh] overflow-y-auto border-gray-100 dark:border-gray-700 sm:p-6">
                         <Input
                             id="title"
                             name="title"
@@ -209,7 +209,7 @@ export default function TicketForm({
                         />
 
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">{t('labels.description')}</label>
+                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('labels.description')}</label>
                             <textarea
                                 id="description"
                                 name="description"
@@ -217,7 +217,7 @@ export default function TicketForm({
                                 placeholder={t('placeholders.description')}
                                 value={form.description}
                                 onChange={handleChange}
-                                className={`w-full rounded-lg border ${errors.description ? "border-red-500" : "border-gray-300"} bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50`}
+                                className={`w-full rounded-lg border ${errors.description ? "border-red-500" : "border-gray-300 dark:border-gray-600"} bg-transparent dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50`}
                                 aria-invalid={!!errors.description}
                                 aria-describedby={errors.description ? 'description-error' : undefined}
                             />
@@ -279,7 +279,7 @@ export default function TicketForm({
                         <ImageInput images={images} setImages={setImages} existingImages={existingImages} setExistingImages={setExistingImages} />
 
                         <div className="mt-6 flex justify-end space-x-3">
-                            <button type="button" onClick={handleCancel} className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]">{t('buttons.cancel')}</button>
+                            <button type="button" onClick={handleCancel} className="px-4 py-3 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 h-[44px]">{t('buttons.cancel')}</button>
                             <button type="submit" disabled={loading} className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'}`}>
                                 {loading ? (updateID ? t('buttons.updating') : t('buttons.creating')) : updateID ? t('buttons.update') : t('buttons.create')}
                             </button>
@@ -287,6 +287,7 @@ export default function TicketForm({
                     </section>
                 </form>
             </section>
+
         </>
     );
 }

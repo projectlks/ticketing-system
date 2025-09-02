@@ -20,7 +20,6 @@ interface HeaderProps {
 
 export default function Header({
     title = 'Accounts',
-    buttonLabel = 'New',
     placeholder = 'Search by Name',
     click,
     setSearchQuery,
@@ -35,13 +34,10 @@ export default function Header({
     const t = useTranslations("header")
 
     return (
-        <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 justify-between items-center">
+        <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 dark:border-gray-700 justify-between items-center bg-white dark:bg-gray-800">
             <div className="flex items-center space-x-2">
-
-                {
-                    showNewBtn && (<Button click={click} buttonLabel={t("new")} />)
-                }
-                <h1 className="text-sm text-gray-800">{title}</h1>
+                {showNewBtn && <Button click={click} buttonLabel={t("new")} />}
+                <h1 className="text-sm text-gray-800 dark:text-gray-200">{title}</h1>
             </div>
 
             {/* search box */}
@@ -50,22 +46,19 @@ export default function Header({
                     type="text"
                     id="category-input"
                     placeholder={placeholder}
-                    className="h-[34px] w-[350px] sm:w-[400px] md:w-[450px] rounded border border-gray-300 bg-transparent px-9 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                    className="h-[34px] w-[350px] sm:w-[400px] md:w-[450px] rounded border border-gray-300 dark:border-gray-600 bg-transparent px-9 py-2 text-xs text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
                     value={searchQuery}
-                    onChange={e => { setSearchQuery(e.target.value) }}
+                    onChange={e => setSearchQuery(e.target.value)}
                 />
                 {/* search icon */}
-                <div className="absolute top-1/2 left-3 transform -translate-y-1/2 pointer-events-none text-gray-700 w-4 h-4">
+                <div className="absolute top-1/2 left-3 transform -translate-y-1/2 pointer-events-none text-gray-700 dark:text-gray-400 w-4 h-4">
                     <MagnifyingGlassIcon />
                 </div>
-
                 {children}
             </div>
-            {/* </form> */}
 
             <div>
                 {downloadBtn}
-
             </div>
         </div>
     )

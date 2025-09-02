@@ -59,7 +59,7 @@ export default function Page() {
 
 
     const router = useRouter();
- 
+
 
     const fetchAccounts = async (currentPage: number) => {
         try {
@@ -110,15 +110,15 @@ export default function Page() {
     const tHeader = useTranslations("header");
     // alert(session)
 
-        const pathname = usePathname();
-        const segments = pathname.split("/");
-        const locale = segments[2] || "en";
+    const pathname = usePathname();
+    const segments = pathname.split("/");
+    const locale = segments[2] || "en";
 
     return (
         <>
 
             {isFetching && <Loading />}
-            <div className="max-w-full min-h-full  overflow-x-auto bg-white pb-10 rounded-lg">
+            <div className="max-w-full min-h-full overflow-x-auto bg-white dark:bg-gray-800 pb-10 rounded-lg border border-gray-200 dark:border-gray-700">
                 <Header
                     title={tHeader("departments.title")}
                     placeholder={tHeader("departments.placeholder")}
@@ -132,17 +132,9 @@ export default function Page() {
                     {departments.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
-                                <table className="w-full min-w-[1102px] border border-gray-200">
+                                <table className="w-full min-w-[1102px] border border-gray-200 dark:border-gray-700">
                                     <thead>
-                                        <tr className="border-b border-gray-100">
-                                            {/* <TableHead data="No." />
-                                            <TableHead data="Name" />
-                                            <TableHead data="Description" />
-                                            <TableHead data="Manager" />
-                                            <TableHead data="Department Email" />
-                                            <TableHead data="Department Contact" />
-
-                                            <TableHead data="Actions" /> */}
+                                        <tr className="border-b border-gray-100 dark:border-gray-700">
                                             <TableHead data={t("no")} />
                                             <TableHead data={t("name")} />
                                             <TableHead data={t("description")} />
@@ -150,34 +142,24 @@ export default function Page() {
                                             <TableHead data={t("departmentEmail")} />
                                             <TableHead data={t("departmentContact")} />
                                             <TableHead data={t("actions")} />
-
-
-
-                                            {/* {(session?.user.role === "SUPER_ADMIN") && <TableHead data="Restore" />} */}
-
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {departments.map((department, index) => (
                                             <tr
-
-                                                // onClick={() => router.push(`/main/department/view/${department.id}`)}
-
                                                 key={department.id}
-                                                className={` border-b border-gray-100 hover:bg-gray-50  ${department.isArchived ? "bg-red-100" : ""} `}
+                                                className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${department.isArchived ? "bg-red-100 dark:bg-red-900/40" : ""
+                                                    }`}
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={department.name} />
                                                 <TableBody data={department.description || "-"} />
-                                                <td className={`px-5 py-4 sm:px-6 `}>
-                                                    <p className="text-gray-500 truncate">{department.manager
-                                                        ? department.manager.name || "-"
-                                                        : "-"}</p>
-
-                                                    <p className="text-gray-500 text-xs truncate">
-                                                        {department.manager
-                                                            ? department.manager.email || "-"
-                                                            : "-"}
+                                                <td className="px-5 py-4 sm:px-6">
+                                                    <p className="text-gray-500 dark:text-gray-400 truncate">
+                                                        {department.manager ? department.manager.name || "-" : "-"}
+                                                    </p>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                                                        {department.manager ? department.manager.email || "-" : "-"}
                                                     </p>
                                                 </td>
 
@@ -185,33 +167,29 @@ export default function Page() {
                                                 <TableBody data={department.contact || "-"} />
 
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
-                                                    <DotMenu isBottom={index >= departments.length - 2} option={{
-                                                        view: true,
-                                                        edit:
-                                                            session?.user.role === "SUPER_ADMIN" ||
-                                                            (
-                                                                session?.user.role === "ADMIN" &&
-                                                                department.managerId === session.user.id
-                                                            ),
-
-                                                    }}
+                                                    <DotMenu
+                                                        isBottom={index >= departments.length - 2}
+                                                        option={{
+                                                            view: true,
+                                                            edit:
+                                                                session?.user.role === "SUPER_ADMIN" ||
+                                                                (session?.user.role === "ADMIN" &&
+                                                                    department.managerId === session.user.id),
+                                                        }}
                                                         onEdit={(e) => handleEdit(e, department.id)}
-                                                        onView={() => { router.push(`/lang/${locale}/main/department/view/${department.id}`) }}
+                                                        onView={() =>
+                                                            router.push(`/lang/${locale}/main/department/view/${department.id}`)
+                                                        }
                                                     />
                                                 </td>
-
-
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-
-
                             </div>
 
-
+                            {/* Pagination */}
                             <div className="flex justify-end gap-2 mt-4">
-
                                 <Button
                                     click={() => setPage((prev) => Math.max(1, prev - 1))}
                                     disabled={page === 1 || isFetching}
@@ -222,7 +200,6 @@ export default function Page() {
                                         </>
                                     }
                                 />
-
                                 <Button
                                     click={() => setPage((prev) => prev + 1)}
                                     disabled={departments.length < take || isFetching}
@@ -233,18 +210,19 @@ export default function Page() {
                                         </>
                                     }
                                 />
-
-
                             </div>
                         </div>
                     ) : (
-                        <p className="text-base text-center text-gray-500">No Department found.</p>
+                        <p className="text-base text-center text-gray-500 dark:text-gray-400">
+                            No Department found.
+                        </p>
                     )}
                 </div>
             </div>
 
+
             {showForm && (
-                  <Portal containerId="modal-root">
+                <Portal containerId="modal-root">
                     <Form setShowForm={setShowForm} setDepartments={setDepartments} updateID={updateID} setUpdateID={setUpdateID} />
                 </Portal>
             )}

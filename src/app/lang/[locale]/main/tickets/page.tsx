@@ -266,9 +266,7 @@ export default function Page() {
     return (
         <>
             {isFetching && <Loading />}
-            <div className="w-full min-h-full bg-white pb-10 rounded-lg">
-
-
+            <div className="w-full min-h-full bg-white dark:bg-gray-900 pb-10 rounded-lg">
                 <Header
                     title={tHeader("tickets.title")}
                     placeholder={tHeader("tickets.placeholder")}
@@ -284,12 +282,9 @@ export default function Page() {
                     {tickets.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
-                                <table className="w-full min-w-[1102px] border border-gray-200">
+                                <table className="w-full min-w-[1102px] border border-gray-200 dark:border-gray-700">
                                     <thead>
-                                        <tr className="border-b border-gray-100">
-
-
-
+                                        <tr className="border-b border-gray-100 dark:border-gray-700">
                                             <TableHead data={t("no")} />
                                             <TableHead data={t("ticketId")} />
                                             <TableHead data={t("title")} />
@@ -300,82 +295,80 @@ export default function Page() {
                                             <TableHead data={t("requester")} />
                                             <TableHead data={t("assignedTo")} />
                                             <TableHead data={t("actions")} />
-
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {tickets.map((ticket, index) => (
                                             <tr
-                                                // onClick={() => router.push(`/main/tickets/view/${ticket.id}`)}
                                                 key={ticket.id}
-                                                className={`border-b border-gray-100 hover:bg-gray-50  border-l-4 ${ticket.isArchived ? "bg-red-100 hover:bg-red-200 " : ""} ${(!ticket.isArchived && !ticket.viewed) ? "bg-indigo-50 hover:bg-gray-50  " : ""
-                                                    } ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
-                                                    }`}
+                                                className={`border-b border-gray-100 dark:border-gray-700 
+                                        hover:bg-gray-50 dark:hover:bg-gray-800
+                                        border-l-4 
+                                        ${ticket.isArchived ? "bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800" : ""} 
+                                        ${(!ticket.isArchived && !ticket.viewed) ? "bg-indigo-50 dark:bg-indigo-900 hover:bg-gray-50 dark:hover:bg-gray-800" : ""}
+                                        ${ticket.assignedToId ? "border-l-green-500 dark:border-l-green-500" : "border-l-red-500 dark:border-l-red-500"}
+                                    `}
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={ticket.ticketId} />
                                                 <TableBody data={ticket.title} />
                                                 <TableBody data={ticket.description} />
-                                                {/* <TableBody data={ticket.status} /> */}
-                                                <td className="px-5  py-4 sm:px-6">
 
-
-                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(ticket.status, "borderAndText")} space-x-2  border-[1px]`}>
-
-
-                                                        <span className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}>
-
-                                                        </span>
-                                                        <p className=" text-xs truncate">
+                                                {/* Status */}
+                                                <td className="px-5 py-4 sm:px-6">
+                                                    <div
+                                                        className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(ticket.status, "borderAndText")} space-x-2 border`}
+                                                    >
+                                                        <span
+                                                            className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}
+                                                        />
+                                                        <p className="text-xs truncate text-gray-700 dark:text-gray-200">
                                                             {ticket.status}
                                                         </p>
                                                     </div>
                                                 </td>
 
-
-                                                {/* <TableBody data={ticket.priority} /> */}
-
-                                                <td className="px-5  py-4 sm:px-6">
-
-
-                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority, "borderAndText")} space-x-2  border-[1px]`}>
-
-
-                                                        <span className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority)}`}>
-
-                                                        </span>
-                                                        <p className=" text-xs truncate">
+                                                {/* Priority */}
+                                                <td className="px-5 py-4 sm:px-6">
+                                                    <div
+                                                        className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority, "borderAndText")} space-x-2 border`}
+                                                    >
+                                                        <span
+                                                            className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority)}`}
+                                                        />
+                                                        <p className="text-xs truncate text-gray-700 dark:text-gray-200">
                                                             {ticket.priority}
                                                         </p>
                                                     </div>
                                                 </td>
+
                                                 <TableBody
                                                     data={new Date(ticket.createdAt).toLocaleString("en-US", {
                                                         timeZone: "Asia/Yangon",
                                                     })}
                                                 />
 
-
+                                                {/* Requester */}
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <p className="text-gray-500 truncate">
+                                                    <p className="text-gray-500 dark:text-gray-300 truncate">
                                                         {ticket.requester ? ticket.requester.name || "-" : "-"}
                                                     </p>
-                                                    <p className="text-gray-500 text-xs truncate">
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
                                                         {ticket.requester ? ticket.requester.email || "-" : "-"}
                                                     </p>
                                                 </td>
 
+                                                {/* Assigned To */}
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <p className="text-gray-500 truncate">
+                                                    <p className="text-gray-500 dark:text-gray-300 truncate">
                                                         {ticket.assignedTo ? ticket.assignedTo.name || "-" : "-"}
                                                     </p>
-                                                    <p className="text-gray-500 text-xs truncate">
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
                                                         {ticket.assignedTo ? ticket.assignedTo.email || "-" : "-"}
                                                     </p>
                                                 </td>
 
-
-
+                                                {/* Actions */}
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu
                                                         isBottom={index >= tickets.length - 2}
@@ -391,21 +384,21 @@ export default function Page() {
                                                         onView={async () => {
                                                             try {
                                                                 await markTicketAsViewed(ticket.id);
-                                                                refreshTicketCount()
+                                                                refreshTicketCount();
                                                                 router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
                                                             } catch (err) {
-                                                                console.error(err)
+                                                                console.error(err);
                                                             }
                                                         }}
                                                     />
                                                 </td>
-
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
 
+                            {/* Pagination */}
                             <div className="flex justify-end gap-2 mt-4">
                                 <Button
                                     click={() => setPage((prev) => Math.max(1, prev - 1))}
@@ -417,7 +410,6 @@ export default function Page() {
                                         </>
                                     }
                                 />
-
                                 <Button
                                     click={() => setPage((prev) => prev + 1)}
                                     disabled={tickets.length < take || isFetching}
@@ -431,10 +423,11 @@ export default function Page() {
                             </div>
                         </div>
                     ) : (
-                        <p className="text-base text-center text-gray-500">No tickets found.</p>
+                        <p className="text-base text-center text-gray-500 dark:text-gray-400">No tickets found.</p>
                     )}
                 </div>
             </div>
+
 
             {showForm && (
                 <Portal containerId="modal-root">

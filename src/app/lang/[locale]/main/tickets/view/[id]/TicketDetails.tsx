@@ -26,16 +26,18 @@ export enum Status {
 
 export default function TicketDetails({ ticket, users, comments, auditLog }: TicketDetailsProps) {
     const t = useTranslations('viewContext');
-  const tHistory = useTranslations("historyLog");
+    const tHistory = useTranslations("historyLog");
     return (
 
         <>
-            <div className="h-fit md:sticky col-span-2 top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
+
+            {/* Left Side: Ticket Details */}
+            <div className="h-fit md:sticky col-span-2 top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white dark:bg-gray-800 dark:border-indigo-700 dark:shadow-md">
                 <div className="gap-2 pb-4 px-6 pt-6">
-                    <h2 className="text-lg font-semibold text-indigo-600">{t('ticketDetails')}</h2>
+                    <h2 className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">{t('ticketDetails')}</h2>
                 </div>
 
-                <div className="pt-2 px-6 pb-6">
+                <div className="pt-2 px-6 pb-6 text-gray-900 dark:text-gray-100">
                     <div className="space-y-4">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -44,7 +46,7 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-200" />
+                        <div className="border-t border-gray-200 dark:border-gray-700" />
 
                         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <ViewContext label={t('id')} value={ticket.ticketId} />
@@ -64,14 +66,13 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
                             <ViewContext label={t('requester')} value={ticket.requester?.name || '-'} />
 
                             <AssignBox users={users} ticket={{ id: ticket.id, assignedToId: ticket.assignedToId || '', assignedTo: ticket.assignedTo }} />
-                            {/* <StatusBox ticket={{ id: ticket.id, status: ticket.status as Status }} /> */}
                             <StatusBox ticket={{ id: ticket.id, status: ticket.status as Status }} />
 
                             <div className="col-span-2">
                                 <h3 className="text-lg font-semibold mb-2">Images</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                    {ticket.images.length > 0
-                                        ? ticket.images.map((image) => (
+                                    {ticket.images.length > 0 ? (
+                                        ticket.images.map((image) => (
                                             <div key={image.id} className="overflow-hidden rounded-lg">
                                                 <Image
                                                     src={image.url}
@@ -82,34 +83,36 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
                                                 />
                                             </div>
                                         ))
-                                        : <p>No images attached.</p>}
+                                    ) : (
+                                        <p className="text-gray-500 dark:text-gray-400">No images attached.</p>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="border-t col-span-2 my-[50px] border-gray-200" />
+                            <div className="border-t col-span-2 my-[50px] border-gray-200 dark:border-gray-700" />
 
-                            <CommentBox ticketId={ticket.id} comments={comments} />
+                            <CommentBox ticketId={ticket.id} comments={comments}  />
                         </dl>
                     </div>
                 </div>
             </div>
 
-
-
-            {/* Right side: Audit Log */}
-            <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white" >
+            {/* Right Side: Audit Log */}
+            <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 dark:shadow-md">
                 <div className="pb-4 px-6 pt-6">
-                    <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                         <span>{tHistory("title")}</span>
                     </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                         {tHistory("description.ticket")}
+                    <p className="mt-1 text-sm text-muted-foreground dark:text-gray-400">
+                        {tHistory("description.ticket")}
                     </p>
                 </div>
                 <div className="pt-2 px-6 pb-6">
-                    <AuditLogList items={auditLog} />
+                    <AuditLogList items={auditLog}  />
                 </div>
-            </div >
+            </div>
+
+
         </>
 
 

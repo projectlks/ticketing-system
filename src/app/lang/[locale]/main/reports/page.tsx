@@ -53,7 +53,6 @@ export default function Page() {
 
     const totalPages = Math.ceil(total / take);
 
-    // Fetch tickets from backend
     const fetchTickets = async (datefilters?: { from?: string; to?: string }) => {
         setIsLoading(true);
         let viewedFilter: "SEEN" | "UNSEEN" | undefined;
@@ -95,14 +94,12 @@ export default function Page() {
         }, 300);
     };
 
-    // Initial fetch
     useEffect(() => {
         fetchTickets();
     }, []);
 
-    // Fetch tickets when filters, dates, search, page, or page size changes
     useEffect(() => {
-        setPage(1); // reset page on filters/search change
+        setPage(1);
         fetchTicketsDebounced({ from: fromDate, to: toDate });
     }, [filters, searchQuery, fromDate, toDate]);
 
@@ -110,11 +107,7 @@ export default function Page() {
         fetchTicketsDebounced({ from: fromDate, to: toDate });
     }, [page, take]);
 
-    // Status and priority colors
-    const statusColors: Record<
-        string,
-        { bg: string; borderAndText: string }
-    > = {
+    const statusColors: Record<string, { bg: string; borderAndText: string }> = {
         OPEN: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
         IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
         RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
@@ -124,10 +117,7 @@ export default function Page() {
     const getStatusColor = (status: string, type: "bg" | "borderAndText" = "bg") =>
         statusColors[status]?.[type] ?? statusColors.DEFAULT[type];
 
-    const priorityColors: Record<
-        string,
-        { bg: string; borderAndText: string }
-    > = {
+    const priorityColors: Record<string, { bg: string; borderAndText: string }> = {
         LOW: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
         MEDIUM: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
         HIGH: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
@@ -137,7 +127,6 @@ export default function Page() {
     const getPriorityColor = (priority: string, type: "bg" | "borderAndText" = "bg") =>
         priorityColors[priority]?.[type] ?? priorityColors.DEFAULT[type];
 
-    // Selection functions
     const toggleSelectTicket = (id: string) => {
         setSelectedTickets((prev) =>
             prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
@@ -178,41 +167,33 @@ export default function Page() {
         const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
         saveAs(blob, "tickets.xlsx");
     };
+
     const t = useTranslations("table");
     const tHeader = useTranslations("header");
-            const pathname = usePathname();
-            const segments = pathname.split("/");
-            const locale = segments[2] || "en";
-    
-
-                                                {/* <TableBody data={department.manager?.name || "-"} /> */}
+    const pathname = usePathname();
+    const segments = pathname.split("/");
+    const locale = segments[2] || "en";
 
     return (
         <>
+            {isLoading && <Loading />}
 
-            {isLoading && (
-
-                <Loading />
-
-            )}
-
-            <div className="w-full min-h-full bg-white pb-10 rounded-lg relative">
-
+            <div className="w-full min-h-full bg-white dark:bg-gray-900 pb-10 rounded-lg relative">
                 {/* Header */}
-                <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 justify-between items-center">
+                <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 dark:border-gray-700 justify-between items-center">
                     <div className="flex items-center space-x-2">
-                        <h1 className="text-sm text-gray-800">{tHeader("reports.title")}</h1>
+                        <h1 className="text-sm text-gray-800 dark:text-gray-100">{tHeader("reports.title")}</h1>
                     </div>
 
                     <div className="relative flex items-center space-x-2">
                         <input
                             type="text"
                             placeholder={tHeader("reports.placeholder")}
-                            className="h-[34px] w-[350px] sm:w-[400px] md:w-[450px] rounded border border-gray-300 bg-transparent px-9 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                            className="h-[34px] w-[350px] sm:w-[400px] md:w-[450px] rounded border border-gray-300 dark:border-gray-600 bg-transparent px-9 py-2 text-xs text-gray-800 dark:text-gray-200 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <div className="absolute top-1/2 left-3 transform -translate-y-1/2 pointer-events-none text-gray-700 w-4 h-4">
+                        <div className="absolute top-1/2 left-3 transform -translate-y-1/2 pointer-events-none text-gray-700 dark:text-gray-300 w-4 h-4">
                             <MagnifyingGlassIcon />
                         </div>
                         <MultiFilter filters={filters} setFilters={setFilters} />
@@ -238,9 +219,9 @@ export default function Page() {
                     {tickets.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
-                                <table id="ticketTable" className="w-full min-w-[1102px] border border-gray-200">
+                                <table className="w-full min-w-[1102px] border border-gray-200 dark:border-gray-700">
                                     <thead>
-                                        <tr className="border-b border-gray-100">
+                                        <tr className="border-b border-gray-100 dark:border-gray-700">
                                             <th className="px-3">
                                                 <input
                                                     type="checkbox"
@@ -252,9 +233,6 @@ export default function Page() {
                                                     checked={selectedTickets.length === tickets.length && tickets.length > 0}
                                                 />
                                             </th>
-
-
-
                                             <TableHead data={t("no")} />
                                             <TableHead data={t("ticketId")} />
                                             <TableHead data={t("title")} />
@@ -271,8 +249,7 @@ export default function Page() {
                                         {tickets.map((ticket, index) => (
                                             <tr
                                                 key={ticket.id}
-                                                className={`border-b border-gray-100 hover:bg-gray-50 border-l-4 ${ticket.assignedToId ? "border-l-green-500" : "border-l-red-500"
-                                                    }`}
+                                                className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 border-l-4 ${ticket.assignedToId ? "border-l-green-500 dark:border-l-green-500" : "border-l-red-500 dark:border-l-red-500"}`}
                                             >
                                                 <td className="px-3">
                                                     <input
@@ -287,32 +264,14 @@ export default function Page() {
                                                 <TableBody data={ticket.title} />
                                                 <TableBody data={ticket.description} />
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <div
-                                                        className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(
-                                                            ticket.status,
-                                                            "borderAndText"
-                                                        )} space-x-2 border-[1px]`}
-                                                    >
-                                                        <span
-                                                            className={`w-2 block aspect-square rounded-full ${getStatusColor(
-                                                                ticket.status
-                                                            )}`}
-                                                        ></span>
+                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(ticket.status, "borderAndText")} space-x-2 border-[1px]`}>
+                                                        <span className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}></span>
                                                         <p className="text-xs truncate">{ticket.status}</p>
                                                     </div>
                                                 </td>
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <div
-                                                        className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(
-                                                            ticket.priority,
-                                                            "borderAndText"
-                                                        )} space-x-2 border-[1px]`}
-                                                    >
-                                                        <span
-                                                            className={`w-2 block aspect-square rounded-full ${getPriorityColor(
-                                                                ticket.priority
-                                                            )}`}
-                                                        ></span>
+                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority, "borderAndText")} space-x-2 border-[1px]`}>
+                                                        <span className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority)}`}></span>
                                                         <p className="text-xs truncate">{ticket.priority}</p>
                                                     </div>
                                                 </td>
@@ -322,12 +281,12 @@ export default function Page() {
                                                     })}
                                                 />
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <p className="text-gray-500 truncate">{ticket.requester?.name ?? "-"}</p>
-                                                    <p className="text-gray-500 text-xs truncate">{ticket.requester?.email ?? "-"}</p>
+                                                    <p className="text-gray-500 dark:text-gray-300 truncate">{ticket.requester?.name ?? "-"}</p>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">{ticket.requester?.email ?? "-"}</p>
                                                 </td>
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <p className="text-gray-500 truncate">{ticket.assignedTo?.name ?? "-"}</p>
-                                                    <p className="text-gray-500 text-xs truncate">{ticket.assignedTo?.email ?? "-"}</p>
+                                                    <p className="text-gray-500 dark:text-gray-300 truncate">{ticket.assignedTo?.name ?? "-"}</p>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">{ticket.assignedTo?.email ?? "-"}</p>
                                                 </td>
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                                     <DotMenu
@@ -373,7 +332,7 @@ export default function Page() {
                                             setPage(1);
                                             setTake(Number(e.target.value));
                                         }}
-                                        className="h-[33px] rounded-lg border px-2 pr-5 py-1 text-xs text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none border-gray-300"
+                                        className="h-[33px] rounded-lg border px-2 pr-5 py-1 text-xs text-gray-800 dark:text-gray-200 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                                     >
                                         <option value={10}>10</option>
                                         <option value={20}>20</option>
@@ -382,14 +341,14 @@ export default function Page() {
                                         <option value={100}>100</option>
                                         <option value={99999}>All</option>
                                     </select>
-                                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
                                         <ChevronDownIcon className="w-3 h-3" />
                                     </span>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <p className="text-base text-center text-gray-500">No tickets found.</p>
+                        <p className="text-base text-center text-gray-500 dark:text-gray-400">No tickets found.</p>
                     )}
                 </div>
             </div>

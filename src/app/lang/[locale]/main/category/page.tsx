@@ -139,71 +139,59 @@ export default function Page() {
 
     return (
         <>
+            {isFetching && <Loading />}
 
-            {isFetching && (<Loading />)}
-            <div className="w-full min-h-full bg-white pb-10 rounded-lg">
-
-
+            <div className="w-full min-h-full bg-white dark:bg-gray-900 pb-10 rounded-lg">
                 <Header
                     title={tHeader("categories.title")}
                     placeholder={tHeader("categories.placeholder")}
                     click={() => setShowForm(true)}
                     setSearchQuery={setSearchQuery}
                     searchQuery={searchQuery}
-                    showNewBtn={data?.user.role === 'SUPER_ADMIN'}
+                    showNewBtn={data?.user.role === "SUPER_ADMIN"}
                 />
 
                 <div className="p-5">
                     {categories.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
-                                <table className="w-full min-w-[1102px] border border-gray-200">
+                                <table className="w-full min-w-[1102px] border border-gray-200 dark:border-gray-700">
                                     <thead>
-                                        <tr className="border-b border-gray-100">
-
+                                        <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                                             <TableHead data={t("no")} />
                                             <TableHead data={t("name")} />
                                             <TableHead data={t("createdAt")} />
                                             <TableHead data={t("updatedAt")} />
                                             <TableHead data={t("creator")} />
                                             <TableHead data={t("actions")} />
-
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {categories.map((category, index) => (
                                             <tr
-                                                // onClick={() => router.push(`/main/category/view/${category.id}`)}
                                                 key={category.id}
-                                                className="border-b border-gray-100 hover:bg-gray-50"
+                                                className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={category.name} />
-                                                {/* <TableBody data={category.email} /> */}
-                                                {/* <TableBody data={category.role} /> */}
-                                                <TableBody data={new Date(category.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-                                                <TableBody data={new Date(category.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-
-
-                                                <td className={`px-5 py-4 sm:px-6 `}>
-                                                    <p className="text-gray-500 truncate">{category.creator
-                                                        ? category.creator.name || "-"
-                                                        : "-"}</p>
-
-                                                    <p className="text-gray-500 text-xs truncate">
-                                                        {category.creator
-                                                            ? category.creator.email || "-"
-                                                            : "-"}
+                                                <TableBody
+                                                    data={new Date(category.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })}
+                                                />
+                                                <TableBody
+                                                    data={new Date(category.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })}
+                                                />
+                                                <td className="px-5 py-4 sm:px-6">
+                                                    <p className="text-gray-700 dark:text-gray-300 truncate">
+                                                        {category.creator?.name ?? "-"}
+                                                    </p>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                                                        {category.creator?.email ?? "-"}
                                                     </p>
                                                 </td>
-
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
-                                                    <DotMenu isBottom={index >= categories.length - 2} option={{
-                                                        view: true,
-                                                        edit: data?.user.role === "SUPER_ADMIN",
-                                                        // delete: true
-                                                    }}
-                                                        //  onDelete={() => handleDelete(category.id)}
+                                                    <DotMenu
+                                                        isBottom={index >= categories.length - 2}
+                                                        option={{ view: true, edit: data?.user.role === "SUPER_ADMIN" }}
                                                         onEdit={(e) => handleEdit(e, category.id)}
                                                         onView={() => router.push(`/lang/${locale}/main/category/view/${category.id}`)}
                                                     />
@@ -212,12 +200,9 @@ export default function Page() {
                                         ))}
                                     </tbody>
                                 </table>
-
-
                             </div>
 
                             <div className="flex justify-end gap-2 mt-4">
-
                                 <Button
                                     click={() => setPage((prev) => Math.max(1, prev - 1))}
                                     disabled={page === 1 || isFetching}
@@ -228,7 +213,6 @@ export default function Page() {
                                         </>
                                     }
                                 />
-
                                 <Button
                                     click={() => setPage((prev) => prev + 1)}
                                     disabled={categories.length < take || isFetching}
@@ -239,21 +223,22 @@ export default function Page() {
                                         </>
                                     }
                                 />
-
-
                             </div>
                         </div>
                     ) : (
-                        <p className="text-base text-center text-gray-500">No categories found.</p>
+                        <p className="text-base text-center text-gray-500 dark:text-gray-400">No categories found.</p>
                     )}
                 </div>
             </div>
 
             {showForm && (
                 <Portal containerId="modal-root">
-                    <Form setShowForm={setShowForm} setCategories={setCategories} updateID={updateID} setUpdateID={setUpdateID} />
-
-                    <></>
+                    <Form
+                        setShowForm={setShowForm}
+                        setCategories={setCategories}
+                        updateID={updateID}
+                        setUpdateID={setUpdateID}
+                    />
                 </Portal>
             )}
         </>

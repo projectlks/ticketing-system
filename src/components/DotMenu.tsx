@@ -40,44 +40,69 @@ export default function DotMenu({ isBottom, option, onDelete, onEdit, onView, on
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [showMenu]);
-    const t = useTranslations('dotMenu'); // 🎯 single instance
+
+    const t = useTranslations('dotMenu');
 
     return (
         <div className="relative" ref={menuRef}>
             <button
                 onClick={(e) => {
-                    e.stopPropagation(); // 🚫 prevent parent click
-
-                    setShowMenu(!showMenu)
+                    e.stopPropagation();
+                    setShowMenu(!showMenu);
                 }}
-                className="w-8 h-8 rounded-full cursor-pointer hover:bg-gray-100 flex justify-center items-center"
+                className="w-8 h-8 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-500 flex justify-center items-center"
             >
-                <EllipsisVerticalIcon className="w-6 h-6" />
+                <EllipsisVerticalIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
             </button>
 
             {showMenu && (
-                <div className={`absolute min-w-[100px] z-50 right-0 text-xs bg-white border border-gray-300 rounded p-1 flex flex-col space-y-1
-                    ${isBottom ? '-top-[150%]' : 'top-full '}`}>
-
+                <div
+                    className={`absolute min-w-[100px] z-50 right-0 text-xs 
+                    bg-white dark:bg-gray-800 
+                    border border-gray-300 dark:border-gray-600 
+                    rounded p-1 flex flex-col space-y-1
+                    ${isBottom ? '-top-[150%]' : 'top-full '}`}
+                >
                     {option?.view && (
-                        <button onClick={onView} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
+                        <button
+                            onClick={onView}
+                            className="w-full cursor-pointer px-3 py-1 text-left 
+                            hover:bg-gray-100 dark:hover:bg-gray-700 
+                            text-gray-700 dark:text-gray-200"
+                        >
                             {t('view')}
                         </button>
                     )}
 
                     {option?.edit && (
-                        <button onClick={onEdit} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
+                        <button
+                            onClick={onEdit}
+                            className="w-full cursor-pointer px-3 py-1 text-left 
+                            hover:bg-gray-100 dark:hover:bg-gray-700 
+                            text-gray-700 dark:text-gray-200"
+                        >
                             {t('edit')}
                         </button>
                     )}
 
                     {option?.delete && (
-                        <button onClick={onDelete} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
+                        <button
+                            onClick={onDelete}
+                            className="w-full cursor-pointer px-3 py-1 text-left 
+                            hover:bg-gray-100 dark:hover:bg-gray-700 
+                            text-red-600 dark:text-red-400"
+                        >
                             {t('delete')}
                         </button>
                     )}
+
                     {option?.restore && (
-                        <button onClick={onRestore} className="w-full cursor-pointer px-3 py-1 text-left hover:bg-gray-100">
+                        <button
+                            onClick={onRestore}
+                            className="w-full cursor-pointer px-3 py-1 text-left 
+                            hover:bg-gray-100 dark:hover:bg-gray-700 
+                            text-gray-700 dark:text-gray-200"
+                        >
                             {t('restore')}
                         </button>
                     )}

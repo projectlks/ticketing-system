@@ -26,7 +26,8 @@ export default async function DepartmentPage({
   }
 
   return (
-    <div className="w-full min-h-full bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-8">
+<div className="w-full min-h-full bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-8">
+
       <ViewHeader name="users" />
 
       <AccountView account={account} auditLog={audit} />

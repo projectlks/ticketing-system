@@ -75,24 +75,45 @@ export default function ProfileCard({ data, Modal }: Props) {
     return (
         <>
             {loading && <Loading />}
-            <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
-                <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">{t("personalInfo")}</h4>
+            <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6 dark:border-gray-700 dark:bg-gray-800">
+                <h4 className="text-lg font-semibold text-gray-800 lg:mb-6 dark:text-gray-100">{t("personalInfo")}</h4>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-                    <div><p className="mb-2 text-xs text-gray-500">{t("name")}</p><p className="text-sm font-medium text-gray-800">{data.name}</p></div>
-                    <div><p className="mb-2 text-xs text-gray-500">{t("role")}</p><p className="text-sm font-medium text-gray-800">{data.role}</p></div>
-                    <div><p className="mb-2 text-xs text-gray-500">{t("workEmail")}</p><p className="text-sm font-medium text-gray-800">{data.email}</p></div>
-                    <div><p className="mb-2 text-xs text-gray-500">{t("personalEmail")}</p><p className="text-sm font-medium text-gray-800">{data.personalEmail}</p></div>
-                    <div><p className="mb-2 text-xs text-gray-500">{t("workPhone")}</p><p className="text-sm font-medium text-gray-800">{data.workMobile || "N/A"}</p></div>
-                    <div><p className="mb-2 text-xs text-gray-500">{t("personalPhone")}</p><p className="text-sm font-medium text-gray-800">{data.personalPhone || "N/A"}</p></div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{t("name")}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{data.name}</p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{t("role")}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{data.role}</p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{t("workEmail")}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{data.email}</p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{t("personalEmail")}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{data.personalEmail}</p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{t("workPhone")}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{data.workMobile || "N/A"}</p>
+                    </div>
+                    <div>
+                        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{t("personalPhone")}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{data.personalPhone || "N/A"}</p>
+                    </div>
 
                     <div className="col-span-2">
-                        <button onClick={() => setChangePasswordModal(true)}
-                            className="mt-2 text-sm border cursor-pointer border-gray-300 rounded px-4 py-2 hover:bg-gray-100">
+                        <button
+                            onClick={() => setChangePasswordModal(true)}
+                            className="mt-2 text-sm border cursor-pointer border-gray-300 rounded px-4 py-2 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-100"
+                        >
                             {t("changePassword")}
                         </button>
                     </div>
                 </div>
             </div>
+
 
             {openChangePasswordModal && (
                 <Modal title={t("changePassword")} onSubmit={handleSubmit} onClose={() => setChangePasswordModal(false)}>

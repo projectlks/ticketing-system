@@ -8,11 +8,11 @@ import { authOptions } from "@/libs/auth";
 import Providers from "@/components/Provider";
 import { TicketCountProvider } from "@/context/TicketCountContext";
 import { UserDataProvider } from "@/context/UserProfileContext";
-// import Providers from "@/components/Providers";
 
 
 
 import "@/libs/cron"; // <- starts cron job when server boots
+import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +39,7 @@ export default async function RootLayout({
 
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Add favicon link here */}
         <link rel="icon" href="/logo.png" />
@@ -50,16 +50,20 @@ export default async function RootLayout({
         </title>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-
-        <UserDataProvider>
-          <TicketCountProvider>
-            <Providers session={session}>
-              {children}
-              <PortalRoot />
-            </Providers>
-          </TicketCountProvider>
-        </UserDataProvider>
-
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+        >
+          <UserDataProvider>
+            <TicketCountProvider>
+              <Providers session={session}>
+                {children}
+                <PortalRoot />
+              </Providers>
+            </TicketCountProvider>
+          </UserDataProvider>
+        </ThemeProvider>
         <div id="portal-root"></div>
       </body>
     </html>

@@ -235,39 +235,54 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
             {loading && <Loading />}
             <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
                 <div className="w-full h-full fixed top-0 left-0 bg-black opacity-20" onClick={handleCancel} aria-hidden="true" />
-                <form onSubmit={handleSubmit} className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 bg-white z-50" onClick={(e) => e.stopPropagation()} noValidate>
+                <form onSubmit={handleSubmit} className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-50" onClick={(e) => e.stopPropagation()} noValidate>
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
-                        <h1 className="text-2xl text-gray-800 font-bold mb-3 mt-5">{updateID ? t('headings.update') : t('headings.create')}</h1>
-                        <p className="text-gray-500 text-sm font-semibold">
+                        <h1 className="text-2xl text-gray-800 dark:text-gray-100 font-bold mb-3 mt-5">{updateID ? t('headings.update') : t('headings.create')}</h1>
+                        <p className="text-gray-500 dark:text-gray-300 text-sm font-semibold">
                             {updateID ? t('headings.updateDesc') : t('headings.createDesc')}
                         </p>
                     </div>
-                    <section className="p-5 space-y-6 border-t max-h-[75vh] overflow-y-auto overflow-x-hidden border-gray-100 sm:p-6">
+                    <section className="p-5 space-y-6 border-t max-h-[75vh] overflow-y-auto overflow-x-hidden border-gray-100 dark:border-gray-700 sm:p-6">
                         <Input id="name" name="name" placeholder={t('placeholders.name')} value={form.name} onChange={handleChange} error={!!errors.name} disable={loading} label={t('labels.name')} require={true} errorMessage={errors.name} />
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">{t('labels.description')}</label>
-                            <textarea id="description" name="description" placeholder={t('placeholders.description')} value={form.description} onChange={handleChange} disabled={loading} className="w-full rounded-lg border border-gray-300 p-2 text-gray-800 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50" rows={4} />
+                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('labels.description')}</label>
+                            <textarea
+                                id="description"
+                                name="description"
+                                placeholder={t('placeholders.description')}
+                                value={form.description}
+                                onChange={handleChange}
+                                disabled={loading}
+                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 p-2 text-gray-800 dark:text-gray-100 dark:bg-gray-800 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                                rows={4}
+                            />
                         </div>
                         <Input id="contact" name="contact" placeholder={t('placeholders.contact')} value={form.contact} onChange={handleChange} error={!!errors.contact} label={t('labels.contact')} disable={loading} require={true} errorMessage={errors.contact} />
                         <Input id="email" name="email" placeholder={t('placeholders.email')} value={form.email} onChange={handleChange} error={!!errors.email} disable={loading} require={true} errorMessage={errors.email} label={t('labels.email')} />
                         <SelectBox label={t('labels.manager')} id="managerId" name="managerId" value={form.managerId} options={userIdsAndEmails} onChange={handleChange} error={errors.managerId} showEmail={true} />
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('labels.jobPositions')} <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('labels.jobPositions')} <span className="text-red-500">*</span></label>
                             <div className="flex space-x-2 items-center mb-3">
-                                <input type="text" placeholder={t('placeholders.jobTitle')} value={newJobTitle} onChange={(e) => setNewJobTitle(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50" />
+                                <input type="text" placeholder={t('placeholders.jobTitle')} value={newJobTitle} onChange={(e) => setNewJobTitle(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50" />
                                 <Button click={addJobPosition} buttonLabel={t('buttons.addJob')} disabled={!newJobTitle.trim()} />
                             </div>
                             {jobPositions.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2 border border-gray-300 rounded-xl p-3">
+                                <div className="flex flex-wrap gap-2 mt-2 border border-gray-300 dark:border-gray-600 rounded-xl p-3">
                                     {jobPositions.map((job, idx) => (
                                         <div key={job.id ?? idx} className="flex flex-col">
-                                            <div className="flex items-center w-fit space-x-2 bg-gray-100 border border-gray-300 rounded-full px-3 py-1 pr-1 text-sm relative">
-                                                <input type="text" value={job.title} onChange={(e) => updateJobTitle(idx, e.target.value)} onBlur={() => {
-                                                    const trimmed = job.title.trim();
-                                                    if (trimmed === "") return;
-                                                    updateJobTitle(idx, trimmed);
-                                                }} className={`bg-transparent border-none text-sm text-gray-800 focus:outline-none w-auto min-w-[10px] ${job.title.trim() === "" ? "border-b-2 border-red-500" : ""}`} />
+                                            <div className="flex items-center w-fit space-x-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 pr-1 text-sm relative">
+                                                <input
+                                                    type="text"
+                                                    value={job.title}
+                                                    onChange={(e) => updateJobTitle(idx, e.target.value)}
+                                                    onBlur={() => {
+                                                        const trimmed = job.title.trim();
+                                                        if (trimmed === "") return;
+                                                        updateJobTitle(idx, trimmed);
+                                                    }}
+                                                    className={`bg-transparent border-none text-sm text-gray-800 dark:text-gray-100 focus:outline-none w-auto min-w-[10px] ${job.title.trim() === "" ? "border-b-2 border-red-500" : ""}`}
+                                                />
                                             </div>
                                             {job.title.trim() === "" && <span className="text-red-500 text-xs mt-1 ml-1">{t('errors.jobEmpty')}</span>}
                                         </div>
@@ -279,7 +294,7 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
                         {errors.response && <p className="text-red-500 text-xs mb-4" role="alert">{errors.response}</p>}
 
                         <div className="mt-6 flex justify-end space-x-3">
-                            <button type="button" onClick={handleCancel} disabled={loading} className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]">{t('buttons.cancel')}</button>
+                            <button type="button" onClick={handleCancel} disabled={loading} className="px-4 py-3 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 h-[44px]">{t('buttons.cancel')}</button>
                             <button type="submit" disabled={loading} className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'}`}>
                                 {loading ? (updateID ? t('buttons.updating') : t('buttons.creating')) : (updateID ? t('buttons.update') : t('buttons.create'))}
                             </button>
@@ -287,6 +302,7 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
                     </section>
                 </form>
             </section>
+
         </>
     );
 }

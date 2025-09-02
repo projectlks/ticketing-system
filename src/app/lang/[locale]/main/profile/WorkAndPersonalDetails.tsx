@@ -88,12 +88,14 @@ export default function WorkAndPersonalDetails({ data, Modal }: Props) {
   return (
     <>
       {loading && <Loading />}
-      <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6">
+      <div className="p-5 mb-6 border border-gray-200 rounded-2xl lg:p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="flex justify-between items-center">
-          <h4 className="text-lg font-semibold text-gray-800 lg:mb-6">{t("hrPersonalInfo")}</h4>
-          <button onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            disabled={loading}>
+          <h4 className="text-lg font-semibold text-gray-800 lg:mb-6 dark:text-gray-100">{t("hrPersonalInfo")}</h4>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            disabled={loading}
+          >
             <PencilSquareIcon className="w-5 h-5" />
             {loading ? 'Loading...' : t("edit")}
           </button>
@@ -102,14 +104,15 @@ export default function WorkAndPersonalDetails({ data, Modal }: Props) {
         <div className="grid grid-cols-1 gap-4 w-full lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
           {fields.map(field => (
             <div key={field.key}>
-              <p className="mb-2 text-xs text-gray-500">{field.label}</p>
-              <p className="text-sm font-medium text-gray-800">
+              <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{field.label}</p>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
                 {renderValue(editData[field.key] as UserFullData[EditableField])}
               </p>
             </div>
           ))}
         </div>
       </div>
+
 
       {showForm && (
         <Modal title={t("hrPersonalInfo")} onSubmit={handleSubmit} onClose={() => setShowForm(false)}>

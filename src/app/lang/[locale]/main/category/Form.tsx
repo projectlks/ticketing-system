@@ -185,21 +185,23 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
                     onClick={handleCancel}
                     aria-hidden="true"
                 />
+
                 <form
                     onSubmit={handleSubmit}
-                    className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 bg-white z-50"
+                    className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-50"
                     onClick={(e) => e.stopPropagation()}
                     noValidate
                 >
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
-                        <h1 className="text-2xl text-gray-800 font-bold mb-3 mt-5">
+                        <h1 className="text-2xl text-gray-800 dark:text-gray-100 font-bold mb-3 mt-5">
                             {updateID ? t('headings.update') : t('headings.create')}
                         </h1>
-                        <p className="text-gray-500 text-sm font-semibold">
+                        <p className="text-gray-500 dark:text-gray-300 text-sm font-semibold">
                             {updateID ? t('headings.updateDesc') : t('headings.createDesc')}
                         </p>
                     </div>
-                    <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
+
+                    <section className="p-5 space-y-6 border-t border-gray-100 dark:border-gray-700 sm:p-6">
                         <Input
                             id="name"
                             name="name"
@@ -214,8 +216,10 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
                             label={t('labels.name')}
                             require={true}
                         />
+
+                        {/* Subcategories */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                 {t('labels.subcategories')}
                             </label>
                             <div className="flex space-x-2 items-center mb-3">
@@ -224,15 +228,16 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
                                     placeholder={t('placeholders.subCategory')}
                                     value={newSubCategory}
                                     onChange={(e) => setNewSubCategory(e.target.value)}
-                                    className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50"
+                                    className="flex-1 border rounded-lg px-3 py-2 text-sm border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 bg-white dark:bg-gray-800"
                                 />
                                 <Button click={addSubCategories} buttonLabel={t('buttons.add')} disabled={!newSubCategory?.trim()} />
                             </div>
+
                             {subCategories.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2 border border-gray-300 rounded-xl p-3">
+                                <div className="flex flex-wrap gap-2 mt-2 border border-gray-300 dark:border-gray-600 rounded-xl p-3">
                                     {subCategories.map((job, idx) => (
                                         <div key={job.id ?? idx} className="flex flex-col">
-                                            <div className="flex items-center w-fit space-x-2 bg-gray-100 border border-gray-300 rounded-full px-3 py-1 pr-1 text-sm relative">
+                                            <div className="flex items-center w-fit space-x-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 pr-1 text-sm relative">
                                                 <input
                                                     type="text"
                                                     value={job.title}
@@ -242,39 +247,36 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
                                                         if (trimmed === "") return;
                                                         updateSubCategories(idx, trimmed);
                                                     }}
-                                                    className={`bg-transparent border-none text-sm text-gray-800 focus:outline-none w-auto min-w-[10px] ${job.title.trim() === "" ? "border-b-2 border-red-500" : ""}`}
+                                                    className={`bg-transparent border-none text-sm text-gray-800 dark:text-gray-100 focus:outline-none w-auto min-w-[10px] ${job.title.trim() === "" ? "border-b-2 border-red-500" : ""}`}
                                                 />
                                             </div>
                                             {job.title.trim() === "" && (
-                                                <span className="text-red-500 text-xs mt-1 ml-1">
-                                                    {t('errors.subCategoryEmpty')}
-                                                </span>
+                                                <span className="text-red-500 text-xs mt-1 ml-1">{t('errors.subCategoryEmpty')}</span>
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             )}
                         </div>
+
                         {errors.response && (
                             <p className="text-red-500 text-xs mb-4" role="alert" aria-live="assertive">
                                 {errors.response}
                             </p>
                         )}
+
                         <div className="mt-6 flex justify-end space-x-3">
                             <button
                                 type="button"
                                 onClick={handleCancel}
-                                className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]"
+                                className="px-4 py-3 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 h-[44px]"
                             >
                                 {t('buttons.cancel')}
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading
-                                    ? 'bg-indigo-300 cursor-not-allowed'
-                                    : 'bg-indigo-500 hover:bg-indigo-600'
-                                    }`}
+                                className={`px-4 py-3 text-sm font-medium text-white rounded-lg shadow-md h-[44px] ${loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'}`}
                             >
                                 {loading
                                     ? updateID
@@ -288,6 +290,7 @@ export default function Form({ setShowForm, setCategories, updateID, setUpdateID
                     </section>
                 </form>
             </section>
+
         </>
     );
 }

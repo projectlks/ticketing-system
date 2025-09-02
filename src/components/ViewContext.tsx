@@ -24,14 +24,14 @@ export default function ViewContext({
   }
 
   return (
-    <div className={`flex flex-col items-start gap-1.5`} 
-    style={{
+    <div
+      className={`flex flex-col items-start gap-1.5`}
+      style={{
         gridColumn: `span ${colspan} / span ${colspan}`,
-    }}
-    
+      }}
     >
-      <h3 className="text-xs tracking-wide text-muted-foreground">{label}</h3>
-      <p className="text-sm font-medium">
+      <h3 className="text-xs tracking-wide text-muted-foreground dark:text-gray-400">{label}</h3>
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
         {type === "text" ? (
           value
         ) : (
@@ -41,5 +41,6 @@ export default function ViewContext({
         )}
       </p>
     </div>
+
   );
 }

@@ -237,7 +237,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
     return (
         <>
             {loading && <Loading />}
-            <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50">
+            <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50" aria-modal="true" role="dialog">
                 <div
                     className="w-full h-full fixed top-0 left-0 bg-black opacity-20"
                     onClick={handleCancel}
@@ -246,19 +246,19 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
 
                 <form
                     onSubmit={handleSubmit}
-                    className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 bg-white z-50"
+                    className="w-[90%] md:w-[600px] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-50"
                     onClick={(e) => e.stopPropagation()}
                     noValidate
                 >
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
-                        <h1 className="text-2xl text-gray-800 font-bold mb-3 mt-5">
+                        <h1 className="text-2xl font-bold mb-3 mt-5 text-gray-800 dark:text-gray-100">
                             {updateID ? t('headings.update') : t('headings.create')}
                         </h1>
-                        <p className="text-gray-500 text-sm font-semibold">
+                        <p className="text-gray-500 dark:text-gray-300 text-sm font-semibold">
                             {updateID ? t('headings.updateDesc') : t('headings.createDesc')}
                         </p>
                     </div>
-                    <section className="p-5 space-y-6 border-t border-gray-100 sm:p-6">
+                    <section className="p-5 space-y-6 border-t border-gray-100 dark:border-gray-700 sm:p-6">
                         <Input
                             id="name"
                             name="name"
@@ -310,7 +310,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
 
                         {isSuperAdmin && (
                             <div>
-                                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                     {t('labels.role')}
                                 </label>
                                 <div className="relative">
@@ -320,7 +320,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         name="role"
                                         value={form.role}
                                         onChange={handleChange}
-                                        className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
+                                        className="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                     >
                                         <option value="REQUESTER">REQUESTER</option>
                                         <option value="AGENT">AGENT</option>
@@ -331,7 +331,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                             selectRef.current?.focus();
                                             selectRef.current?.click();
                                         }}
-                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
+                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 cursor-pointer"
                                     >
                                         <ChevronDownIcon className="w-5 h-5" />
                                     </span>
@@ -341,7 +341,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
 
                         {/* Department */}
                         <div>
-                            <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1.5">
+                            <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                 {t('labels.department')} <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
@@ -350,14 +350,14 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     name="department"
                                     value={form.department}
                                     onChange={handleChange}
-                                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
+                                    className="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                 >
                                     <option value="" disabled>{t('placeholders.department')}</option>
                                     {departments.map((dept) => (
                                         <option key={dept.id} value={dept.id}>{dept.name}</option>
                                     ))}
                                 </select>
-                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
                                     <ChevronDownIcon className="w-5 h-5" />
                                 </span>
                             </div>
@@ -366,7 +366,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
 
                         {/* Job Position */}
                         <div>
-                            <label htmlFor="jobPosition" className="block text-sm font-medium text-gray-700 mb-1.5">
+                            <label htmlFor="jobPosition" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                 {t('labels.job_position')}
                             </label>
                             <div className="relative">
@@ -375,7 +375,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     name="job_position"
                                     value={form.job_position}
                                     onChange={handleChange}
-                                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
+                                    className="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none"
                                     disabled={!form.department}
                                 >
                                     <option value="" disabled>{t('placeholders.job_position')}</option>
@@ -383,7 +383,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         <option key={job.id} value={job.id}>{job.name}</option>
                                     ))}
                                 </select>
-                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
                                     <ChevronDownIcon className="w-5 h-5" />
                                 </span>
                             </div>
@@ -400,7 +400,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                             <button
                                 type="button"
                                 onClick={handleCancel}
-                                className="px-4 py-3 text-sm font-medium border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-100 h-[44px]"
+                                className="px-4 py-3 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 h-[44px]"
                             >
                                 {t('buttons.cancel')}
                             </button>
@@ -417,6 +417,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                     </section>
                 </form>
             </section>
+
         </>
     );
 }

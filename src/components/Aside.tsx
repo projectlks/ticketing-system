@@ -13,9 +13,9 @@ import {
   Cog6ToothIcon,
   AdjustmentsHorizontalIcon,
   PresentationChartBarIcon,
-  BuildingOffice2Icon
-
+  BuildingOffice2Icon,
 } from "@heroicons/react/24/outline";
+
 import { useSession } from "next-auth/react";
 import { useTicketCount } from "@/context/TicketCountContext";
 
@@ -34,59 +34,17 @@ const navItems: { section: string; items: NavItem[] }[] = [
   {
     section: "main",
     items: [
-      {
-        key: "dashboard",
-        href: "/main/dashboard",
-        icon: Squares2X2Icon,
-        activeCheck: (route) => route.endsWith("/dashboard"),
-        roles: ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"],
-      },
-      {
-        key: "department",
-        href: "/main/department",
-        icon: BuildingOffice2Icon,
-        activeCheck: (route) => route.includes("/department"),
-        roles: ["SUPER_ADMIN", "ADMIN"],
-      },
-      {
-        key: "tickets",
-        href: "/main/tickets",
-        icon: TicketIcon,
-        activeCheck: (route) => route.includes("/tickets"),
-        roles: ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"],
-        badge: (count) =>
-          count > 0 ? (
-            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-indigo-500 text-gray-100 text-xs px-2">
-              {count}
-            </span>
-          ) : false,
-      },
-      {
-        key: "reports",
-        href: "/main/reports",
-        icon: PresentationChartBarIcon,
-        activeCheck: (route) => route.includes("/report") || route.includes("/reports"),
-        roles: ["SUPER_ADMIN", "ADMIN"],
-      },
+      { key: "dashboard", href: "/main/dashboard", icon: Squares2X2Icon, activeCheck: (route) => route.endsWith("/dashboard"), roles: ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"] },
+      { key: "department", href: "/main/department", icon: BuildingOffice2Icon, activeCheck: (route) => route.includes("/department"), roles: ["SUPER_ADMIN", "ADMIN"] },
+      { key: "tickets", href: "/main/tickets", icon: TicketIcon, activeCheck: (route) => route.includes("/tickets"), roles: ["SUPER_ADMIN", "ADMIN", "AGENT", "REQUESTER"], badge: (count) => count > 0 ? <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-indigo-500 text-gray-100 text-xs px-2">{count}</span> : false },
+      { key: "reports", href: "/main/reports", icon: PresentationChartBarIcon, activeCheck: (route) => route.includes("/report") || route.includes("/reports"), roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {
     section: "management",
     items: [
-      {
-        key: "accounts",
-        href: "/main/accounts",
-        icon: UserGroupIcon,
-        activeCheck: (route) => route.includes("/accounts"),
-        roles: ["SUPER_ADMIN", "ADMIN"],
-      },
-      {
-        key: "category",
-        href: "/main/category",
-        icon: AdjustmentsHorizontalIcon,
-        activeCheck: (route) => route.includes("/category"),
-        roles: ["SUPER_ADMIN", "ADMIN"],
-      },
+      { key: "accounts", href: "/main/accounts", icon: UserGroupIcon, activeCheck: (route) => route.includes("/accounts"), roles: ["SUPER_ADMIN", "ADMIN"] },
+      { key: "category", href: "/main/category", icon: AdjustmentsHorizontalIcon, activeCheck: (route) => route.includes("/category"), roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
 ];
@@ -103,49 +61,45 @@ export default function Sidebar({ openSidebar }: Props) {
   const { data } = useSession();
   const t = useTranslations("sidebar");
 
-  // ✅ Extract current locale from pathname
   const localeMatch = pathname.match(/^\/lang\/(en|mm|ru)/);
   const locale = localeMatch ? localeMatch[1] : "en";
 
-  const toggleDropdown = (name: string) => {
-    setSelectedDropdown(selectedDropdown === name ? "" : name);
-  };
+  const toggleDropdown = (name: string) => setSelectedDropdown(selectedDropdown === name ? "" : name);
 
-  const filteredNavItems = navItems.map((section) => ({
+  const filteredNavItems = navItems.map(section => ({
     ...section,
-    items: section.items.filter(
-      (item) => !item.roles || item.roles.includes(data?.user.role as Role)
-    ),
+    items: section.items.filter(item => !item.roles || item.roles.includes(data?.user.role as Role)),
   }));
 
   return (
     <aside
       className={`sidebar flex h-screen flex-col overflow-y-auto 
         ${openSidebar ? "translate-x-0 lg:w-[0px] lg:px-0" : "-translate-x-full"} 
-        fixed top-0 left-0 w-[300px] border-r border-gray-200 bg-white dark:bg-red-400 px-5 transition-all z-50 duration-300 lg:static lg:translate-x-0`}
+        fixed top-0 left-0 w-[300px] border-r border-gray-200 bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 px-5  z-50  lg:static lg:translate-x-0`}
     >
       {/* Logo */}
       <div className="flex items-center pt-8 space-x-3 pb-7">
-        <Image src="/logo.png" alt="logo" className="w-8 h-8" width={32} height={32} />
-        <h1 className="text-2xl font-bold text-gray-800">East Wind</h1>
+        <Image src="/logo.png" alt="logo" width={32} height={32} className="w-8 h-8" />
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">East Wind</h1>
       </div>
 
       {/* Navigation */}
       <nav className="space-y-6">
         {filteredNavItems.map(({ section, items }) => (
           <div key={section}>
-            <div className="w-full text-xs text-gray-600 mb-2">{t(section)}</div>
+            <div className="w-full text-xs text-gray-600 dark:text-gray-300 mb-2">{t(section)}</div>
             <div className="space-y-2">
               {items.map(({ key, href, icon: Icon, activeCheck, badge }) => {
-                const dynamicHref = `/lang/${locale}${href}`; // ✅ prepend locale
+                const dynamicHref = `/lang/${locale}${href}`;
                 const isActive = activeCheck(pathname);
                 return (
                   <Link
                     key={key}
                     href={dynamicHref}
-                    className={`group h-[40px] flex items-center space-x-3 py-2 px-3 rounded-lg transition-colors duration-200 ${isActive
-                      ? "bg-[#ecf3ff] text-blue-600"
-                      : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff]"
+                    className={`group h-[40px] flex items-center space-x-3 py-2 px-3 rounded-lg 
+                      ${isActive
+                        ? "bg-[#ecf3ff] text-blue-600 dark:bg-gray-700 dark:text-white"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff] dark:text-gray-200 dark:hover:text-white dark:hover:bg-gray-700"
                       }`}
                   >
                     <Icon className="h-6 w-6" />
@@ -160,28 +114,25 @@ export default function Sidebar({ openSidebar }: Props) {
           </div>
         ))}
 
-        {/* Settings */}
+        {/* Settings Dropdown */}
         <div>
-          <div className="w-full text-xs text-gray-600 mb-2">{t("settings")}</div>
+          <div className="w-full text-xs text-gray-600 dark:text-gray-300 mb-2">{t("settings")}</div>
           <div className="space-y-1">
             <div
               onClick={() => toggleDropdown("settings")}
-              className={`group h-[40px] flex items-center justify-between cursor-pointer py-2 px-3 rounded-lg transition-colors duration-200 ${pathname === `/lang/${locale}/main/profile`
-                ? "bg-[#ecf3ff] text-blue-600"
-                : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff]"
-                }`}
+              className={`group h-[40px] flex items-center justify-between cursor-pointer py-2 px-3 rounded-lg 
+                ${pathname === `/lang/${locale}/main/profile`
+                  ? "bg-[#ecf3ff] text-blue-600 dark:bg-gray-700 dark:text-white"
+                  : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff] dark:text-gray-200 dark:hover:text-white dark:hover:bg-gray-700"}`
+              }
             >
               <div className="flex items-center space-x-3">
                 <Cog6ToothIcon className="h-6 w-6" />
                 <span className="text-sm font-medium">{t("settings")}</span>
               </div>
               <svg
-                className={`w-4 h-4 transition-transform duration-200 ${selectedDropdown === "settings" ? "rotate-180" : "rotate-0"
-                  }`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 20 20"
-                stroke="currentColor"
+                className={`w-4 h-4 transition-transform  ${selectedDropdown === "settings" ? "rotate-180" : "rotate-0"}`}
+                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" stroke="currentColor"
               >
                 <path d="M6 8l4 4 4-4" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -192,9 +143,10 @@ export default function Sidebar({ openSidebar }: Props) {
                 <li>
                   <Link
                     href={`/lang/${locale}/main/profile`}
-                    className={`block text-sm py-2.5 px-3 rounded transition ${pathname === `/lang/${locale}/main/profile`
-                      ? "bg-[#ecf3ff] text-blue-600"
-                      : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff]"
+                    className={`block text-sm py-2.5 px-3 rounded transition 
+                    ${pathname === `/lang/${locale}/main/profile`
+                        ? "bg-[#ecf3ff] text-blue-600 dark:bg-gray-700 dark:text-white"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff] dark:text-gray-200 dark:hover:text-white dark:hover:bg-gray-700"
                       }`}
                   >
                     {t("account_setting")}
@@ -208,3 +160,4 @@ export default function Sidebar({ openSidebar }: Props) {
     </aside>
   );
 }
+

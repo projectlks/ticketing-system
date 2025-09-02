@@ -55,20 +55,20 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
 
 
     return (
-        <div className="lg:col-span-2 bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">{t("recentTickets")}</h3>
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t("recentTickets")}</h3>
                 <a
                     onClick={() => router.push(`/lang/${locale}/main/tickets`)}
-                    className="text-sm cursor-pointer text-blue-600 hover:text-blue-500"
+                    className="text-sm cursor-pointer text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                     {t("viewAll")}
                 </a>
             </div>
             <div className="overflow-x-auto min-h-[calc(100%-60px)]">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead>
-                        <tr className="border border-gray-100">
+                        <tr className="border border-gray-100 dark:border-gray-700">
                             <TableHead data={tTable("ticketId")} />
                             <TableHead data={tTable("title")} />
                             <TableHead data={tTable("description")} />
@@ -79,34 +79,24 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                     </thead>
                     <tbody>
                         {tickets.map((ticket, index) => (
-                            <tr key={ticket.id} className="border border-gray-100">
+                            <tr key={ticket.id} className="border border-gray-100 dark:border-gray-700">
                                 <TableBody data={ticket.ticketId} />
                                 <TableBody data={ticket.title} />
                                 <TableBody data={ticket.description} />
                                 <td className="px-5 py-4 sm:px-6">
-                                    <div
-                                        className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(
-                                            ticket.status,
-                                            "borderAndText"
-                                        )} space-x-2 border-[1px]`}
-                                    >
-                                        <span
-                                            className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}
-                                        ></span>
-                                        <p className="text-xs truncate">{ticket.status}</p>
+                                    <div className={`flex items-center px-2 py-1 rounded-full ${getStatusColor(ticket.status, "borderAndText")} space-x-2 border-[1px]`}>
+                                        <span className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}></span>
+                                        <p className="text-xs truncate text-gray-900 dark:text-gray-100">{ticket.status}</p>
                                     </div>
                                 </td>
                                 <TableBody
-                                    data={new Date(ticket.createdAt).toLocaleString("en-US", {
-                                        timeZone: "Asia/Yangon",
-                                    })}
+                                    data={new Date(ticket.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })}
                                 />
                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
                                     <DotMenu
                                         isBottom={index >= tickets.length - 2}
                                         option={{ view: true }}
                                         onView={() => router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`)}
-
                                     />
                                 </td>
                             </tr>
@@ -115,6 +105,7 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                 </table>
             </div>
         </div>
+
     );
 }
 
@@ -164,9 +155,11 @@ function ActivityFeed({ activities }: ActivityFeedProps) {
     };
 
     return (
-        <div className="bg-white lg:h-full h-fit pb-8 rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">{t("recentActivity")}</h3>
+        <div className="bg-white dark:bg-gray-800 lg:h-full h-fit pb-8 rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    {t("recentActivity")}
+                </h3>
             </div>
             <div className="p-6">
                 <ul className="-mb-8">
@@ -175,11 +168,11 @@ function ActivityFeed({ activities }: ActivityFeedProps) {
                         return (
                             <li key={act.id}>
                                 <div className="relative pb-8">
-                                    <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"></span>
+                                    <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700"></span>
                                     <div className="relative flex space-x-3">
                                         <div>
                                             <span
-                                                className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${getBgColor(
+                                                className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 dark:ring-gray-800 ring-white ${getBgColor(
                                                     type
                                                 )}`}
                                             >
@@ -188,7 +181,7 @@ function ActivityFeed({ activities }: ActivityFeedProps) {
                                         </div>
                                         <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                                             <div>
-                                                <p className="text-sm text-gray-500">
+                                                <p className="text-sm text-gray-500 dark:text-gray-300">
                                                     {t("changedFromTo", {
                                                         entity: act.entity,
                                                         field: act.field,
@@ -197,7 +190,7 @@ function ActivityFeed({ activities }: ActivityFeedProps) {
                                                     })}
                                                 </p>
                                             </div>
-                                            <div className="text-right text-sm whitespace-nowrap text-gray-500">
+                                            <div className="text-right text-sm whitespace-nowrap text-gray-500 dark:text-gray-300">
                                                 <time>{moment(act.changedAt).fromNow()}</time>
                                             </div>
                                         </div>
@@ -209,5 +202,6 @@ function ActivityFeed({ activities }: ActivityFeedProps) {
                 </ul>
             </div>
         </div>
+
     );
 }

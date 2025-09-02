@@ -271,7 +271,7 @@ export default function Page() {
         <>
 
             {isFetching && <Loading />}
-            <div className="w-full min-h-full bg-white pb-10 rounded-lg">
+            <div className="w-full min-h-full bg-white  dark:bg-gray-900  pb-10 rounded-lg">
 
 
 
@@ -303,9 +303,9 @@ export default function Page() {
                     {accounts.length > 0 ? (
                         <div className="rounded">
                             <div className="max-w-full overflow-x-auto">
-                                <table className="w-full min-w-[1102px] border border-gray-200">
+                                <table className="w-full min-w-[1102px] border border-gray-200 dark:border-gray-700">
                                     <thead>
-                                        <tr className="border-b border-gray-100">
+                                        <tr className="border-b border-gray-100 dark:border-gray-700">
                                             <th className="px-3">
                                                 <input
                                                     type="checkbox"
@@ -340,11 +340,12 @@ export default function Page() {
                                             <tr
                                                 // onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
                                                 key={account.id}
-                                                className={
-                                                    `
-                                                    border-b border-gray-100  ${account.isArchived ? "bg-red-100" : " hover:bg-gray-50 "}
-                                                    `
-                                                }
+                                                className={`
+          border-b border-gray-100 dark:border-gray-700
+          ${account.isArchived
+                                                        ? "bg-red-100 dark:bg-red-900"
+                                                        : "hover:bg-gray-50 dark:hover:bg-gray-800"}
+        `}
                                             >
                                                 {/* Selection checkbox */}
                                                 <td className="px-3">
@@ -380,15 +381,13 @@ export default function Page() {
 
 
 
-                                                <td className={`px-5 py-4 sm:px-6 `}>
-                                                    <p className="text-gray-500 truncate">{account.creator
-                                                        ? account.creator.name || "-"
-                                                        : "-"}</p>
+                                                <td className="px-5 py-4 sm:px-6">
+                                                    <p className="text-gray-500 dark:text-gray-400 truncate">
+                                                        {account.creator ? account.creator.name || "-" : "-"}
+                                                    </p>
 
-                                                    <p className="text-gray-500 text-xs truncate">
-                                                        {account.creator
-                                                            ? account.creator.email || "-"
-                                                            : "-"}
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                                                        {account.creator ? account.creator.email || "-" : "-"}
                                                     </p>
                                                 </td>
 

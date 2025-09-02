@@ -1,4 +1,19 @@
+/* globals.css */
 @import "tailwindcss";
+
+/* Manual dark mode selector using class */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Optional: custom colors */
+.bg-customRed {
+    background-color: #ff4d4d;
+}
+
+
+/* ဒီအောက်မှာ သင့် custom styles ရေးနိုင်ပါတယ် */
+body {
+    font-family: 'Geist', sans-serif;
+}
 
 
 @keyframes zoomIn {

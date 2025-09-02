@@ -42,75 +42,75 @@ export function AccountView({ account, auditLog, title = "View Account" }: Accou
   const tHistory = useTranslations("historyLog");
 
   return (
-    <section className="grid gap-6 md:grid-cols-3" aria-label="Account details">
+<section className="grid gap-6 md:grid-cols-3" aria-label="Account details">
 
-      {/* Main Card */}
-      <div className="h-fit md:sticky col-span-2 top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
-        <div className="gap-2 pb-4 px-6 pt-6">
-          <h2 className="text-lg font-semibold text-indigo-600">{title}</h2>
-        </div>
+  {/* Main Card */}
+  <div className="h-fit md:sticky col-span-2 top-0 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white dark:bg-gray-800 dark:border-indigo-400 dark:shadow-md">
+    <div className="gap-2 pb-4 px-6 pt-6">
+      <h2 className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">{title}</h2>
+    </div>
 
-        <div className="pt-2 px-6 pb-6 space-y-6">
-          {/* Basic Info */}
-          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ViewContext label={t("name")} value={account.name} />
-            <ViewContext label={t("email")} value={account.email} />
-            <ViewContext label={t("role")} value={account.role} />
-            <ViewContext label={t("isArchived")} value={account.isArchived ? "Yes" : "No"} />
-            <ViewContext label={t("createdAt")} value={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-            <ViewContext label={t("createdBy")} value={account.creator?.name || "-"} />
-            <ViewContext label={t("updatedAt")} value={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
-            <ViewContext label={t("updatedBy")} value={account.updater?.name || "-"} />
-          </dl>
+    <div className="pt-2 px-6 pb-6 space-y-6 text-gray-900 dark:text-gray-100">
+      {/* Basic Info */}
+      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ViewContext label={t("name")} value={account.name} />
+        <ViewContext label={t("email")} value={account.email} />
+        <ViewContext label={t("role")} value={account.role} />
+        <ViewContext label={t("isArchived")} value={account.isArchived ? "Yes" : "No"} />
+        <ViewContext label={t("createdAt")} value={new Date(account.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+        <ViewContext label={t("createdBy")} value={account.creator?.name || "-"} />
+        <ViewContext label={t("updatedAt")} value={new Date(account.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })} />
+        <ViewContext label={t("updatedBy")} value={account.updater?.name || "-"} />
+      </dl>
 
-          {/* HR & Personal Info */}
-          <div className="border-t border-gray-200 pt-4">
-            <h3 className="text-lg font-semibold mb-2">HR & Personal Information</h3>
-            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {hrFields.map(field => (
-                <ViewContext
-                  key={field.key}
-                  label={t(field.label)}  // 🔹 ဒီလို string key ကိုပေးရုံပ
-                  // Type-safe dynamic access
-                  value={renderValue(account[field.key] as unknown, field.type)}
-                />
-              ))}
-            </dl>
-          </div>
-
-          {/* Assigned Tickets */}
-          <div className="border-t border-gray-200 pt-4">
-            <h3 className="text-lg font-semibold mb-2">Assigned Tickets</h3>
-            {account.assignedTickets && account.assignedTickets.length > 0 ? (
-              <ul className="list-disc list-inside space-y-1">
-                {account.assignedTickets.map(ticket => (
-                  <li key={ticket.id} className="text-sm">
-                    <strong>{ticket.title}</strong> - Status: {ticket.status}, Priority: {ticket.priority}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-gray-500">No tickets assigned.</p>
-            )}
-          </div>
-        </div>
+      {/* HR & Personal Info */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <h3 className="text-lg font-semibold mb-2">HR & Personal Information</h3>
+        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {hrFields.map(field => (
+            <ViewContext
+              key={field.key}
+              label={t(field.label)}
+              value={renderValue(account[field.key] as unknown, field.type)}
+            />
+          ))}
+        </dl>
       </div>
 
-      {/* Audit Log */}
-      <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
-        <div className="pb-4 px-6 pt-6">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <span>{tHistory("title")}</span>
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {tHistory("description.account")}
-          </p>
-        </div>
-        <div className="pt-2 px-6 pb-6">
-          <AuditLogList items={auditLog} />
-        </div>
+      {/* Assigned Tickets */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <h3 className="text-lg font-semibold mb-2">Assigned Tickets</h3>
+        {account.assignedTickets && account.assignedTickets.length > 0 ? (
+          <ul className="list-disc list-inside space-y-1">
+            {account.assignedTickets.map(ticket => (
+              <li key={ticket.id} className="text-sm">
+                <strong>{ticket.title}</strong> - Status: {ticket.status}, Priority: {ticket.priority}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No tickets assigned.</p>
+        )}
       </div>
-    </section>
+    </div>
+  </div>
+
+  {/* Audit Log */}
+  <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white dark:bg-gray-800 dark:border-indigo-400 dark:shadow-md">
+    <div className="pb-4 px-6 pt-6">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <span>{tHistory("title")}</span>
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground dark:text-gray-400">
+        {tHistory("description.account")}
+      </p>
+    </div>
+    <div className="pt-2 px-6 pb-6">
+      <AuditLogList items={auditLog} />
+    </div>
+  </div>
+</section>
+
   );
 }
 

@@ -40,10 +40,9 @@ export default function SelectBox({
 
     return (
         <div className="relative">
-            <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {label}
             </label>
-
 
             <div className="relative">
                 <select
@@ -53,15 +52,13 @@ export default function SelectBox({
                     value={value}
                     onChange={(e) => onChange(e)}
                     disabled={disabled}
-                    className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none
-          ${error ? 'border-red-600' : 'border-gray-300'}`}
+                    className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50 appearance-none
+          ${error ? 'border-red-600' : 'border-gray-300 dark:border-gray-600'}`}
                 >
                     <option value="" defaultChecked disabled>{placeholder}</option>
                     {options.map((option) => (
                         <option key={option.id} value={option.id}>
                             {showEmail && option.email ? `${option.name} (${option.email})` : option.name}
-
-
                         </option>
                     ))}
                 </select>
@@ -71,7 +68,7 @@ export default function SelectBox({
                         selectRef.current?.focus();
                         selectRef.current?.click();
                     }}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 cursor-pointer"
                 >
                     <ChevronDownIcon className="w-5 h-5" />
                 </span>

@@ -20,14 +20,9 @@ export default async function LocaleLayout({ children, params }: Props) {
   }
 
   return (
-    <html lang={locale}>
-      <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          {/* Client-side redirect လုပ်ဖို့ component */}
-          <LocaleRedirect />
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <LocaleRedirect />
+      {children}
+    </NextIntlClientProvider>
   );
 }

@@ -53,26 +53,20 @@ const DashboardCard: React.FC<CardData> = ({
   badgeIconRotate = false,
 }) => {
   return (
-    <div className="rounded-2xl bg-white border border-gray-200 p-6">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center gap-3 mb-3">
-        <div className="rounded-full relative h-12 w-12">
-          <div
-            className={`w-12 h-12 flex justify-center items-center rounded-full border ${iconBorder} ${iconColor}`}
-          >
-            <Icon className="h-6 w-6 " />
-          </div>
+        <div className={`rounded-full relative h-12 w-12 flex justify-center items-center dark:border-gray-300 border ${iconBorder} ${iconColor}`}>
+          <Icon className="h-6 w-6" />
         </div>
         <div className="h-fit">
-          <h3 className="text-md uppercase mb-0 font-semibold text-gray-900">
-            {title}
-          </h3>
-          <p className="text-xs text-gray-500">{subtitle}</p>
+          <h3 className="text-md uppercase mb-0 font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-300">{subtitle}</p>
         </div>
       </div>
       <div className="flex items-end justify-between">
-        <div className="text-md font-semibold text-gray-900">{count}</div>
+        <div className="text-md font-semibold text-gray-900 dark:text-gray-100">{count}</div>
         <div
-          className={`bg-${badgeColor}-100 text-${badgeColor}-700 text-sm px-2 py-0.5 rounded-full font-medium flex items-center gap-1`}
+          className={`bg-${badgeColor}-100 dark:bg-${badgeColor}-700 text-${badgeColor}-700 dark:text-gray-900 text-sm px-2 py-0.5 rounded-full font-medium flex items-center gap-1`}
         >
           <svg
             viewBox="0 0 13 12"
@@ -83,8 +77,10 @@ const DashboardCard: React.FC<CardData> = ({
           </svg>
           {badgeText}
         </div>
+
       </div>
     </div>
+
   );
 };
 

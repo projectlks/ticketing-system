@@ -25,15 +25,11 @@ export function DepartmentView({
             aria-label="Department details"
         >
             {/* Card Container */}
-            <div className="h-fit md:sticky top-0 col-span-2 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
+            <div className="h-fit md:sticky top-0 col-span-2 border-l-4 border-indigo-500 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white dark:bg-gray-800 dark:border-indigo-400">
                 {/* Card Header */}
-                {/* < className="pb-4 px-6 pt-6"> */}
-                <div className=" gap-2 pb-4 px-6 pt-6" >
-
-                    <h2 className="text-lg font-semibold text-indigo-600">{title}</h2>
+                <div className="gap-2 pb-4 px-6 pt-6">
+                    <h2 className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">{title}</h2>
                 </div>
-
-
 
                 {/* Card Content */}
                 <div className="pt-2 px-6 pb-6">
@@ -41,52 +37,25 @@ export function DepartmentView({
                         {/* Department Name */}
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                                <h3 className="text-xl font-semibold leading-none">
+                                <h3 className="text-xl font-semibold leading-none text-gray-900 dark:text-gray-100">
                                     {department.name}
                                 </h3>
-
-                                <p className="mt-3 text-sm text-muted-foreground">
+                                <p className="mt-3 text-sm text-muted-foreground dark:text-gray-400">
                                     {department.description ?? "—"}
                                 </p>
                             </div>
                         </div>
 
                         {/* Separator */}
-                        <div className="border-t border-gray-200" />
+                        <div className="border-t border-gray-200 dark:border-gray-700" />
 
                         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-
-
-
-
-                            <ViewContext
-                                label={t("contact")}
-                                value={department.contact ?? "—"}
-                                type="tel"
-                            />
-                            <ViewContext
-                                label={t("email")}
-                                value={department.email ?? "—"}
-                                type="email"
-                            />
-                            <ViewContext
-                                label={t("managerName")}
-                                value={department.manager?.name ?? "—"}
-                            />
-                            <ViewContext
-                                label={t("managerEmail")}
-                                value={department.manager?.email ?? "—"}
-                                type="email"
-                            />
-                            <ViewContext
-                                label={t("createdBy")}
-                                value={department.creator?.name ?? "—"}
-                            />
-                            <ViewContext
-                                label={t("updatedBy")}
-                                value={department.updater?.name ?? "—"}
-                            />
+                            <ViewContext label={t("contact")} value={department.contact ?? "—"} type="tel" />
+                            <ViewContext label={t("email")} value={department.email ?? "—"} type="email" />
+                            <ViewContext label={t("managerName")} value={department.manager?.name ?? "—"} />
+                            <ViewContext label={t("managerEmail")} value={department.manager?.email ?? "—"} type="email" />
+                            <ViewContext label={t("createdBy")} value={department.creator?.name ?? "—"} />
+                            <ViewContext label={t("updatedBy")} value={department.updater?.name ?? "—"} />
                             <ViewContext
                                 label={t("createdAt")}
                                 value={new Date(department.createdAt).toLocaleString("en-US", {
@@ -103,34 +72,33 @@ export function DepartmentView({
                                 label={t("ticketsCount")}
                                 value={`${department.tickets?.length ?? 0} Ticket${department.tickets?.length === 1 ? '' : 's'}`}
                             />
-                            <ViewContext
-                                label={t("isArchived")}
-                                value={department.isArchived ? "Yes" : "No"}
-                            />
+                            <ViewContext label={t("isArchived")} value={department.isArchived ? "Yes" : "No"} />
 
                             <div className="flex flex-col items-start gap-1.5 col-span-2">
-                                <h3 className="text-xs tracking-wide text-muted-foreground">{t("positions")}</h3>
+                                <h3 className="text-xs tracking-wide text-muted-foreground dark:text-gray-400">{t("positions")}</h3>
                                 <div className="text-sm font-medium">
                                     {department.positions?.map(job => (
-                                        <p className="border border-gray-300 rounded-full px-3 py-1" key={job.id}>
+                                        <p
+                                            className="border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 text-gray-900 dark:text-gray-100"
+                                            key={job.id}
+                                        >
                                             {job.name}
                                         </p>
                                     ))}
                                 </div>
                             </div>
-
                         </dl>
                     </div>
                 </div>
             </div>
 
             {/* Audit Log Card */}
-            <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white">
+            <div className="border-l-4 border-indigo-300 shadow-sm transition-shadow hover:shadow-md rounded-lg bg-white dark:bg-gray-800 dark:border-indigo-400">
                 <div className="pb-4 px-6 pt-6">
-                    <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                         <span>{tHistory("title")}</span>
                     </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground dark:text-gray-400">
                         {tHistory("description.department")}
                     </p>
                 </div>
@@ -139,6 +107,7 @@ export function DepartmentView({
                 </div>
             </div>
         </section>
+
     );
 }
 
