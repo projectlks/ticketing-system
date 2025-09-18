@@ -207,7 +207,7 @@ export async function getUserIdsandEmail(): Promise<{ id: string; email: string;
 
 export async function getUserIdsandEmailByDepeartmentId({ id }: { id: string }): Promise<{ id: string; email: string; name: string }[]> {
   return prisma.user.findMany({
-    where: { isArchived: false, departmentId: id },
+    where: { isArchived: false, departmentId: id, role: "AGENT" },
     select: { id: true, email: true, name: true },
     orderBy: { createdAt: "desc" }, // sorted by newest first
   });

@@ -45,7 +45,7 @@ export default function StatusBox({ ticket }: Props) {
             if (current === Status.IN_PROGRESS) allowed.push(Status.RESOLVED);
         } else if (role === "ADMIN" || role === "SUPER_ADMIN") {
             allowed = [current];
-            if (current === Status.IN_PROGRESS) allowed.push(Status.RESOLVED, Status.CLOSED);
+            if (current === Status.IN_PROGRESS || current === Status.RESOLVED) allowed.push(Status.CLOSED);
         } else {
             allowed = [current];
         }

@@ -158,10 +158,10 @@ export default function TicketForm({
             if (response.success) {
                 if (updateID) {
                     setTickets(prev => prev.map(ticket => ticket.id === updateID ? response.data : ticket));
-                    Swal.fire(t('alerts.success'), t('alerts.updateSuccess'), 'success');
+                    Swal.fire(t('alerts.success.title'), t('alerts.success.update'), 'success');
                 } else {
                     setTickets(prev => [response.data, ...prev]);
-                    Swal.fire(t('alerts.success'), t('alerts.createSuccess'), 'success');
+                    Swal.fire(t('alerts.success.title'), t('alerts.success.create'), 'success');
                 }
                 setShowForm(false);
             }

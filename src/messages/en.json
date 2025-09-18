@@ -25,14 +25,14 @@
       "subtitle": "Awaiting Response"
     },
     "closed": {
-      "title": "Closed",
+      "title": "Resolved / Closed",
       "subtitle": "Resolved Tickets"
     }
   },
 
   "charts": {
     "ticketTrends": "Ticket Trends",
-    "priorityDistribution": "Priority Distribution",
+    "priorityDistribution": "Priority chart",
     "timeFilters": {
       "last7": "Last 7 days",
       "last30": "Last 30 days",
@@ -286,9 +286,22 @@
       "creating": "Creating...",
       "updating": "Updating..."
     },
-    "alerts": {
-      "successCreate": "Ticket created successfully!",
-      "successUpdate": "Ticket updated successfully!"
+     "alerts": {
+      "success": {
+        "title": "Success",
+        "create": "Ticket created successfully!",
+        "update": "Ticket updated successfully!"
+      },
+      "error": {
+        "title": "Error",
+        "text": "Something went wrong."
+      },
+      "cancel": {
+        "title": "Are you sure?",
+        "text": "You have unsaved changes. Closing the form will lose them.",
+        "confirm": "Yes, close it",
+        "cancel": "No, keep editing"
+      }
     },
     "errors": {
       "title": "Title is required",
