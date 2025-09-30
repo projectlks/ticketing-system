@@ -6,7 +6,6 @@ import { prisma } from "@/libs/prisma";
 import bcrypt from "bcrypt";
 
 const MAX_SESSION_AGE_MS = 1000 * 60 * 60 * 24; // 1 day
-// const HEARTBEAT_INTERVAL_MS = 1000 * 60 * 15;   // 15 min
 
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -111,10 +110,62 @@ const handler = NextAuth({
         session.user.picture = token.picture as string | null;
         session.user.name = token.name as string | null;
         session.user.email = token.email as string | null;
-      }
+      }else {
+      // Clear user completely if no token
+      session.user.id = "";
+        session.user.role = "";
+        session.user.picture = "";
+        session.user.name = "";
+        session.user.email = "";
+    }
+
       return session;
     },
   },
+
+
+//   callbacks: {
+//   async jwt({ token, user, trigger }) {
+//     // On sign in → populate the token
+//     if (user) {
+//       token.id = user.id;
+//       token.role = user.role;
+//       token.picture = user.profileUrl || null;
+//       token.name = user.name || null;
+//       token.email = user.email || null;
+//     }
+
+//     // 🔥 added → On sign out → clear the token
+//    if (trigger === "signOut") {
+//   return {
+//     id: undefined,
+//     role: undefined,
+//     picture: null,
+//     name: null,
+//     email: null,
+//   } ; // 👈 cast to JWT to satisfy TS
+// }
+
+
+
+//     return token;
+//   },
+
+//   async session({ session, token }) {
+//     if (token?.id) {
+//       session.user.id = token.id as string;
+//       session.user.role = token.role as string;
+//       session.user.picture = token.picture as string | null;
+//       session.user.name = token.name as string | null;
+//       session.user.email = token.email as string | null;
+//     } else {
+//       // 🔥 added → If no token (after signOut), clear session
+//       session.user = null as any;
+//     }
+//     return session;
+//   },
+// },
+
 
   pages: {
     signIn: "/auth/signin",

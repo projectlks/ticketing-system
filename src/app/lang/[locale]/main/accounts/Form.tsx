@@ -326,7 +326,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         <option value="AGENT">AGENT</option>
                                         <option value="ADMIN">ADMIN</option>
                                     </select>
-                                    <span
+                                    <span aria-hidden="true" 
                                         onClick={() => {
                                             selectRef.current?.focus();
                                             selectRef.current?.click();
@@ -357,7 +357,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         <option key={dept.id} value={dept.id}>{dept.name}</option>
                                     ))}
                                 </select>
-                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
+                                <span aria-hidden="true" className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
                                     <ChevronDownIcon className="w-5 h-5" />
                                 </span>
                             </div>
@@ -383,8 +383,8 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         <option key={job.id} value={job.id}>{job.name}</option>
                                     ))}
                                 </select>
-                                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
-                                    <ChevronDownIcon className="w-5 h-5" />
+                                <span aria-hidden="true" className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
+                                    <ChevronDownIcon  className="w-5 h-5" />
                                 </span>
                             </div>
                             {errors.job_position && <p className="text-red-500 text-xs mt-1">{errors.job_position}</p>}

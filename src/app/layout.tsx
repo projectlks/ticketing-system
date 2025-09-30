@@ -50,21 +50,21 @@ export default async function RootLayout({
         </title>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-        >
-          <UserDataProvider>
-            <TicketCountProvider>
-              <Providers session={session}>
+        <Providers session={session}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+          >
+            <UserDataProvider>
+              <TicketCountProvider>
                 {children}
                 <PortalRoot />
-              </Providers>
-            </TicketCountProvider>
-          </UserDataProvider>
-        </ThemeProvider>
+              </TicketCountProvider>
+            </UserDataProvider>
+          </ThemeProvider>
         <div id="portal-root"></div>
+        </Providers>
       </body>
     </html>
   );

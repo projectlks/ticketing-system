@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { getUnseenTicketCount } from "@/libs/action";
+import { useSession } from "next-auth/react";
 
 interface TicketCountContextType {
   ticketCount: number;
@@ -10,11 +11,13 @@ interface TicketCountContextType {
 
 const TicketCountContext = createContext<TicketCountContextType>({
   ticketCount: 0,
-  refreshTicketCount: async () => {},
+  refreshTicketCount: async () => { },
 });
 
 export const TicketCountProvider = ({ children }: { children: ReactNode }) => {
   const [ticketCount, setTicketCount] = useState(0);
+    const { data: session, status } = useSession(); // get session
+
 
   const refreshTicketCount = async () => {
     try {
@@ -25,9 +28,27 @@ export const TicketCountProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+
+
+
   useEffect(() => {
-    refreshTicketCount(); // initial fetch
-  }, []);
+
+    if (status !== "authenticated") return; // wait until session is ready
+
+    const fetchCount = async () => {
+      await refreshTicketCount();
+    };
+
+    fetchCount(); // first fetch
+
+
+  }, [status, session?.user]);
+
+
+
+
+
+
 
   return (
     <TicketCountContext.Provider value={{ ticketCount, refreshTicketCount }}>

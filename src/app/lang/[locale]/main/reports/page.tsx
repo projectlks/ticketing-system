@@ -165,7 +165,14 @@ export default function Page() {
 
         const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
         const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-        saveAs(blob, "tickets.xlsx");
+        // const date = new Date().toISOString().split("T");
+
+        const date = new Date();
+        const mmDate = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Yangon" }));
+
+        const formatted = `${mmDate.getFullYear()}/${mmDate.getMonth() + 1}/${mmDate.getDate()} ${mmDate.getHours()}:${String(mmDate.getMinutes()).padStart(2, "0")}:${String(mmDate.getSeconds()).padStart(2, "0")}`;
+
+        saveAs(blob, `tickets_${formatted}.xlsx`);
     };
 
     const t = useTranslations("table");
@@ -183,6 +190,18 @@ export default function Page() {
                 <div className="px-5 py-4 sm:px-6 sm:py-5 flex border-b border-gray-200 dark:border-gray-700 justify-between items-center">
                     <div className="flex items-center space-x-2">
                         <h1 className="text-sm text-gray-800 dark:text-gray-100">{tHeader("reports.title")}</h1>
+
+
+                        {/* testing
+                        <p>
+                          selected tickets: {selectedTickets.length}
+                        </p>
+
+<p>
+    selected All
+</p> */}
+
+
                     </div>
 
                     <div className="relative flex items-center space-x-2">
@@ -341,7 +360,7 @@ export default function Page() {
                                         <option value={100}>100</option>
                                         <option value={99999}>All</option>
                                     </select>
-                                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
+                                    <span aria-hidden="true" className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
                                         <ChevronDownIcon className="w-3 h-3" />
                                     </span>
                                 </div>

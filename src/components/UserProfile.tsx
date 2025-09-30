@@ -67,7 +67,7 @@ export default function UserMenu({ menuToggle }: Props) {
             <Avatar name={displayName} profileUrl={displayProfileUrl} />
           </span>
           <span className="hidden mr-1 text-sm font-medium sm:inline-block">{displayName}</span>
-          <ChevronDownIcon className="hidden w-5 h-5 stroke-gray-500 dark:stroke-gray-300 sm:inline-block" />
+          <ChevronDownIcon aria-hidden="true" className="hidden w-5 h-5 stroke-gray-500 dark:stroke-gray-300 sm:inline-block" />
         </button>
 
         {dropdownOpen && (
@@ -100,8 +100,10 @@ export default function UserMenu({ menuToggle }: Props) {
                     alert("Logout failed. Please try again.");
                     return;
                   }
-                  await signOut({ redirect: false });
-                  router.push("/auth/signin");
+                  // await signOut({ redirect: false });
+                  await signOut({ redirect: true, callbackUrl: "/auth/signin" });
+
+                  // router.push("/auth/signin");p
                 } catch (error) {
                   console.error("Failed to sign out:", error);
                   alert("Logout failed. Please try again.");

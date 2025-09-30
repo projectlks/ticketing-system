@@ -59,7 +59,7 @@ export default function LanguageSwitcher() {
                     />
                     <span>{currentLanguage.code.toUpperCase()}</span>
                 </span>
-                <ChevronDownIcon
+                <ChevronDownIcon aria-hidden="true"
                     className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>

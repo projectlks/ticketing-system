@@ -99,7 +99,7 @@ const PriorityChart: React.FC<PriorityChartProps> = ({ role, userId }) => {
             <option value={30} className="text-gray-500 dark:text-gray-300">{t("timeFilters.last30")}</option>
             <option value={90} className="text-gray-500 dark:text-gray-300">{t("timeFilters.last90")}</option>
           </select>
-          <ChevronDownIcon className="absolute z-30 h-5 w-5 text-gray-500 dark:text-gray-300 right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <ChevronDownIcon aria-hidden="true" className="absolute z-30 h-5 w-5 text-gray-500 dark:text-gray-300 right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
       <div className="h-64">

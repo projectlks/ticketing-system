@@ -63,7 +63,7 @@ export default function SelectBox({
                     ))}
                 </select>
 
-                <span
+                <span aria-hidden="true" 
                     onClick={() => {
                         selectRef.current?.focus();
                         selectRef.current?.click();

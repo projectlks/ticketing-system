@@ -251,14 +251,22 @@ export default function Page() {
             alert("Please select users to download");
             return;
         }
-
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
 
         const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
         const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-        saveAs(blob, "users.xlsx");
+
+        
+        const date = new Date();
+        const mmDate = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Yangon" }));
+
+        const formatted = `${mmDate.getFullYear()}/${mmDate.getMonth() + 1}/${mmDate.getDate()} ${mmDate.getHours()}:${String(mmDate.getMinutes()).padStart(2, "0")}:${String(mmDate.getSeconds()).padStart(2, "0")}`;
+
+        saveAs(blob, `users_${formatted}.xlsx`);
+        
+        // saveAs(blob, "users.xlsx");
 
 
     };
@@ -463,7 +471,7 @@ export default function Page() {
                                         <option value={99999}>All</option>
                                     </select>
 
-                                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                                    <span aria-hidden="true" className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
                                         <ChevronDownIcon className="w-3 h-3" />
                                     </span>
                                 </div>
