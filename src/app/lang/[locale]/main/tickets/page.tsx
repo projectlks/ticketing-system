@@ -300,6 +300,19 @@ export default function Page() {
                                     <tbody>
                                         {tickets.map((ticket, index) => (
                                             <tr
+
+
+                                                onClick={async () => {
+                                                    try {
+                                                        await markTicketAsViewed(ticket.id);
+                                                        refreshTicketCount();
+                                                        router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                    }
+                                                }}
+
+
                                                 key={ticket.id}
                                                 className={`border-b border-gray-100 dark:border-gray-700 
                                         hover:bg-gray-50 dark:hover:bg-gray-800

@@ -44,7 +44,7 @@ export default function DotMenu({ isBottom, option, onDelete, onEdit, onView, on
     const t = useTranslations('dotMenu');
 
     return (
-        <div className="relative" ref={menuRef}>
+        <div className="relative  "  ref={menuRef}>
             <button
                 onClick={(e) => {
                     e.stopPropagation();

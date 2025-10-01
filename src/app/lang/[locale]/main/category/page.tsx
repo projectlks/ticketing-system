@@ -168,7 +168,8 @@ export default function Page() {
                                     </thead>
                                     <tbody>
                                         {categories.map((category, index) => (
-                                            <tr
+                                            <tr                                                         onClick={() => router.push(`/lang/${locale}/main/category/view/${category.id}`)}
+
                                                 key={category.id}
                                                 className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                                             >

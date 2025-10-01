@@ -21,6 +21,8 @@ import {
 import MultiFilter from "../tickets/multiFilter";
 import Button from "@/components/Button";
 import { useTranslations } from "next-intl";
+import { markTicketAsViewed } from "../tickets/action";
+import { useTicketCount } from "@/context/TicketCountContext";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: { id: string; name: string; email: string } | null;
@@ -181,6 +183,9 @@ export default function Page() {
     const segments = pathname.split("/");
     const locale = segments[2] || "en";
 
+        const { refreshTicketCount } = useTicketCount();
+    
+
     return (
         <>
             {isLoading && <Loading />}
@@ -266,7 +271,15 @@ export default function Page() {
                                     </thead>
                                     <tbody>
                                         {tickets.map((ticket, index) => (
-                                            <tr
+                                            <tr      onClick={async () => {
+                                                                                                try {
+                                                                                                    await markTicketAsViewed(ticket.id);
+                                                                                                    refreshTicketCount();
+                                                                                                    router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
+                                                                                                } catch (err) {
+                                                                                                    console.error(err);
+                                                                                                }
+                                                                                            }}
                                                 key={ticket.id}
                                                 className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 border-l-4 ${ticket.assignedToId ? "border-l-green-500 dark:border-l-green-500" : "border-l-red-500 dark:border-l-red-500"}`}
                                             >

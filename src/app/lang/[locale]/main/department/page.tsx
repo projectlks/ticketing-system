@@ -146,7 +146,7 @@ export default function Page() {
                                     </thead>
                                     <tbody>
                                         {departments.map((department, index) => (
-                                            <tr
+                                            <tr onClick={ () => router.push(`/lang/${locale}/main/department/view/${department.id}`)}
                                                 key={department.id}
                                                 className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${department.isArchived ? "bg-red-100 dark:bg-red-900/40" : ""
                                                     }`}

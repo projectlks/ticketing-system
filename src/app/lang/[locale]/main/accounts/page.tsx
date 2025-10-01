@@ -333,13 +333,13 @@ export default function Page() {
                                             <TableHead data={t("department")} />
                                             <TableHead data={t("jobPosition")} />
                                             {/* <TableHead data={t("lastSeen")} /> */}
-                                            <TableHead data={"Last Login"} />
-                                            <TableHead data={"ExpireTime At"} />
+                                            {/* <TableHead data={"Last Login"} />
+                                            <TableHead data={"ExpireTime At"} /> */}
 
 
                                             {/* lastSeen */}
-                                            {/* <TableHead data={t("creator")} />
-                                            <TableHead data={t("actions")} /> */}
+                                            <TableHead data={t("creator")} />
+                                            <TableHead data={t("actions")} />
 
                                         </tr>
                                     </thead>
@@ -347,6 +347,10 @@ export default function Page() {
                                         {accounts.map((account, index) => (
                                             <tr
                                                 // onClick={() => { router.push(`/main/accounts/view/${account.id}`) }}
+
+
+                                                                                                        onClick={() => router.push(`/lang/${locale}/main/accounts/view/${account.id}`)}
+
                                                 key={account.id}
                                                 className={`
           border-b border-gray-100 dark:border-gray-700

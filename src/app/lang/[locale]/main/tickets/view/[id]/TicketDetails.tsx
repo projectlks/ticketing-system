@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { CommentWithRelations, TicketWithRelations } from './TicketView';
 import AuditLogList from '@/components/AuditLogList';
 import { Audit } from '@prisma/client';
+import { ArrowDownCircleIcon } from '@heroicons/react/24/outline';
 
 type TicketDetailsProps = {
     ticket: TicketWithRelations;
@@ -72,8 +73,31 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
                                 <h3 className="text-lg font-semibold mb-2">Images</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                                     {ticket.images.length > 0 ? (
+
+
                                         ticket.images.map((image) => (
-                                            <div key={image.id} className="overflow-hidden rounded-lg">
+                                            <a
+                                                href={image.url}
+                                                download={`ticket-image-${image.id}.jpg`}
+                                                key={image.id}
+                                                className="group relative overflow-hidden rounded-lg"
+                                            >
+                                                {/* Overlay with Download Button */}
+                                                <div
+                                                    className="absolute inset-0 bg-transparent flex justify-center items-center
+      group-hover:bg-[rgba(0,0,0,0.5)] transition-colors"
+                                                >
+                                                    <div
+
+                                                        className="w-[50px] aspect-square group-hover:opacity-100 opacity-0 rounded-full 
+        bg-gray-800/70 flex justify-center items-center"
+                                                    >
+                                                        <ArrowDownCircleIcon className="w-10 h-10 text-white" />
+
+                                                    </div>
+                                                </div>
+
+                                                {/* Image */}
                                                 <Image
                                                     src={image.url}
                                                     alt={`Ticket image ${image.id}`}
@@ -81,8 +105,10 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
                                                     height={500}
                                                     className="object-cover w-full h-auto"
                                                 />
-                                            </div>
+                                            </a>
                                         ))
+
+
                                     ) : (
                                         <p className="text-gray-500 dark:text-gray-400">No images attached.</p>
                                     )}
@@ -91,7 +117,7 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
 
                             <div className="border-t col-span-2 my-[50px] border-gray-200 dark:border-gray-700" />
 
-                            <CommentBox ticketId={ticket.id} comments={comments}  />
+                            <CommentBox ticketId={ticket.id} comments={comments} />
                         </dl>
                     </div>
                 </div>
@@ -108,7 +134,7 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
                     </p>
                 </div>
                 <div className="pt-2 px-6 pb-6">
-                    <AuditLogList items={auditLog}  />
+                    <AuditLogList items={auditLog} />
                 </div>
             </div>
 

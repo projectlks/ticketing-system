@@ -15,6 +15,8 @@ import {
     ChatBubbleLeftIcon,
 } from "@heroicons/react/24/outline";
 import { useTranslations } from "next-intl";
+import { markTicketAsViewed } from "../tickets/action";
+import { useTicketCount } from "@/context/TicketCountContext";
 
 interface Props {
     tickets: TicketWithRelations[];
@@ -52,6 +54,7 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
     const pathname = usePathname();
     const segments = pathname.split("/");
     const locale = segments[2] || "en";
+    const { refreshTicketCount } = useTicketCount();
 
 
     return (
@@ -79,7 +82,19 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                     </thead>
                     <tbody>
                         {tickets.map((ticket, index) => (
-                            <tr key={ticket.id} className="border border-gray-100 dark:border-gray-700">
+                            <tr          onClick={async () => {
+                                                    try {
+                                                        await markTicketAsViewed(ticket.id);
+                                                        refreshTicketCount();
+                                                        router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                    }
+                                                }}
+                                                
+                                                
+                                                
+                                                key={ticket.id} className="border border-gray-100 dark:border-gray-700">
                                 <TableBody data={ticket.ticketId} />
                                 <TableBody data={ticket.title} />
                                 <TableBody data={ticket.description} />
@@ -96,7 +111,18 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                                     <DotMenu
                                         isBottom={index >= tickets.length - 2}
                                         option={{ view: true }}
-                                        onView={() => router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`)}
+                                        // onView={() => router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`)}
+
+                                        onView={async () => {
+                                            try {
+                                                await markTicketAsViewed(ticket.id);
+                                                refreshTicketCount();
+                                                router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
+                                            } catch (err) {
+                                                console.error(err);
+                                            }
+                                        }}
+
                                     />
                                 </td>
                             </tr>
