@@ -20,6 +20,7 @@ interface SelectBoxProps {
     error?: string | null;
     placeholder?: string;
     showEmail?: boolean; // whether to show email along with name
+    require?: boolean;
 }
 
 export default function SelectBox({
@@ -33,15 +34,16 @@ export default function SelectBox({
     error = null,
     placeholder = 'Select an option',
     showEmail = false,
+    require = false
 }: SelectBoxProps) {
     const selectRef = useRef<HTMLSelectElement>(null);
 
 
 
     return (
-        <div className="relative">
+        <div className="relative ">
             <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {label}
+                {label} {require && (<span className="text-red-500">*</span>)}
             </label>
 
             <div className="relative">
@@ -63,7 +65,7 @@ export default function SelectBox({
                     ))}
                 </select>
 
-                <span aria-hidden="true" 
+                <span aria-hidden="true"
                     onClick={() => {
                         selectRef.current?.focus();
                         selectRef.current?.click();
@@ -77,6 +79,8 @@ export default function SelectBox({
                 <p className="text-red-600 text-sm mt-1" role="alert" aria-live="assertive">
                     {error}
                 </p>
+
+
             )}
         </div>
     );

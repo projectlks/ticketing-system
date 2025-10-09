@@ -152,6 +152,20 @@ export default function Sidebar({ openSidebar }: Props) {
                     {t("account_setting")}
                   </Link>
                 </li>
+
+
+                <li>
+                  <Link
+                    href={`/lang/${locale}/main/profile`}
+                    className={`block text-sm py-2.5 px-3 rounded transition 
+                    ${pathname === `/lang/${locale}/main/profile`
+                        ? "bg-[#ecf3ff] text-blue-600 dark:bg-gray-700 dark:text-white"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-[#ecf3ff] dark:text-gray-200 dark:hover:text-white dark:hover:bg-gray-700"
+                      }`}
+                  >
+                    {t("mail_setting")}
+                  </Link>
+                </li>
               </ul>
             )}
           </div>

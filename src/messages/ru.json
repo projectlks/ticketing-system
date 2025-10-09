@@ -9,7 +9,8 @@
     "accounts": "Аккаунты",
     "category": "Категория",
     "settings": "Настройки",
-    "account_setting": "Настройка аккаунта"
+    "account_setting": "Настройка аккаунта",
+    "mail_setting": "Настройка почты"
   },
 
   "dashboardCards": {
@@ -170,10 +171,12 @@
     },
     "labels": {
       "name": "Название категории",
+      "department": "Отдел",
       "subcategories": "Подкатегории"
     },
     "placeholders": {
       "name": "Введите название категории",
+      "department": "Выберите отдел",
       "subCategory": "Название подкатегории"
     },
     "buttons": {

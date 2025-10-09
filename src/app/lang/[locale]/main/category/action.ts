@@ -8,14 +8,23 @@ import { CategoryWithRelations } from "./page";
 // ===== Validation =====
 const CategoryFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  departmentId: z.string(),
 });
+
+export async function getDepartments() {
+  return prisma.department.findMany({
+    where: { isArchived: false },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+};
 
 // ===== Create Category =====
 export async function createCategory(
   formData: FormData,
-  subCategories: { id?: string; title: string }[]
+  // subCategories: { id?: string; title: string }[]
 ): Promise<{ success: boolean; data: CategoryWithRelations }> {
-  const raw = { name: formData.get("name") };
+  const raw = { name: formData.get("name"), departmentId: formData.get("departmentId") };
   const parsed = CategoryFormSchema.parse(raw);
 
   const creatorId = await getCurrentUserId();
@@ -24,17 +33,14 @@ export async function createCategory(
   const data = await prisma.category.create({
     data: {
       name: parsed.name,
+      departmentId: parsed.departmentId as string,
       creatorId,
-      subcategories: {
-        create: subCategories
-          .filter((sub) => sub.title.trim() !== "")
-          .map((sub) => ({ name: sub.title.trim(), creatorId })),
-      },
+
     },
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
-      subcategories: true,
+      // subcategories: true,
     },
   });
 
@@ -49,6 +55,7 @@ export async function getCategory(id: string): Promise<CategoryWithRelations | n
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
       tickets: { select: { id: true, title: true, status: true } },
+      department: { select: { id: true, name: true } },
       subcategories: { select: { id: true, name: true } },
     },
   });
@@ -80,7 +87,7 @@ export async function getAllCategories(
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
-      subcategories: true, // include children
+      department: { select: { id: true, name: true } },
     },
   });
 
@@ -100,9 +107,9 @@ export async function deleteCategory(id: string) {
 export async function updateCategory(
   formData: FormData,
   id: string,
-  subCategories: { id?: string; title: string }[] = []
+  // subCategories: { id?: string; title: string }[] = []
 ): Promise<{ success: boolean; data: CategoryWithRelations }> {
-  const { name } = CategoryFormSchema.parse({ name: formData.get("name") });
+  const { name, departmentId } = CategoryFormSchema.parse({ name: formData.get("name"), departmentId: formData.get("departmentId") });
   const updaterId = await getCurrentUserId();
   if (!updaterId) throw new Error("No logged-in user found");
 
@@ -115,11 +122,10 @@ export async function updateCategory(
   // Update main category
   const data = await prisma.category.update({
     where: { id },
-    data: { name, updaterId },
+    data: { name, departmentId, updaterId },
     include: {
       creator: { select: { name: true, email: true } },
       updater: { select: { name: true, email: true } },
-      subcategories: true,
       tickets: { select: { id: true, title: true, status: true } },
     },
   });
@@ -139,26 +145,26 @@ export async function updateCategory(
   }
 
   // Sync subcategories
-  for (const sub of subCategories) {
-    const trimmedTitle = sub.title.trim();
-    if (!trimmedTitle) continue;
+  // for (const sub of subCategories) {
+  //   const trimmedTitle = sub.title.trim();
+  //   if (!trimmedTitle) continue;
 
-    if (sub.id) {
-      // Update existing
-      const existingSub = existingCategory.subcategories.find(s => s.id === sub.id);
-      if (existingSub && existingSub.name !== trimmedTitle) {
-        await prisma.category.update({
-          where: { id: sub.id },
-          data: { name: trimmedTitle, updaterId },
-        });
-      }
-    } else {
-      // Create new subcategory
-      await prisma.category.create({
-        data: { name: trimmedTitle, creatorId: updaterId, parentId: id },
-      });
-    }
-  }
+  //   if (sub.id) {
+  //     // Update existing
+  //     const existingSub = existingCategory.subcategories.find(s => s.id === sub.id);
+  //     if (existingSub && existingSub.name !== trimmedTitle) {
+  //       await prisma.category.update({
+  //         where: { id: sub.id },
+  //         data: { name: trimmedTitle, updaterId },
+  //       });
+  //     }
+  //   } else {
+  //     // Create new subcategory
+  //     await prisma.category.create({
+  //       data: { name: trimmedTitle, creatorId: updaterId, parentId: id },
+  //     });
+  //   }
+  // }
 
   return { success: true, data };
 }

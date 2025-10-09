@@ -4,18 +4,19 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import Loading from '@/components/Loading';
 import Input from '@/components/Input';
+import SelectBox from '@/components/SelectBox';
+import ImageInput from './ImageInput';
 import { createTicket, getTicket, updateTicket } from './action';
 import { TicketWithRelations } from './page';
 import { getAllCategoryIdAndName, getAllDepartmentIdAndName } from '@/libs/action';
-import SelectBox from '@/components/SelectBox';
-import ImageInput from './ImageInput';
 import { useTranslations } from 'next-intl';
+import { useSession } from 'next-auth/react';
 
 interface TicketFormProps {
     setShowForm: (value: boolean) => void;
     setTickets: Dispatch<SetStateAction<TicketWithRelations[]>>;
     updateID: string | null;
-    setUpdateID: Dispatch<SetStateAction<string | null>>
+    setUpdateID: Dispatch<SetStateAction<string | null>>;
 }
 
 const emptyForm = {
@@ -23,7 +24,6 @@ const emptyForm = {
     description: '',
     departmentId: '',
     categoryId: '',
-    subcategoryId: '',
     priority: 'MEDIUM',
 };
 
@@ -33,13 +33,14 @@ export default function TicketForm({
     updateID,
     setUpdateID
 }: TicketFormProps) {
-    const t = useTranslations('ticketForm'); // translation instance
+    const t = useTranslations('ticketForm');
+    const { data } = useSession();
 
     const [form, setForm] = useState(emptyForm);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
-    const [categories, setCategories] = useState<{ id: string; name: string, subcategories?: { id: string; name: string }[]; }[]>([]);
-    const [subcategories, setSubcategories] = useState<{ id: string; name: string }[]>([]);
+    const [allCategories, setAllCategories] = useState<{ id: string; name: string; departmentId: string }[]>([]);
+    const [categories, setCategories] = useState<{ id: string; name: string; departmentId: string }[]>([]);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
     const [images, setImages] = useState<File[]>([]);
     const [existingImages, setExistingImages] = useState<{ id: string; url: string }[]>([]);
@@ -49,39 +50,42 @@ export default function TicketForm({
         const fetchData = async () => {
             const cats = await getAllCategoryIdAndName();
             const depts = await getAllDepartmentIdAndName();
-            setCategories(cats);
+            setAllCategories(cats);
             setDepartments(depts);
         };
         fetchData();
     }, []);
 
-    // Update subcategories when category changes
+    // Filter categories when department changes
     useEffect(() => {
-        const selectedCat = categories.find(c => c.id === form.categoryId);
-        setSubcategories(selectedCat?.subcategories || []);
-        if (!updateID) {
-            setForm(prev => ({ ...prev, subcategoryId: '' }));
+        if (!form.departmentId) {
+            setCategories([]);
+            setForm(prev => ({ ...prev, categoryId: '' }));
+            return;
         }
-    }, [form.categoryId, categories, updateID]);
+        const filtered = allCategories.filter(c => c.departmentId === form.departmentId);
+        setCategories(filtered);
+        setForm(prev => ({ ...prev, categoryId: '' }));
+    }, [form.departmentId, allCategories]);
 
-    // Fetch ticket for update
+    // Fetch ticket data for update
     useEffect(() => {
         if (updateID) {
-            getTicket(updateID).then((data) => {
+            getTicket(updateID).then(data => {
                 if (data) {
                     setForm({
                         title: data.title ?? '',
                         description: data.description ?? '',
-                        categoryId: data.categoryId ?? '',
                         departmentId: data.departmentId ?? '',
-                        subcategoryId: data.subcategoryId ?? '',
+                        categoryId: data.categoryId ?? '',
                         priority: data.priority ?? 'MEDIUM',
                     });
-                    setExistingImages(data.images || [])
+                    setExistingImages(data.images || []);
                 }
             });
         } else {
             setForm(emptyForm);
+            setExistingImages([]);
         }
     }, [updateID]);
 
@@ -89,13 +93,6 @@ export default function TicketForm({
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
         setErrors(prev => ({ ...prev, [name]: null }));
-    };
-
-    const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { value } = e.target;
-        setForm(prev => ({ ...prev, categoryId: value, subcategoryId: '' }));
-        const selectedCat = categories.find(c => c.id === value);
-        setSubcategories(selectedCat?.subcategories || []);
     };
 
     const handleCancel = () => {
@@ -106,7 +103,7 @@ export default function TicketForm({
             showCancelButton: true,
             confirmButtonText: t('confirm.cancelConfirm'),
             cancelButtonText: t('confirm.cancelDeny'),
-        }).then((result) => {
+        }).then(result => {
             if (result.isConfirmed) {
                 setShowForm(false);
             }
@@ -118,11 +115,6 @@ export default function TicketForm({
         const newErrors: { [key: string]: string } = {};
         if (!form.title.trim()) newErrors.title = t('errors.title');
         if (!form.description.trim()) newErrors.description = t('errors.description');
-        if (!form.categoryId) newErrors.categoryId = t('errors.category');
-        if (!form.departmentId) newErrors.departmentId = t('errors.department');
-        if (!form.subcategoryId) newErrors.subcategoryId = t('errors.subcategory');
-        if (!form.priority) newErrors.priority = t('errors.priority');
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -147,11 +139,11 @@ export default function TicketForm({
 
             let response;
             if (updateID) {
-                formData.append("newImages", JSON.stringify(imageUrls));
+                formData.append('newImages', JSON.stringify(imageUrls));
                 formData.append('existingImageIds', JSON.stringify(existingImages.map(i => i.id)));
                 response = await updateTicket(formData, updateID);
             } else {
-                formData.append("images", JSON.stringify(imageUrls));
+                formData.append('images', JSON.stringify(imageUrls));
                 response = await createTicket(formData);
             }
 
@@ -187,7 +179,6 @@ export default function TicketForm({
             {loading && <Loading />}
             <section className="w-screen fixed top-0 left-0 flex justify-center min-h-screen overflow-auto h-screen items-center backdrop-blur-lg z-50" aria-modal="true" role="dialog">
                 <div className="w-full h-full fixed top-0 left-0 bg-black opacity-20" onClick={handleCancel} aria-hidden="true" />
-
                 <form onSubmit={handleSubmit} className="w-[90%] md:w-[700px] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-50" onClick={(e) => e.stopPropagation()} noValidate>
                     <div className="px-5 py-4 sm:px-6 sm:py-5">
                         <h1 className="text-2xl font-bold mb-3 mt-5 text-gray-800 dark:text-gray-100">{updateID ? t('headings.update') : t('headings.create')}</h1>
@@ -209,7 +200,9 @@ export default function TicketForm({
                         />
 
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('labels.description')}</label>
+                            <label htmlFor="description" className="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                {t('labels.description')} <span className="text-red-500">*</span>
+                            </label>
                             <textarea
                                 id="description"
                                 name="description"
@@ -224,57 +217,49 @@ export default function TicketForm({
                             {errors.description && <p id="description-error" className="text-red-600 text-sm mt-1">{errors.description}</p>}
                         </div>
 
-                        <SelectBox
-                            label={t('labels.department')}
-                            id="departmentId"
-                            name="departmentId"
-                            value={form.departmentId}
-                            options={departments}
-                            onChange={handleChange}
-                            error={errors.departmentId}
-                            placeholder={t('placeholders.department')}
-                        />
+                        {(updateID && data?.user.email === "support@eastwindmyanmar.com.mm") && (
+                            <>
+                                <div className='grid grid-cols-2 gap-3'>
+                                    <SelectBox
+                                        label={t('labels.department')}
+                                        id="departmentId"
+                                        name="departmentId"
+                                        value={form.departmentId}
+                                        options={departments}
+                                        onChange={handleChange}
+                                        error={errors.departmentId}
+                                        placeholder={t('placeholders.department')}
+                                    />
+                                    <SelectBox
+                                        disabled={!form.departmentId}
+                                        label={t('labels.category')}
+                                        id="categoryId"
+                                        name="categoryId"
+                                        value={form.categoryId}
+                                        options={categories}
+                                        onChange={handleChange}
+                                        error={errors.categoryId}
+                                        placeholder={t('placeholders.category')}
+                                    />
+                                </div>
 
-                        <div className='grid grid-cols-2 gap-3'>
-                            <SelectBox
-                                label={t('labels.category')}
-                                id="categoryId"
-                                name="categoryId"
-                                value={form.categoryId}
-                                options={categories}
-                                onChange={handleCategoryChange}
-                                error={errors.categoryId}
-                                placeholder={t('placeholders.category')}
-                            />
-
-                            <SelectBox
-                                label={t('labels.subcategory')}
-                                id="subcategoryId"
-                                name="subcategoryId"
-                                value={form.subcategoryId}
-                                options={subcategories}
-                                onChange={handleChange}
-                                error={errors.subcategoryId}
-                                placeholder={t('placeholders.subcategory')}
-                                disabled={!form.categoryId}
-                            />
-                        </div>
-
-                        <SelectBox
-                            label={t('labels.priority')}
-                            id="priority"
-                            name="priority"
-                            value={form.priority}
-                            options={[
-                                { id: 'LOW', name: 'LOW' },
-                                { id: 'MEDIUM', name: 'MEDIUM' },
-                                { id: 'HIGH', name: 'HIGH' },
-                                { id: 'URGENT', name: 'URGENT' },
-                            ]}
-                            onChange={handleChange}
-                            error={errors.priority}
-                            placeholder={t('placeholders.priority')}
-                        />
+                                <SelectBox
+                                    label={t('labels.priority')}
+                                    id="priority"
+                                    name="priority"
+                                    value={form.priority}
+                                    options={[
+                                        { id: 'LOW', name: 'LOW' },
+                                        { id: 'MEDIUM', name: 'MEDIUM' },
+                                        { id: 'HIGH', name: 'HIGH' },
+                                        { id: 'URGENT', name: 'URGENT' },
+                                    ]}
+                                    onChange={handleChange}
+                                    error={errors.priority}
+                                    placeholder={t('placeholders.priority')}
+                                />
+                            </>
+                        )}
 
                         <ImageInput images={images} setImages={setImages} existingImages={existingImages} setExistingImages={setExistingImages} />
 
@@ -287,7 +272,6 @@ export default function TicketForm({
                     </section>
                 </form>
             </section>
-
         </>
     );
 }

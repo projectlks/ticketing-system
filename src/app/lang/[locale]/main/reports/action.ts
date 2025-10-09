@@ -85,7 +85,7 @@ export async function getAllTickets(
       requester: { select: { id: true, name: true, email: true } },
       assignedTo: { select: { id: true, name: true, email: true } },
       category: true,
-      subcategory: true,
+      // subcategory: true,
       department: true,
       images: true,
       comments: {

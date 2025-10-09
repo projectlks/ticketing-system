@@ -19,6 +19,19 @@ async function main() {
   });
 
   // console.log("✅ Essential seed data inserted!");
+
+  // check if mail setting already exists
+  const existing = await prisma.mailSetting.findFirst();
+  if (!existing) {
+    await prisma.mailSetting.create({
+      data: {
+        emails: ["support@eastwindmyanmar.com.mm"], // default support email
+      },
+    });
+    console.log("✅ MailSetting seeded successfully");
+  } else {
+    console.log("ℹ️ MailSetting already exists, skipping seeding");
+  }
 }
 
 main()

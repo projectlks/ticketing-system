@@ -38,7 +38,7 @@ export function CategoryView({
                         {/* Category Name */}
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                                <h3 className="text-xl font-semibold leading-none">{category.name}</h3>
+                                <h3 className="text-xl font-semibold leading-none">{category.name} ( {category.department?.name ?? "-"} )</h3>
                             </div>
                         </div>
 

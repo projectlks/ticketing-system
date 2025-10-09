@@ -236,13 +236,14 @@ export async function getJobPositionsByDepartment(departmentId: string): Promise
 // ====================
 // Category Utilities
 // ====================
-export async function getAllCategoryIdAndName(): Promise<{ id: string; name: string; subcategories: { id: string; name: string }[] }[]> {
+export async function getAllCategoryIdAndName(): Promise<{ id: string; name: string; departmentId: string }[]> {
   return prisma.category.findMany({
     where: { isArchived: false, parentId: null },
     select: {
       id: true,
       name: true,
-      subcategories: { select: { id: true, name: true } }
+      departmentId: true,
+      // subcategories: { select: { id: true, name: true } }
     },
     orderBy: { createdAt: "desc" }, // newest first
   });

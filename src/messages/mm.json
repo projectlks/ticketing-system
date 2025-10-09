@@ -9,7 +9,8 @@
     "accounts": "အကောင့်များ",
     "category": "အမျိုးအစား",
     "settings": "ဆက်တင်များ",
-    "account_setting": "အကောင့် ဆက်တင်"
+    "account_setting": "အကောင့် ဆက်တင်",
+    "mail_setting": "အီးမေးလ် ဆက်တင်"
   },
   "dashboardCards": {
     "total": {
@@ -165,10 +166,12 @@
     },
     "labels": {
       "name": "အမျိုးအစား အမည်",
-      "subcategories": "သေးသွား အမျိုးအစားများ"
+      "subcategories": "သေးသွား အမျိုးအစားများ",
+      "department": "ဌာန"
     },
     "placeholders": {
       "name": "အမျိုးအစား အမည် ထည့်ပါ",
+      "department": "ဌာန ရွေးပါ",
       "subCategory": "သေးသွား အမျိုးအစား အမည်"
     },
     "buttons": {

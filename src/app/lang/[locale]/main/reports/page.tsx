@@ -27,9 +27,9 @@ import { useTicketCount } from "@/context/TicketCountContext";
 export type TicketWithRelations = Ticket & {
     assignedTo: { id: string; name: string; email: string } | null;
     requester: { id: string; name: string; email: string } | null;
-    category: { id: string; name: string };
-    subcategory: { id: string; name: string };
-    department: { id: string; name: string };
+    category: { id: string; name: string } | null;
+    // subcategory: { id: string; name: string };
+    department: { id: string; name: string } | null;
     images: { id: string; url: string }[];
     comments: {
         id: string;
@@ -149,9 +149,9 @@ export default function Page() {
                 RequesterEmail: t.requester?.email ?? "-",
                 AssignedToName: t.assignedTo?.name ?? "-",
                 AssignedToEmail: t.assignedTo?.email ?? "-",
-                Category: t.category.name,
-                Subcategory: t.subcategory.name,
-                Department: t.department.name,
+                Category: t.category?.name ?? "-",
+                // Subcategory: t.subcategory?.name ?? "-",
+                Department: t.department?.name ?? "-",
                 Images: t.images.map((i) => i.url).join(", "),
                 Comments: t.comments.map((c) => `${c.commenter.name}: ${c.content}`).join(" | "),
             }));
@@ -183,8 +183,8 @@ export default function Page() {
     const segments = pathname.split("/");
     const locale = segments[2] || "en";
 
-        const { refreshTicketCount } = useTicketCount();
-    
+    const { refreshTicketCount } = useTicketCount();
+
 
     return (
         <>
@@ -271,15 +271,15 @@ export default function Page() {
                                     </thead>
                                     <tbody>
                                         {tickets.map((ticket, index) => (
-                                            <tr      onClick={async () => {
-                                                                                                try {
-                                                                                                    await markTicketAsViewed(ticket.id);
-                                                                                                    refreshTicketCount();
-                                                                                                    router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
-                                                                                                } catch (err) {
-                                                                                                    console.error(err);
-                                                                                                }
-                                                                                            }}
+                                            <tr onClick={async () => {
+                                                try {
+                                                    await markTicketAsViewed(ticket.id);
+                                                    refreshTicketCount();
+                                                    router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
+                                                } catch (err) {
+                                                    console.error(err);
+                                                }
+                                            }}
                                                 key={ticket.id}
                                                 className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 border-l-4 ${ticket.assignedToId ? "border-l-green-500 dark:border-l-green-500" : "border-l-red-500 dark:border-l-red-500"}`}
                                             >

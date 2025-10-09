@@ -9,7 +9,8 @@
     "accounts": "Accounts",
     "category": "Category",
     "settings": "Settings",
-    "account_setting": "Account Setting"
+    "account_setting": "Account Setting",
+    "mail_setting": "Mail Setting"
   },
   "dashboardCards": {
     "total": {
@@ -166,11 +167,13 @@
     },
     "labels": {
       "name": "Category Name",
+      "department": "Department",
       "subcategories": "Sub categories"
     },
     "placeholders": {
       "name": "Enter category name",
-      "subCategory": "SubCategory name"
+      "subCategory": "SubCategory name",
+      "department": "Select Department"
     },
     "buttons": {
       "cancel": "Cancel",

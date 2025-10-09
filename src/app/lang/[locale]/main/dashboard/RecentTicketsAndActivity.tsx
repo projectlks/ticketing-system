@@ -37,9 +37,10 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
     const t = useTranslations("dashboard");
     const tTable = useTranslations("table");
 
-    type StatusType = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+    type StatusType = "NEW" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 
     const statusColors: Record<StatusType | "DEFAULT", { bg: string; borderAndText: string }> = {
+        NEW: { bg: "bg-purple-500", borderAndText: "border-purple-500 text-purple-500" },
         OPEN: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
         IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
         RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
@@ -47,10 +48,14 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
         DEFAULT: { bg: "bg-gray-500", borderAndText: "border-red-500 text-red-500" },
     };
 
-    const getStatusColor = (status: string, type: "bg" | "borderAndText" = "bg") => {
+    function getStatusColor(
+        status: string,
+        type: "bg" | "borderAndText" = "bg"
+    ): string {
         const key = status as StatusType;
         return statusColors[key]?.[type] ?? statusColors.DEFAULT[type];
-    };
+    }
+
     const pathname = usePathname();
     const segments = pathname.split("/");
     const locale = segments[2] || "en";
@@ -82,19 +87,19 @@ function RecentTickets({ tickets }: { tickets: TicketWithRelations[] }) {
                     </thead>
                     <tbody>
                         {tickets.map((ticket, index) => (
-                            <tr          onClick={async () => {
-                                                    try {
-                                                        await markTicketAsViewed(ticket.id);
-                                                        refreshTicketCount();
-                                                        router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
-                                                    } catch (err) {
-                                                        console.error(err);
-                                                    }
-                                                }}
-                                                
-                                                
-                                                
-                                                key={ticket.id} className="border border-gray-100 dark:border-gray-700">
+                            <tr onClick={async () => {
+                                try {
+                                    await markTicketAsViewed(ticket.id);
+                                    refreshTicketCount();
+                                    router.push(`/lang/${locale}/main/tickets/view/${ticket.id}`);
+                                } catch (err) {
+                                    console.error(err);
+                                }
+                            }}
+
+
+
+                                key={ticket.id} className="border border-gray-100 dark:border-gray-700">
                                 <TableBody data={ticket.ticketId} />
                                 <TableBody data={ticket.title} />
                                 <TableBody data={ticket.description} />

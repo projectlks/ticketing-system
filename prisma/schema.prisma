@@ -25,10 +25,18 @@ enum Priority {
 }
 
 enum Status {
+  NEW
   OPEN
   IN_PROGRESS
   RESOLVED
   CLOSED
+}
+
+model MailSetting {
+  id        String   @id @default(cuid())
+  emails    String[] // array of email addresses
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ======================
@@ -124,9 +132,10 @@ model Department {
   updatedAt  DateTime @updatedAt
   isArchived Boolean  @default(false)
 
-  tickets   Ticket[]      @relation("DepartmentTickets")
-  positions JobPosition[]
-  users     User[] // all users in this department
+  tickets    Ticket[]      @relation("DepartmentTickets")
+  positions  JobPosition[]
+  categories Category[]
+  users      User[] // all users in this department
 
   @@index([isArchived])
   @@map("department")
@@ -159,6 +168,14 @@ model Category {
   id   String @id @default(cuid())
   name String
 
+  // // Department relation
+  // department   Department @relation(fields: [departmentId], references: [id])
+  // departmentId String
+
+  // ===== HIGHLIGHT: department relation =====
+  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId String
+
   creatorId String?
   creator   User?   @relation("CategoryCreators", fields: [creatorId], references: [id])
 
@@ -173,8 +190,8 @@ model Category {
   parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   subcategories Category[] @relation("CategoryHierarchy")
 
-  tickets    Ticket[] @relation("CategoryTickets")
-  subTickets Ticket[] @relation("SubcategoryTickets")
+  tickets Ticket[] @relation("CategoryTickets")
+  // subTickets Ticket[] @relation("SubcategoryTickets")
 
   @@index([isArchived])
   @@map("category")
@@ -189,19 +206,19 @@ model Ticket {
   title       String @db.VarChar(100)
   description String
 
-  categoryId String
-  category   Category @relation("CategoryTickets", fields: [categoryId], references: [id])
+  categoryId String?
+  category   Category? @relation("CategoryTickets", fields: [categoryId], references: [id])
 
-  subcategoryId String
-  subcategory   Category @relation("SubcategoryTickets", fields: [subcategoryId], references: [id])
+  // subcategoryId String
+  // subcategory   Category @relation("SubcategoryTickets", fields: [subcategoryId], references: [id])
 
-  departmentId String
-  department   Department @relation("DepartmentTickets", fields: [departmentId], references: [id])
+  departmentId String?
+  department   Department? @relation("DepartmentTickets", fields: [departmentId], references: [id])
 
   requesterId String
   requester   User   @relation("TicketRequester", fields: [requesterId], references: [id])
 
-  status Status @default(OPEN)
+  status Status @default(NEW)
 
   assignedToId String?
   assignedTo   User?   @relation("TicketAssignedTo", fields: [assignedToId], references: [id])

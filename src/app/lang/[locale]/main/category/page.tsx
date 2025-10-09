@@ -31,10 +31,11 @@ export type CategoryWithRelations = Category & {
         title: string;
         status: string;
     }[] | null;
-    subcategories?: {
+    department?: {
         id: string;
         name: string;
-    }[] | null; // Add this for subcategories
+    } | null;
+
 
 };
 
@@ -160,6 +161,7 @@ export default function Page() {
                                         <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                                             <TableHead data={t("no")} />
                                             <TableHead data={t("name")} />
+                                            <TableHead data={t("department")} />
                                             <TableHead data={t("createdAt")} />
                                             <TableHead data={t("updatedAt")} />
                                             <TableHead data={t("creator")} />
@@ -168,13 +170,14 @@ export default function Page() {
                                     </thead>
                                     <tbody>
                                         {categories.map((category, index) => (
-                                            <tr                                                         onClick={() => router.push(`/lang/${locale}/main/category/view/${category.id}`)}
+                                            <tr onClick={() => router.push(`/lang/${locale}/main/category/view/${category.id}`)}
 
                                                 key={category.id}
                                                 className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                                             >
                                                 <TableBody data={String((page - 1) * take + index + 1)} />
                                                 <TableBody data={category.name} />
+                                                <TableBody data={category.department?.name ?? "-"} />
                                                 <TableBody
                                                     data={new Date(category.createdAt).toLocaleString("en-US", { timeZone: "Asia/Yangon" })}
                                                 />

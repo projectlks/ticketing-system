@@ -17,11 +17,11 @@ import path from "path";
 const TicketSchema = z.object({
   title: z.string().min(1, "Title cannot be empty"),
   description: z.string().min(1, "Title cannot be empty"),
-  categoryId: z.string(),
-  subcategoryId: z.string(),
-  departmentId: z.string(),
-  assignedToId: z.string().nullable().optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
+  // categoryId: z.string(),
+  // subcategoryId: z.string(),
+  // departmentId: z.string(),
+  // assignedToId: z.string().nullable().optional(),
+  // priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
   // images: z.array(z.string()).optional()
 });
 
@@ -55,6 +55,68 @@ async function generateTicketId(): Promise<string> {
   return ticketId;
 }
 
+// test mail sending
+
+import nodemailer from "nodemailer";
+import { getMailSetting } from "../mail/action";
+
+export async function sendTicketMail({
+  ticketId,
+  title,
+  description,
+  requester,
+}: {
+  ticketId: string;
+  title: string;
+  description: string;
+  requester: string;
+}) {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_SERVER_USER,
+      pass: process.env.EMAIL_SERVER_PASS,
+    },
+  });
+
+  const mailRecipients = await getMailSetting();
+
+  const mailOptions = {
+    from: `"Ticketing System" <${process.env.EMAIL_SERVER_USER}>`,
+
+
+
+    to: mailRecipients,
+
+
+
+    subject: `🆕 New Ticket Created: #${ticketId}`,
+    html: `
+      <div style="font-family: Arial; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+        <h2 style="color: #2c7a7b;">New Ticket</h2>
+        <p><strong>Ticket ID:</strong> ${ticketId}</p>
+        <p><strong>Title:</strong> ${title}</p>
+        <p><strong>Description:</strong> ${description}</p>
+        <p><strong>Requester:</strong> ${requester}</p>
+        <p style="color: #2f855a;">Please check the ticketing system for more details.</p>
+        <a href="https://support.eastwindmyanmar.com.mm">Go to Ticketing System</a>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("New ticket alert sent to both recipients");
+    return { success: true, message: "Mail sent successfully" };
+  } catch (error) {
+    console.error("Mail send error:", error);
+    return { success: false, message: "Failed to send mail" };
+  }
+}
+
+// Create Ticket
+
+
 export async function createTicket(
   formData: FormData
 ): Promise<{ success: boolean; data: TicketWithRelations }> {
@@ -63,7 +125,7 @@ export async function createTicket(
     description: formData.get("description"),
     departmentId: formData.get("departmentId"),
     categoryId: formData.get("categoryId"),
-    subcategoryId: formData.get("subcategoryId"),
+    // subcategoryId: formData.get("subcategoryId"),
     priority: formData.get("priority"),
 
   };
@@ -117,6 +179,20 @@ export async function createTicket(
     ...createdData,
     viewed: createdData.views.some(v => v.userId === currentUserId), // creator ရှိမရှိစစ်
   };
+
+
+  // ✅ Send Mail to fixed email
+  try {
+    await sendTicketMail({
+      ticketId: ticketWithViewed.ticketId,
+      requester: createdData.requester?.email || "No Requester Email",
+      title: ticketWithViewed.title,
+      description: ticketWithViewed.description,
+    });
+    console.log("Ticket email sent to mglinkar08@gmail.com");
+  } catch (err) {
+    console.error("Failed to send ticket email:", err);
+  }
 
   return { success: true, data: ticketWithViewed };
 }
@@ -537,10 +613,10 @@ export async function getTicketDetail(id: string) {
       category: {
         select: { id: true, name: true },
       },
-      subcategory: {
-        select: { id: true, name: true },
+      // subcategory: {
+      //   select: { id: true, name: true },
 
-      },
+      // },
       department: {
         select: { id: true, name: true },
       },
