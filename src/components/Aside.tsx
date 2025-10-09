@@ -80,7 +80,7 @@ export default function Sidebar({ openSidebar }: Props) {
       {/* Logo */}
       <div className="flex items-center pt-8 space-x-3 pb-7">
         <Image src="/logo.png" alt="logo" width={32} height={32} className="w-8 h-8" />
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">East Wind</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Helpdesk</h1>
       </div>
 
       {/* Navigation */}
