@@ -32,7 +32,7 @@ export default function MultiFilter({ filters, setFilters }: Props) {
             case "Status":
                 return ["Open", "In Progress", "Resolved", "Closed", ""];
             case "Priority":
-                return ["Low", "Medium", "High", "Urgent", ""];
+                return ["REQUEST", "MINOR", "MAJOR", "CRITICAL", ""];
             case "Assigned":
                 return ["Assigned", "Not Assigned", ""];
             case "Viewed":

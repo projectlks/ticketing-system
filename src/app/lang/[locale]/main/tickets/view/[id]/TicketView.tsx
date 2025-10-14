@@ -12,26 +12,20 @@ export type TicketWithRelations = {
     title: string;
     description: string;
     status: string;
-    priority: string;
+    priority: string | null;
     createdAt: Date;
     updatedAt: Date;
     assignedToId?: string | null;
 
-
-
     category: {
         id: string;
         name: string;
-    };
-    subcategory: {
-        id: string;
-        name: string;
-    },
+    } | null;
 
     department: {
         id: string;
         name: string;
-    };
+    } | null;
 
     requester: {
         id: string;

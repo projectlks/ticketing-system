@@ -16,7 +16,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 
 export type TicketWithRelations = Ticket & {
-  category: { id: string; name: string };
+  category: { id: string; name: string } | null;
   requester: { id: string; name: string; email: string } | null;
   assignedTo: { id: string; name: string; email: string } | null;
 };

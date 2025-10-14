@@ -213,11 +213,22 @@ export async function updateDepartment(
     description: formData.get("description")?.toString() ?? "",
     contact: formData.get("contact")?.toString() ?? "",
     email: formData.get("email")?.toString() ?? "",
-    managerId: formData.get("managerId")?.toString() ?? "",
+    // managerId: formData.get("managerId")?.toString() ?? undefined,
   };
 
   // Validate update data
   const updateData = DepartmentFormSchemaUpdate.parse(updateDataRaw);
+
+  const managerId: string | null = formData.get("managerId")?.toString() || null;
+
+  if (managerId) {
+    const userExists = await prisma.user.findUnique({ where: { id: managerId } });
+    if (!userExists) {
+      throw new Error("Selected manager does not exist");
+    }
+  }
+
+  console.log("Parsed update data:", updateData);
 
   try {
     const updaterId = await getCurrentUserId();
@@ -246,6 +257,7 @@ export async function updateDepartment(
       where: { id },
       data: {
         ...updateData,
+        managerId,
         updaterId,
       },
       include: {

@@ -11,6 +11,7 @@ const roleAccess: Record<string, string[]> = {
   "/main/reports": ["SUPER_ADMIN", "ADMIN"],
   "/main/accounts": ["SUPER_ADMIN", "ADMIN"],
   "/main/category": ["SUPER_ADMIN", "ADMIN"],
+  "/main/mail-setting": ["SUPER_ADMIN"],
 };
 
 export async function middleware(req: NextRequest) {

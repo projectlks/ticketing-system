@@ -1,13 +1,18 @@
 "use server";
 
-import { PrismaClient, Prisma, Priority,  Role } from "@prisma/client";
+import { PrismaClient, Prisma, Priority, Role } from "@prisma/client";
 import { TicketWithRelations, AuditWithRelations } from "./page";
 
 const prisma = new PrismaClient();
 
 // Role-based where filter
-const getRoleWhere = (role: Role, userId?: string): Prisma.TicketWhereInput => {
-    if (role === "REQUESTER" && userId) return { requesterId: userId };
+const getRoleWhere = (role: Role, userId?: string, departmentId?: string): Prisma.TicketWhereInput => {
+    if ((role === "REQUESTER" && userId)) return {
+        OR: [
+            { requesterId: userId },
+            departmentId ? { departmentId } : {},
+        ],
+    };;
     if (role === "AGENT" && userId) return { assignedToId: userId };
     return {}; // SUPER_ADMIN & ADMIN
 };
@@ -18,14 +23,15 @@ interface TicketFilter {
     to?: string;
     role?: Role;
     userId?: string;
+    departmentId?: string;
 }
 
 export async function getAllTickets(filters?: TicketFilter) {
-    const { from, to, role, userId } = filters ?? {};
+    const { from, to, role, userId, departmentId } = filters ?? {};
 
     const where: Prisma.TicketWhereInput = {
         isArchived: false,
-        ...getRoleWhere(role!, userId),
+        ...getRoleWhere(role!, userId, departmentId),
     };
 
     if (from || to) {
@@ -43,7 +49,6 @@ export async function getAllTickets(filters?: TicketFilter) {
             requester: { select: { id: true, name: true, email: true } },
             assignedTo: { select: { id: true, name: true, email: true } },
             category: true,
-            subcategory: true,
             department: true,
             images: true,
             comments: {
@@ -147,12 +152,19 @@ export async function getTicketChartData(days: number = 7, role?: Role, userId?:
     const createdCounts: number[] = [];
     const resolvedCounts: number[] = [];
 
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { departmentId: true },
+    });
+
+    const departmentId = user?.departmentId ?? undefined;
+
     for (const day of lastDays) {
         const created = await prisma.ticket.count({
             where: {
                 createdAt: { gte: new Date(`${day}T00:00:00.000Z`), lte: new Date(`${day}T23:59:59.999Z`) },
                 isArchived: false,
-                ...getRoleWhere(role!, userId),
+                ...getRoleWhere(role!, userId, departmentId),
             },
         });
 
@@ -175,25 +187,36 @@ export async function getTicketChartData(days: number = 7, role?: Role, userId?:
         resolved: resolvedCounts,
     };
 
-    const priorities: Priority[] = [Priority.URGENT, Priority.HIGH, Priority.MEDIUM, Priority.LOW];
+    const priorities: Priority[] = [Priority.CRITICAL, Priority.MAJOR, Priority.MINOR, Priority.REQUEST];
     const priorityCounts: number[] = [];
 
     for (const p of priorities) {
-        const count = await prisma.ticket.count({ where: { priority: p, isArchived: false, ...getRoleWhere(role!, userId) } });
+        const count = await prisma.ticket.count({ where: { priority: p, isArchived: false, ...getRoleWhere(role!, userId, departmentId) } });
         priorityCounts.push(count);
     }
 
-    const priority: PriorityData = { labels: ["Urgent", "High", "Medium", "Low"], counts: priorityCounts };
+    const priority: PriorityData = { labels: ["Critical", "Major", "Minor", "Request"], counts: priorityCounts };
 
     return { trends, priority };
 }
 
 // Last 5 tickets
 export async function getLast5Tickets(role?: Role, userId?: string): Promise<TicketWithRelations[]> {
+
+    if (!userId) return [];
+
+    // Fetch user's departmentId safely
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { departmentId: true },
+    });
+
+    const departmentId = user?.departmentId ?? undefined;
+
     return prisma.ticket.findMany({
         take: 5,
         orderBy: { createdAt: "desc" },
-        where: { isArchived: false, ...getRoleWhere(role!, userId) },
+        where: { isArchived: false, ...getRoleWhere(role!, userId, departmentId) },
         include: {
             category: { select: { id: true, name: true } },
             requester: { select: { id: true, name: true, email: true } },
@@ -203,10 +226,15 @@ export async function getLast5Tickets(role?: Role, userId?: string): Promise<Tic
 }
 
 // Last 5 audits
+
+//     // Last 5 audits
 export async function getLast5Audit(): Promise<AuditWithRelations[]> {
     return prisma.audit.findMany({
         take: 5,
         orderBy: { changedAt: "desc" },
-        include: { user: { select: { id: true, name: true } } },
+        // where: { departmentId },
+        include: {
+            user: { select: { id: true, name: true } },
+        },
     });
 }

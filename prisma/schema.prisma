@@ -17,11 +17,17 @@ enum Role {
   SUPER_ADMIN
 }
 
+// enum Priority {
+//   LOW
+//   MEDIUM
+//   HIGH
+//   URGENT
+// }
 enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
+  REQUEST
+  MINOR
+  MAJOR
+  CRITICAL
 }
 
 enum Status {
@@ -30,6 +36,7 @@ enum Status {
   IN_PROGRESS
   RESOLVED
   CLOSED
+  CANCELED
 }
 
 model MailSetting {
@@ -227,20 +234,47 @@ model Ticket {
   updatedAt DateTime @updatedAt
   attached  String?
 
-  priority   Priority @default(MEDIUM)
-  isArchived Boolean  @default(false)
+  priority   Priority?
+  isArchived Boolean   @default(false)
 
   // images   TicketImage[]
   // comments Comment[]
-
   // views TicketView[]
 
   images   TicketImage[]
   comments Comment[]
   views    TicketView[]
 
+  // Sla tesitng
+
+  slaId String?
+  sla   SLA?    @relation(fields: [slaId], references: [id])
+
+
+  // ✅ SLA Violation tracking
+  isSlaViolated Boolean  @default(false)
+
+  
+  startSlaTime  DateTime?
+  responseDue   DateTime?
+  resolutionDue DateTime?
+
   @@index([departmentId])
   @@index([assignedToId])
+}
+
+// SLA
+
+model SLA {
+  id             String   @id @default(uuid())
+  priority       String   @unique
+  responseTime   Int // minutes
+  resolutionTime Int // minutes
+  rcaTime        Int?
+  availability   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  Ticket         Ticket[]
 }
 
 // ======================

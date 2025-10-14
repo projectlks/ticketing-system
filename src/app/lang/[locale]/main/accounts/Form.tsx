@@ -325,8 +325,9 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                         <option value="REQUESTER">REQUESTER</option>
                                         <option value="AGENT">AGENT</option>
                                         <option value="ADMIN">ADMIN</option>
+                                        {data?.user.role === "SUPER_ADMIN" && <option value="SUPER_ADMIN">SUPER ADMIN</option>}
                                     </select>
-                                    <span aria-hidden="true" 
+                                    <span aria-hidden="true"
                                         onClick={() => {
                                             selectRef.current?.focus();
                                             selectRef.current?.click();
@@ -384,7 +385,7 @@ export default function Form({ setShowForm, setAccounts, updateID, setUpdateID }
                                     ))}
                                 </select>
                                 <span aria-hidden="true" className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
-                                    <ChevronDownIcon  className="w-5 h-5" />
+                                    <ChevronDownIcon className="w-5 h-5" />
                                 </span>
                             </div>
                             {errors.job_position && <p className="text-red-500 text-xs mt-1">{errors.job_position}</p>}

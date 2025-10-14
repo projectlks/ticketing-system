@@ -77,38 +77,6 @@ export async function fetchYeastarExtensions(): Promise<YeastarExtension[]> {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Slim version (only basic info)
 export async function getBasicUserData(): Promise<BasicUserData> {
   const userId = await getCurrentUserId();
@@ -207,7 +175,7 @@ export async function getUserIdsandEmail(): Promise<{ id: string; email: string;
 
 export async function getUserIdsandEmailByDepeartmentId({ id }: { id: string }): Promise<{ id: string; email: string; name: string }[]> {
   return prisma.user.findMany({
-    where: { isArchived: false, departmentId: id, role: "AGENT" },
+    where: { isArchived: false, departmentId: id },
     select: { id: true, email: true, name: true },
     orderBy: { createdAt: "desc" }, // sorted by newest first
   });
@@ -304,5 +272,72 @@ export async function getUnseenTicketCount() {
   return 0;
 }
 
+
+
+export async function createTicketHtml({
+  ticketId,
+  title,
+  description,
+  requester,
+}: {
+  ticketId: string;
+  title: string;
+  description: string;
+  requester: string;
+}) {
+  return (
+    `
+<div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 600px;">
+  <h2 style="color: #2c7a7b;">🆕 New Ticket Created</h2>
+  <p><strong>Ticket ID:</strong> ${ticketId}</p>
+  <p><strong>Title:</strong> ${title}</p>
+  <p><strong>Description:</strong> ${description}</p>
+  <p><strong>Requester:</strong> ${requester}</p>
+  <p style="color: #2f855a;">Please check the ticketing system for more details.</p>
+  <a href="https://support.eastwindmyanmar.com.mm" style="color: #3182ce;">Go to Ticketing System</a>
+</div>
+`
+  )
+}
+
+export async function updateTicketHtml({
+  ticketId,
+  title,
+  description,
+  requester,
+  updater,
+  oldDepartment,
+  newDepartment,
+  oldAssignee,
+  newAssignee,
+  updatedFields,
+}: {
+  ticketId: string;
+  title: string;
+  description: string;
+  requester: string;
+  updater: string;
+  oldDepartment?: string;
+  newDepartment?: string;
+  oldAssignee?: string;
+  newAssignee?: string;
+  updatedFields?: string[];
+}) {
+  return (`
+<div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 600px;">
+  <h2 style="color: #2c7a7b;">🔄 Ticket Updated</h2>
+  <p><strong>Ticket ID:</strong> ${ticketId}</p>
+  <p><strong>Title:</strong> ${title}</p>
+  <p><strong>Description:</strong> ${description}</p>
+  <p><strong>Requester:</strong> ${requester}</p>
+  <p><strong>Updated By:</strong> ${updater}</p>
+  ${oldDepartment || newDepartment ? `<p><strong>Department:</strong> ${oldDepartment || "N/A"} ➡️ ${newDepartment || "N/A"}</p>` : ""}
+  ${oldAssignee || newAssignee ? `<p><strong>Assignee:</strong> ${oldAssignee || "N/A"} ➡️ ${newAssignee || "N/A"}</p>` : ""}
+  ${updatedFields && updatedFields.length ? `<p><strong>Updated Fields:</strong> ${updatedFields.join(", ")}</p>` : ""}
+  <p style="color: #2f855a;">Please check the ticketing system for more details.</p>
+  <a href="https://support.eastwindmyanmar.com.mm" style="color: #3182ce;">Go to Ticketing System</a>
+</div>
+`)
+}
 
 

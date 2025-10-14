@@ -74,8 +74,11 @@ export default function AssignBox({ users, ticket }: Props) {
     };
 
     const { data } = useSession()
-    const show = (!ticketData.assignedTo?.id) && (data?.user.role === "ADMIN" || data?.user.role === "SUPER_ADMIN")
+    const show = (ticketData.assignedTo?.id === data?.user.id) || (data?.user.role === "ADMIN" || data?.user.role === "SUPER_ADMIN")
+    // const show = (data?.user.role === "ADMIN" || data?.user.role === "SUPER_ADMIN"
     const t = useTranslations('viewContext');
+
+
 
     return (
         <>

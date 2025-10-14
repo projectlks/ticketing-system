@@ -179,6 +179,9 @@ export default function Form({ setShowForm, setDepartments, updateID, setUpdateI
 
         const formData = new FormData(e.currentTarget);
 
+
+        console.log(formData.get('managerId'));
+
         try {
             if (updateID) {
                 const { success, data } = await updateDepartment(formData, updateID, updatedJobs);

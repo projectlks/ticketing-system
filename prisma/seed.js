@@ -32,6 +32,38 @@ async function main() {
   } else {
     console.log("ℹ️ MailSetting already exists, skipping seeding");
   }
+
+  await prisma.sLA.createMany({
+    data: [
+      {
+      priority: "CRITICAL",
+        responseTime: 30, // 30 min
+        resolutionTime: 120, // 2 hours
+        rcaTime: 7, // 7 days
+        availability: "7*24",
+      },
+      {
+        priority: "MAJOR",
+        responseTime: 120, // 2 hours
+        resolutionTime: 240, // 4 hours
+        rcaTime: 10, // 10 days
+        availability: "7*24",
+      },
+      {
+        priority: "MINOR",
+        responseTime: 240, // 4 hours
+        resolutionTime: 1440, // 24 hours
+        rcaTime: 10, // 10 working days
+        availability: "7*24",
+      },
+      {
+        priority: "REQUEST",
+        responseTime: 480, // 8 hours
+        resolutionTime: 43200, // 30 days
+        availability: "5*8",
+      },
+    ],
+  });
 }
 
 main()

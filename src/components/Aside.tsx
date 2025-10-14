@@ -80,7 +80,7 @@ export default function Sidebar({ openSidebar }: Props) {
       {/* Logo */}
       <div className="flex items-center pt-8 space-x-3 pb-7">
         <Image src="/logo.png" alt="logo" width={32} height={32} className="w-8 h-8" />
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">East Wind</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Helpdesk</h1>
       </div>
 
       {/* Navigation */}
@@ -154,9 +154,9 @@ export default function Sidebar({ openSidebar }: Props) {
                 </li>
 
 
-                <li>
+                {data?.user.role === "SUPER_ADMIN" && (<li>
                   <Link
-                    href={`/lang/${locale}/main/profile`}
+                    href={`/lang/${locale}/main/mail-setting`}
                     className={`block text-sm py-2.5 px-3 rounded transition 
                     ${pathname === `/lang/${locale}/main/profile`
                         ? "bg-[#ecf3ff] text-blue-600 dark:bg-gray-700 dark:text-white"
@@ -165,7 +165,7 @@ export default function Sidebar({ openSidebar }: Props) {
                   >
                     {t("mail_setting")}
                   </Link>
-                </li>
+                </li>)}
               </ul>
             )}
           </div>

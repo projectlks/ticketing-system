@@ -217,7 +217,7 @@ export default function Page() {
 
 
 
-    type StatusType = "NEW" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+    type StatusType = "NEW" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | "CANCELED";
 
     const statusColors: Record<StatusType | "DEFAULT", { bg: string; borderAndText: string }> = {
         NEW: { bg: "bg-purple-500", borderAndText: "border-purple-500 text-purple-500" },
@@ -225,6 +225,7 @@ export default function Page() {
         IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
         RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
         CLOSED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
+        CANCELED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
         DEFAULT: { bg: "bg-gray-500", borderAndText: "border-red-500 text-red-500" },
     };
 
@@ -238,13 +239,13 @@ export default function Page() {
 
 
 
-    type PriorityType = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+    type PriorityType = "REQUEST" | "MINOR" | "MAJOR" | "CRITICAL";
 
     const priorityColors: Record<PriorityType | "DEFAULT", { bg: string; borderAndText: string }> = {
-        LOW: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
-        MEDIUM: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
-        HIGH: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
-        URGENT: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
+        REQUEST: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
+        MINOR: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
+        MAJOR: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
+        CRITICAL: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
         DEFAULT: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
     };
 
@@ -295,6 +296,8 @@ export default function Page() {
                                             <TableHead data={t("createdAt")} />
                                             <TableHead data={t("requester")} />
                                             <TableHead data={t("assignedTo")} />
+
+                                            <TableHead data={"isSlaViolated"} />
                                             <TableHead data={t("actions")} />
                                         </tr>
                                     </thead>
@@ -318,7 +321,7 @@ export default function Page() {
                                                 className={`border-b border-gray-100 dark:border-gray-700 
                                         hover:bg-gray-50 dark:hover:bg-gray-800
                                         border-l-4 
-                                        ${ticket.isArchived ? "bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800" : ""} 
+                                        ${(ticket.isArchived || ticket.isSlaViolated) ? "bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800" : ""} 
                                         ${(!ticket.isArchived && !ticket.viewed) ? "bg-indigo-50 dark:bg-indigo-900 hover:bg-gray-50 dark:hover:bg-gray-800" : ""}
                                         ${ticket.assignedToId ? "border-l-green-500 dark:border-l-green-500" : "border-l-red-500 dark:border-l-red-500"}
                                     `}
@@ -345,10 +348,10 @@ export default function Page() {
                                                 {/* Priority */}
                                                 <td className="px-5 py-4 sm:px-6">
                                                     <div
-                                                        className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority, "borderAndText")} space-x-2 border`}
+                                                        className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority || '', "borderAndText")} space-x-2 border`}
                                                     >
                                                         <span
-                                                            className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority)}`}
+                                                            className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority || '')}`}
                                                         />
                                                         <p className="text-xs truncate text-gray-700 dark:text-gray-200">
                                                             {ticket.priority}
@@ -381,6 +384,8 @@ export default function Page() {
                                                         {ticket.assignedTo ? ticket.assignedTo.email || "-" : "-"}
                                                     </p>
                                                 </td>
+                                                <TableBody data={ticket.isSlaViolated ? "Yes" : "No"} />
+
 
                                                 {/* Actions */}
                                                 <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
@@ -389,11 +394,11 @@ export default function Page() {
                                                         option={{
                                                             view: true,
                                                             edit: true,
-                                                            delete: data?.user.role === "SUPER_ADMIN" && !ticket.isArchived,
+                                                            // delete: data?.user.role === "SUPER_ADMIN" && !ticket.isArchived,
                                                             restore: data?.user.role === "SUPER_ADMIN" && ticket.isArchived,
                                                         }}
                                                         onRestore={() => handleRestore(ticket.id)}
-                                                        onDelete={() => handleDelete(ticket.id)}
+                                                        // onDelete={() => handleDelete(ticket.id)}
                                                         onEdit={(e) => handleEdit(e, ticket.id)}
                                                         onView={async () => {
                                                             try {

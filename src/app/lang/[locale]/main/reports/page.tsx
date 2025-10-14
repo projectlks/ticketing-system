@@ -114,20 +114,30 @@ export default function Page() {
         IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
         RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
         CLOSED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
+        CANCELED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
         DEFAULT: { bg: "bg-gray-500", borderAndText: "border-red-500 text-red-500" },
     };
     const getStatusColor = (status: string, type: "bg" | "borderAndText" = "bg") =>
         statusColors[status]?.[type] ?? statusColors.DEFAULT[type];
 
-    const priorityColors: Record<string, { bg: string; borderAndText: string }> = {
-        LOW: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
-        MEDIUM: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
-        HIGH: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
-        URGENT: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
+    type PriorityType = "REQUEST" | "MINOR" | "MAJOR" | "CRITICAL";
+
+    const priorityColors: Record<PriorityType | "DEFAULT", { bg: string; borderAndText: string }> = {
+        REQUEST: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
+        MINOR: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
+        MAJOR: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
+        CRITICAL: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
         DEFAULT: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
     };
-    const getPriorityColor = (priority: string, type: "bg" | "borderAndText" = "bg") =>
-        priorityColors[priority]?.[type] ?? priorityColors.DEFAULT[type];
+
+    function getPriorityColor(priority: string, type: "bg" | "borderAndText" = "bg"): string {
+        if (priority in priorityColors) {
+            return priorityColors[priority as keyof typeof priorityColors][type];
+        }
+        return priorityColors.DEFAULT[type];
+    }
+
+ 
 
     const toggleSelectTicket = (id: string) => {
         setSelectedTickets((prev) =>
@@ -302,8 +312,8 @@ export default function Page() {
                                                     </div>
                                                 </td>
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority, "borderAndText")} space-x-2 border-[1px]`}>
-                                                        <span className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority)}`}></span>
+                                                    <div className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(ticket.priority || '', "borderAndText")} space-x-2 border-[1px]`}>
+                                                        <span className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority || '')}`}></span>
                                                         <p className="text-xs truncate">{ticket.priority}</p>
                                                     </div>
                                                 </td>

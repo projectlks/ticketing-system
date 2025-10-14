@@ -13,6 +13,7 @@ export enum Status {
     IN_PROGRESS = "IN_PROGRESS",
     RESOLVED = "RESOLVED",
     CLOSED = "CLOSED",
+    CANCELED = "CANCELED",
 }
 
 interface Props {
@@ -42,10 +43,10 @@ export default function StatusBox({ ticket }: Props) {
 
         if (role === "AGENT") {
             allowed = [current];
-            if (current === Status.IN_PROGRESS) allowed.push(Status.RESOLVED);
+            if (current === Status.IN_PROGRESS) { allowed.push(Status.RESOLVED) };
         } else if (role === "ADMIN" || role === "SUPER_ADMIN") {
             allowed = [current];
-            if (current === Status.IN_PROGRESS || current === Status.RESOLVED) allowed.push(Status.CLOSED);
+            if (current === Status.IN_PROGRESS || current === Status.RESOLVED) allowed.push(Status.CLOSED, Status.CANCELED);
         } else {
             allowed = [current];
         }

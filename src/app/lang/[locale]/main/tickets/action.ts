@@ -1,3 +1,4 @@
+
 "use server";
 
 import { prisma } from "@/libs/prisma";
@@ -8,6 +9,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import { Prisma, Status } from "@prisma/client";
 import { TicketWithRelations } from "./page";
+
+
+import dayjs from 'dayjs';
 // import { CommentWithRelations } from "./view/[id]/TicketView";
 
 import fs from "fs/promises";
@@ -17,12 +21,10 @@ import path from "path";
 const TicketSchema = z.object({
   title: z.string().min(1, "Title cannot be empty"),
   description: z.string().min(1, "Title cannot be empty"),
-  // categoryId: z.string(),
-  // subcategoryId: z.string(),
-  // departmentId: z.string(),
-  // assignedToId: z.string().nullable().optional(),
-  // priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
-  // images: z.array(z.string()).optional()
+  categoryId: z.string().nullable().optional(),
+  departmentId: z.string().nullable().optional(),
+  assignedToId: z.string().nullable().optional(),
+  priority: z.enum(["REQUEST", "MINOR", "MAJOR", "CRITICAL",]).nullable().optional(),
 });
 
 const CommentSchema = z.object({
@@ -58,18 +60,25 @@ async function generateTicketId(): Promise<string> {
 // test mail sending
 
 import nodemailer from "nodemailer";
-import { getMailSetting } from "../mail/action";
+import { getMailSetting } from "../mail-setting/action";
+import { createTicketHtml, updateTicketHtml } from "@/libs/action";
 
 export async function sendTicketMail({
   ticketId,
   title,
   description,
   requester,
+  to,
+  subject,
+  html
 }: {
   ticketId: string;
   title: string;
   description: string;
   requester: string;
+  to: string[] | string;
+  subject?: string;
+  html?: string;
 }) {
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -79,19 +88,19 @@ export async function sendTicketMail({
     },
   });
 
-  const mailRecipients = await getMailSetting();
 
   const mailOptions = {
     from: `"Ticketing System" <${process.env.EMAIL_SERVER_USER}>`,
 
 
 
-    to: mailRecipients,
+    to: to,
 
 
 
-    subject: `🆕 New Ticket Created: #${ticketId}`,
-    html: `
+    subject: subject ? subject : `🆕 New Ticket Created: #${ticketId}`,
+
+    html: html ?? `
       <div style="font-family: Arial; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
         <h2 style="color: #2c7a7b;">New Ticket</h2>
         <p><strong>Ticket ID:</strong> ${ticketId}</p>
@@ -106,7 +115,6 @@ export async function sendTicketMail({
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("New ticket alert sent to both recipients");
     return { success: true, message: "Mail sent successfully" };
   } catch (error) {
     console.error("Mail send error:", error);
@@ -125,8 +133,6 @@ export async function createTicket(
     description: formData.get("description"),
     departmentId: formData.get("departmentId"),
     categoryId: formData.get("categoryId"),
-    // subcategoryId: formData.get("subcategoryId"),
-    priority: formData.get("priority"),
 
   };
 
@@ -144,7 +150,10 @@ export async function createTicket(
 
   const ticket = await prisma.ticket.create({
     data: {
-      ...data,
+
+      title: data.title,
+      description: data.description,
+      // priority: data.priority,
       ticketId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -179,16 +188,38 @@ export async function createTicket(
     ...createdData,
     viewed: createdData.views.some(v => v.userId === currentUserId), // creator ရှိမရှိစစ်
   };
+  const mailRecipients = await getMailSetting();
 
 
   // ✅ Send Mail to fixed email
   try {
+    // await sendTicketMail({
+    //   ticketId: ticketWithViewed.ticketId,
+    //   requester: createdData.requester?.email || "No Requester Email",
+    //   title: ticketWithViewed.title,
+    //   description: ticketWithViewed.description,
+    //   to: mailRecipients,
+    // });
+
+
+    // Example: after creating a ticket
     await sendTicketMail({
-      ticketId: ticketWithViewed.ticketId,
+      ticketId: ticket.ticketId,
+      title: ticket.title,
+      description: ticket.description,
       requester: createdData.requester?.email || "No Requester Email",
-      title: ticketWithViewed.title,
-      description: ticketWithViewed.description,
+      to: mailRecipients,
+      subject: `🆕 New Ticket Created: #${ticket.ticketId}`,
+      html: await createTicketHtml({
+        ticketId: ticket.ticketId,
+        title: ticket.title,
+        description: ticket.description,
+        requester: createdData.requester?.email || "No Requester Email",
+      }),
     });
+
+
+
     console.log("Ticket email sent to mglinkar08@gmail.com");
   } catch (err) {
     console.error("Failed to send ticket email:", err);
@@ -228,7 +259,7 @@ export async function getCurrentUser() {
   // Fetch user with role and id from database
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { id: true, role: true, email: true, name: true },
+    select: { id: true, role: true, email: true, name: true, departmentId: true },
   });
 
   return user;
@@ -262,10 +293,10 @@ export async function getAllTickets(
       prismaFilters.status = statusMap[f.value] || undefined;
     } else if (f.key === "Priority") {
       const priorityMap: Record<string, Prisma.TicketWhereInput["priority"]> = {
-        Low: "LOW",
-        Medium: "MEDIUM",
-        High: "HIGH",
-        Urgent: "URGENT",
+        REQUEST: "REQUEST",
+        MINOR: "MINOR",
+        MAJOR: "MAJOR",
+        CRITICAL: "CRITICAL",
       };
       prismaFilters.priority = priorityMap[f.value] || undefined;
     }
@@ -273,9 +304,24 @@ export async function getAllTickets(
 
   // Role-based filters
   if (user.role === "REQUESTER") {
-    prismaFilters.requesterId = user.id;
+    // prismaFilters.requesterId = user.id 
+    // prismaFilters.departmentId = user.departmentId || undefined;
+
+    prismaFilters.OR = [
+      { requesterId: user.id },
+      { departmentId: user.departmentId || undefined },
+    ];
+
   } else if (user.role === "AGENT") {
-    prismaFilters.assignedToId = user.id;
+    // prismaFilters.assignedToId = user.id;
+    // prismaFilters.departmentId = user.departmentId || undefined;
+
+    prismaFilters.OR = [
+      { requesterId: user.id },
+      { departmentId: user.departmentId || undefined },
+    ];
+
+
   }
 
   // Seen/Unseen filter
@@ -290,6 +336,7 @@ export async function getAllTickets(
       OR: [
         { title: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
         { description: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+        { ticketId: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
       ],
     }),
   };
@@ -332,12 +379,12 @@ export async function updateTicket(
   const updateDataRaw = {
     title: formData.get("title"),
     description: formData.get("description"),
-    departmentId: formData.get("departmentId"),
-    categoryId: formData.get("categoryId"),
-    subcategoryId: formData.get("subcategoryId"),
-    priority: formData.get("priority"),
+    departmentId: formData.get("departmentId") || null,
+    categoryId: formData.get("categoryId") || null,
+    priority: formData.get("priority") as string | null || null,
   };
   const updateData = TicketSchema.parse(updateDataRaw);
+
 
   const updaterId = await getCurrentUserId();
   if (!updaterId) throw new Error("No logged-in user found");
@@ -392,8 +439,52 @@ export async function updateTicket(
   // 8. ticket အချက်အလက်တွေကို update လုပ်မယ်
   await prisma.ticket.update({
     where: { id },
-    data: { ...updateData, updatedAt: new Date() },
+    data: {
+      ...updateData, updatedAt: new Date(), priority: updateData.priority || null
+
+
+    },
+
+
   });
+  // sla and change status
+
+  if (current.status === Status.NEW && updateData.departmentId && updateData.categoryId && updateData.priority) {
+
+    const priority = updateData.priority
+
+
+    const sla = await prisma.sLA.findUnique({
+      where: { priority },
+    });
+
+    if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
+
+    // 2. အချိန်တွေတွက်မယ်
+    const now = new Date();
+    const responseDue = dayjs(now).add(sla.responseTime, 'minute').toDate();
+    const resolutionDue = dayjs(now).add(sla.resolutionTime, 'minute').toDate();
+
+
+
+
+    await prisma.ticket.update({
+      where: { id },
+      data: {
+        slaId: sla.id,
+        startSlaTime: now,
+        responseDue,
+        resolutionDue,
+        // status: Status.OPEN
+        status: current.status === Status.NEW ? Status.OPEN : current.status
+        // 
+
+      },
+
+
+    });
+  }
+
 
   // 9. audit log ကို ထည့်သွင်းမယ်
   if (changes.length) {
@@ -420,6 +511,80 @@ export async function updateTicket(
     },
   });
 
+
+  // 11 . update your departmentId
+
+  if (current.departmentId !== updateData.departmentId) {
+    try {
+      // Find updated ticket info for email content
+      const updatedTicketInfo = await prisma.ticket.findUnique({
+        where: { id },
+        include: {
+          requester: { select: { name: true, email: true } },
+          department: {
+            select: {
+              name: true,
+              email: true,
+              manager: { select: { name: true, email: true } },
+            },
+          },
+        },
+      });
+
+      // find all people in this deaprtment
+      const departmentMembers = await prisma.user.findMany({
+        where: { departmentId: updateData.departmentId },
+        select: { name: true, email: true },
+      });
+
+      if (updatedTicketInfo) {
+
+        const recipientsSet = new Set<string>();
+
+        if (updatedTicketInfo.department?.email) recipientsSet.add(updatedTicketInfo.department.email);
+        if (updatedTicketInfo.department?.manager?.email) recipientsSet.add(updatedTicketInfo.department.manager.email);
+
+        departmentMembers.forEach(member => {
+          if (member.email) recipientsSet.add(member.email);
+        });
+
+        const recipients = Array.from(recipientsSet);
+
+
+        if (recipients.length > 0) {          // Example: after updating a ticket
+          await sendTicketMail({
+            ticketId: updatedTicketInfo.ticketId,
+            title: updatedTicketInfo.title,
+            description: updatedTicketInfo.description,
+            requester: updatedTicketInfo.requester?.email || "No Requester Email",
+            to: recipients,
+            subject: `🔄 Ticket Updated: #${updatedTicketInfo.ticketId}`,
+            html: await updateTicketHtml({
+              ticketId: updatedTicketInfo.ticketId,
+              title: updatedTicketInfo.title,
+              description: updatedTicketInfo.description,
+              requester: updatedTicketInfo.requester?.email || "No Requester Email",
+              updater: `${updatedTicketInfo.requester?.name} (${updatedTicketInfo.requester?.email})`,
+              oldDepartment: current?.departmentId ? (await prisma.department.findUnique({ where: { id: current.departmentId } }))?.name : "None",
+              newDepartment: updatedTicketInfo.department?.name,
+              updatedFields: changes.map(c => c.field),
+            }),
+          });
+
+
+          console.log("✅ Department change email sent to:", recipients);
+        } else {
+          console.warn("⚠️ No valid department or manager email found for ticket:", id);
+        }
+      }
+    } catch (err) {
+      console.error("⚠️ Failed to send department change email:", err);
+    }
+  }
+
+
+
+
   if (!updatedTicketRaw) {
     throw new Error('Ticket not found after update');
   }
@@ -434,24 +599,10 @@ export async function updateTicket(
 }
 
 
-// export async function permanentDeleteTickets() {
-//   const threeMonthsAgo = new Date();
-//   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-//   await prisma.ticket.deleteMany({
-//     where: {
-//       isArchived: true,
-//       updatedAt: { lt: threeMonthsAgo },
-//     },
-//   });
-// }
-
 
 
 export async function permanentDeleteTickets() {
-  // ၂ မိနစ်အရင်က tickets တွေကိုရှာမယ်
-  // const twoMinutesAgo = new Date();
-  // twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+
 
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -652,9 +803,21 @@ export async function ticketAssign(
           name: true,
           email: true,
         },
+
       },
+
+
+      requester: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+
     },
   });
+
 
   // ပြောင်းလဲမှုရှိမရှိ စစ်မယ်
   const oldAssignedTo = currentTicket.assignedTo;
@@ -689,6 +852,20 @@ export async function ticketAssign(
   const newValue = newAssignedTo
     ? `${newAssignedTo.name} (${newAssignedTo.email} )`
     : "";
+
+
+  // ✅ Send email to new assignee if exists
+  if (newAssignedTo?.email) {
+    await sendTicketMail({
+      ticketId: currentTicket.ticketId,
+      title: currentTicket.title,
+      description: currentTicket.description,
+      requester: currentTicket.requester?.email || "No Requester Email",
+      to: [newAssignedTo.email],
+      subject: `🎯 Ticket Assigned: #${currentTicket.ticketId} - ${currentTicket.title}`,
+
+    });
+  }
 
   // Audit log ထည့်မယ်
   await prisma.audit.create({

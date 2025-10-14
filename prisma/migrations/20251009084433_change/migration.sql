@@ -2,13 +2,23 @@
 CREATE TYPE "public"."Role" AS ENUM ('REQUESTER', 'AGENT', 'ADMIN', 'SUPER_ADMIN');
 
 -- CreateEnum
-CREATE TYPE "public"."Priority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
+CREATE TYPE "public"."Priority" AS ENUM ('REQUEST', 'MINOR', 'MAJOR', 'CRITICAL');
 
 -- CreateEnum
 CREATE TYPE "public"."Status" AS ENUM ('NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED');
 
 -- CreateEnum
 CREATE TYPE "public"."ActivityAction" AS ENUM ('LOGIN', 'LOGOUT');
+
+-- CreateTable
+CREATE TABLE "public"."MailSetting" (
+    "id" TEXT NOT NULL,
+    "emails" TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MailSetting_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "public"."User" (
@@ -97,12 +107,11 @@ CREATE TABLE "public"."Ticket" (
     "categoryId" TEXT,
     "departmentId" TEXT,
     "requesterId" TEXT NOT NULL,
-    "status" "public"."Status" NOT NULL DEFAULT 'OPEN',
+    "status" "public"."Status" NOT NULL DEFAULT 'NEW',
     "assignedToId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "attached" TEXT,
-    "priority" "public"."Priority" NOT NULL DEFAULT 'MEDIUM',
     "isArchived" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Ticket_pkey" PRIMARY KEY ("id")

@@ -11,6 +11,7 @@ import { TicketWithRelations } from './page';
 import { getAllCategoryIdAndName, getAllDepartmentIdAndName } from '@/libs/action';
 import { useTranslations } from 'next-intl';
 import { useSession } from 'next-auth/react';
+import { getMailSetting } from '../mail-setting/action';
 
 interface TicketFormProps {
     setShowForm: (value: boolean) => void;
@@ -24,7 +25,7 @@ const emptyForm = {
     description: '',
     departmentId: '',
     categoryId: '',
-    priority: 'MEDIUM',
+    priority: '',
 };
 
 export default function TicketForm({
@@ -45,28 +46,53 @@ export default function TicketForm({
     const [images, setImages] = useState<File[]>([]);
     const [existingImages, setExistingImages] = useState<{ id: string; url: string }[]>([]);
 
+    const [mails, setMails] = useState<string[]>([]);
+
+
+    const isSupport = !!(
+        updateID &&
+        data?.user?.email &&
+        mails.some(mail => mail.toLowerCase() === data.user.email!.toLowerCase())
+    );
+
+
+
     // Fetch categories and departments
     useEffect(() => {
         const fetchData = async () => {
             const cats = await getAllCategoryIdAndName();
             const depts = await getAllDepartmentIdAndName();
+            const mail = await getMailSetting();
+
             setAllCategories(cats);
             setDepartments(depts);
+            setMails(mail);
+
+
+
+
         };
         fetchData();
     }, []);
 
-    // Filter categories when department changes
+
+
     useEffect(() => {
         if (!form.departmentId) {
             setCategories([]);
             setForm(prev => ({ ...prev, categoryId: '' }));
             return;
         }
+
         const filtered = allCategories.filter(c => c.departmentId === form.departmentId);
         setCategories(filtered);
-        setForm(prev => ({ ...prev, categoryId: '' }));
+
+        // ✅ Only reset category if current one is not part of the filtered list
+        if (!filtered.some(c => c.id === form.categoryId)) {
+            setForm(prev => ({ ...prev, categoryId: '' }));
+        }
     }, [form.departmentId, allCategories]);
+
 
     // Fetch ticket data for update
     useEffect(() => {
@@ -78,7 +104,7 @@ export default function TicketForm({
                         description: data.description ?? '',
                         departmentId: data.departmentId ?? '',
                         categoryId: data.categoryId ?? '',
-                        priority: data.priority ?? 'MEDIUM',
+                        priority: data.priority ?? '',
                     });
                     setExistingImages(data.images || []);
                 }
@@ -115,6 +141,16 @@ export default function TicketForm({
         const newErrors: { [key: string]: string } = {};
         if (!form.title.trim()) newErrors.title = t('errors.title');
         if (!form.description.trim()) newErrors.description = t('errors.description');
+
+        // ✅ Support fields required
+        if (isSupport) {
+
+            if (!form.departmentId) newErrors.departmentId = t('errors.department');
+            if (!form.categoryId) newErrors.categoryId = t('errors.category');
+            if (!form.priority) newErrors.priority = t('errors.priority');
+        }
+
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -137,6 +173,8 @@ export default function TicketForm({
             const formData = new FormData();
             Object.entries(form).forEach(([key, value]) => formData.append(key, value));
 
+            // console.log(form)
+            // console.log(formData.get('priority'))
             let response;
             if (updateID) {
                 formData.append('newImages', JSON.stringify(imageUrls));
@@ -216,8 +254,8 @@ export default function TicketForm({
                             />
                             {errors.description && <p id="description-error" className="text-red-600 text-sm mt-1">{errors.description}</p>}
                         </div>
-
-                        {(updateID && data?.user.email === "support@eastwindmyanmar.com.mm") && (
+                        {/* here */}
+                        {(isSupport) && (
                             <>
                                 <div className='grid grid-cols-2 gap-3'>
                                     <SelectBox
@@ -248,11 +286,12 @@ export default function TicketForm({
                                     id="priority"
                                     name="priority"
                                     value={form.priority}
+
                                     options={[
-                                        { id: 'LOW', name: 'LOW' },
-                                        { id: 'MEDIUM', name: 'MEDIUM' },
-                                        { id: 'HIGH', name: 'HIGH' },
-                                        { id: 'URGENT', name: 'URGENT' },
+                                        { id: 'REQUEST', name: 'REQUEST' },
+                                        { id: 'MINOR', name: 'MINOR' },
+                                        { id: 'MAJOR', name: 'MAJOR' },
+                                        { id: 'CRITICAL', name: 'CRITICAL' },
                                     ]}
                                     onChange={handleChange}
                                     error={errors.priority}

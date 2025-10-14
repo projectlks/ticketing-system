@@ -381,7 +381,8 @@
     "open": "Открыт",
     "in_progress": "В процессе",
     "resolved": "Решено",
-    "closed": "Закрыт"
+    "closed": "Закрыт",
+    "canceled": "Отменён"
   },
 
   "profileCard": {

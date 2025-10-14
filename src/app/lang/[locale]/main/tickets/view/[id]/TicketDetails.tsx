@@ -62,7 +62,7 @@ export default function TicketDetails({ ticket, users, comments, auditLog }: Tic
                                 value={new Date(ticket.updatedAt).toLocaleString('en-US', { timeZone: 'Asia/Yangon' })}
                             />
                             <ViewContext label={t('category')} value={ticket.category?.name || '-'} />
-                            <ViewContext label={t('subCategory')} value={ticket.subcategory?.name || '-'} />
+                            {/* <ViewContext label={t('subCategory')} value={ticket.subcategory?.name || '-'} /> */}
                             <ViewContext label={t('department')} value={ticket.department?.name || '-'} />
                             <ViewContext label={t('requester')} value={ticket.requester?.name || '-'} />
 

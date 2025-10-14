@@ -6,7 +6,6 @@
 
 import TicketView from './TicketView';
 import { getTicketDetail, getTicketAuditLogs } from '../../action';
-import BackBtn from '@/components/BackBtn';
 import { getUserIdsandEmailByDepeartmentId } from '@/libs/action';
 import ViewHeader from '@/components/ViewHeader';
 
@@ -29,7 +28,7 @@ export default async function DepartmentPage({
 
   const ticket = await getTicketDetail(id);
 
-  const user = await getUserIdsandEmailByDepeartmentId({ id: ticket?.department.id || '' })
+  const user = await getUserIdsandEmailByDepeartmentId({ id: ticket?.department?.id || '' })
 
   if (!ticket) {
     return <p className="p-6 text-center text-red-500">Department not found.</p>;

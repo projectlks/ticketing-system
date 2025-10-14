@@ -373,7 +373,8 @@
     "open": "Open",
     "in_progress": "In Progress",
     "resolved": "Resolved",
-    "closed": "Closed"
+    "closed": "Closed",
+    "canceled": "Canceled"
   },
   "profileCard": {
     "editPersonalInfo": "Edit Personal Information",
