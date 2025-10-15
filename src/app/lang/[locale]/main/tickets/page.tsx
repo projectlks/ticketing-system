@@ -20,6 +20,8 @@ import { useSession } from "next-auth/react";
 import type { Ticket } from "@prisma/client";
 import { useTicketCount } from "@/context/TicketCountContext";
 import { useTranslations } from "next-intl";
+import { useStatusColor } from "@/hooks/useStatusColor";
+import { usePriorityColor } from "@/hooks/usePriority";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: {
@@ -217,44 +219,8 @@ export default function Page() {
 
 
 
-    type StatusType = "NEW" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | "CANCELED";
 
-    const statusColors: Record<StatusType | "DEFAULT", { bg: string; borderAndText: string }> = {
-        NEW: { bg: "bg-purple-500", borderAndText: "border-purple-500 text-purple-500" },
-        OPEN: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
-        IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
-        RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
-        CLOSED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
-        CANCELED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
-        DEFAULT: { bg: "bg-gray-500", borderAndText: "border-red-500 text-red-500" },
-    };
-
-    function getStatusColor(
-        status: string,
-        type: "bg" | "borderAndText" = "bg"
-    ): string {
-        const key = status as StatusType;
-        return statusColors[key]?.[type] ?? statusColors.DEFAULT[type];
-    }
-
-
-
-    type PriorityType = "REQUEST" | "MINOR" | "MAJOR" | "CRITICAL";
-
-    const priorityColors: Record<PriorityType | "DEFAULT", { bg: string; borderAndText: string }> = {
-        REQUEST: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
-        MINOR: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
-        MAJOR: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
-        CRITICAL: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
-        DEFAULT: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
-    };
-
-    function getPriorityColor(priority: string, type: "bg" | "borderAndText" = "bg"): string {
-        if (priority in priorityColors) {
-            return priorityColors[priority as keyof typeof priorityColors][type];
-        }
-        return priorityColors.DEFAULT[type];
-    }
+    
 
     const t = useTranslations("table");
     const tHeader = useTranslations("header");
@@ -263,6 +229,10 @@ export default function Page() {
     const pathname = usePathname();
     const segments = pathname.split("/");
     const locale = segments[2] || "en";
+
+
+    const getStatusColor = useStatusColor;
+    const getPriorityColor = usePriorityColor;
 
 
     return (

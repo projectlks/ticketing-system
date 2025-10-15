@@ -23,6 +23,8 @@ import Button from "@/components/Button";
 import { useTranslations } from "next-intl";
 import { markTicketAsViewed } from "../tickets/action";
 import { useTicketCount } from "@/context/TicketCountContext";
+import { useStatusColor } from "@/hooks/useStatusColor";
+import { usePriorityColor } from "@/hooks/usePriority";
 
 export type TicketWithRelations = Ticket & {
     assignedTo: { id: string; name: string; email: string } | null;
@@ -109,35 +111,13 @@ export default function Page() {
         fetchTicketsDebounced({ from: fromDate, to: toDate });
     }, [page, take]);
 
-    const statusColors: Record<string, { bg: string; borderAndText: string }> = {
-        OPEN: { bg: "bg-green-500", borderAndText: "border-green-500 text-green-500" },
-        IN_PROGRESS: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
-        RESOLVED: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
-        CLOSED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
-        CANCELED: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
-        DEFAULT: { bg: "bg-gray-500", borderAndText: "border-red-500 text-red-500" },
-    };
-    const getStatusColor = (status: string, type: "bg" | "borderAndText" = "bg") =>
-        statusColors[status]?.[type] ?? statusColors.DEFAULT[type];
 
-    type PriorityType = "REQUEST" | "MINOR" | "MAJOR" | "CRITICAL";
 
-    const priorityColors: Record<PriorityType | "DEFAULT", { bg: string; borderAndText: string }> = {
-        REQUEST: { bg: "bg-blue-500", borderAndText: "border-blue-500 text-blue-500" },
-        MINOR: { bg: "bg-yellow-500", borderAndText: "border-yellow-500 text-yellow-500" },
-        MAJOR: { bg: "bg-orange-500", borderAndText: "border-orange-500 text-orange-500" },
-        CRITICAL: { bg: "bg-red-500", borderAndText: "border-red-500 text-red-500" },
-        DEFAULT: { bg: "bg-gray-500", borderAndText: "border-gray-500 text-gray-500" },
-    };
 
-    function getPriorityColor(priority: string, type: "bg" | "borderAndText" = "bg"): string {
-        if (priority in priorityColors) {
-            return priorityColors[priority as keyof typeof priorityColors][type];
-        }
-        return priorityColors.DEFAULT[type];
-    }
+    const getStatusColor = useStatusColor;
+    const getPriorityColor = usePriorityColor;
 
- 
+
 
     const toggleSelectTicket = (id: string) => {
         setSelectedTickets((prev) =>
