@@ -70,7 +70,7 @@ const PriorityChart: React.FC<PriorityChartProps> = ({ role, userId }) => {
             },
             tooltip: {
               titleColor: theme === "dark" ? "#E5E7EB" : "#E5E7EB",
-              bodyColor: theme === "dark" ? "#E5E7EB" : "#374151",
+              bodyColor: theme === "dark" ? "#E5E7EB" : "#E5E7EB",
             },
           },
         },

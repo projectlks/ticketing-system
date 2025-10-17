@@ -10,10 +10,21 @@ const getRoleWhere = (role: Role, userId?: string, departmentId?: string): Prism
     if ((role === "REQUESTER" && userId)) return {
         OR: [
             { requesterId: userId },
+            { assignedToId: userId },
+
             departmentId ? { departmentId } : {},
         ],
     };;
-    if (role === "AGENT" && userId) return { assignedToId: userId };
+    if (role === "AGENT" && userId) return {
+
+        // assignedToId: userId
+
+        OR: [
+            { requesterId: userId },
+            { assignedToId: userId },
+            departmentId ? { departmentId } : {},
+        ],
+    };
     return {}; // SUPER_ADMIN & ADMIN
 };
 
@@ -95,11 +106,19 @@ export async function getMonthlyTicketStatsByStatus(role?: Role, userId?: string
     const nextMonthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
     const lastMonthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, 1));
 
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { departmentId: true },
+    });
+
+    const departmentId = user?.departmentId ?? undefined;
+
     const tickets = await prisma.ticket.findMany({
         where: {
             createdAt: { gte: lastMonthStart, lt: nextMonthStart },
             isArchived: false,
-            ...getRoleWhere(role!, userId),
+            ...getRoleWhere(role!, userId, departmentId),
         },
         select: { status: true, createdAt: true },
     });

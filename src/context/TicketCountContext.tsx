@@ -16,7 +16,7 @@ const TicketCountContext = createContext<TicketCountContextType>({
 
 export const TicketCountProvider = ({ children }: { children: ReactNode }) => {
   const [ticketCount, setTicketCount] = useState(0);
-    const { data: session, status } = useSession(); // get session
+  const { data: session, status } = useSession(); // get session
 
 
   const refreshTicketCount = async () => {

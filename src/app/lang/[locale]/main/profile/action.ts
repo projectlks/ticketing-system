@@ -34,7 +34,7 @@ export async function getCurrentUserData() {
             requestTickets: {
                 include: {
                     category: true,
-                    subcategory: true,
+                    // subcategory: true,
                     department: true,
                     assignedTo: true,
                 },
@@ -42,7 +42,7 @@ export async function getCurrentUserData() {
             assignedTickets: {
                 include: {
                     category: true,
-                    subcategory: true,
+                    // subcategory: true,
                     department: true,
                     requester: true,
                 },
@@ -90,8 +90,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
         },
     });
 
-    return { success: true, message: "Password updated successfully" };
-}
+    return { success: true, message: "Password updated successfully" };}
 
 
 
