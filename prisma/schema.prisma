@@ -39,6 +39,24 @@ enum Status {
   CANCELED
 }
 
+model Logs {
+  id              String    @id @default(cuid())
+  datetime        DateTime
+  recoveryTime    DateTime?
+  status          String
+  host            String
+  description     String?
+  problemSeverity String
+  duration        String?
+  contactId       String
+  contact         User      @relation(fields: [contactId], references: [id])
+
+  created DateTime @default(now())
+  remark  String?
+
+  @@map("logs") // database table name will be `logs`
+}
+
 model MailSetting {
   id        String   @id @default(cuid())
   emails    String[] // array of email addresses
@@ -107,6 +125,8 @@ model User {
   requestTickets  Ticket[]      @relation("TicketRequester")
   assignedTickets Ticket[]      @relation("TicketAssignedTo")
   likes           CommentLike[]
+
+  logs Logs[]
 
   // Audits & Comments
   audits       Audit[]
@@ -250,11 +270,9 @@ model Ticket {
   slaId String?
   sla   SLA?    @relation(fields: [slaId], references: [id])
 
-
   // ✅ SLA Violation tracking
-  isSlaViolated Boolean  @default(false)
+  isSlaViolated Boolean @default(false)
 
-  
   startSlaTime  DateTime?
   responseDue   DateTime?
   resolutionDue DateTime?

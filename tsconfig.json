@@ -28,6 +28,6 @@
   "**/*.tsx",
   ".next/types/**/*.ts",
   "src/types/next-auth.d.ts"
-, "prisma/seed.js"],
+, "prisma/seed.js", "src/app/lang/[locale]/main/daily-activity/Cards.tsx"],
   "exclude": ["node_modules"]
 }

@@ -220,7 +220,7 @@ export default function Page() {
 
 
 
-    
+
 
     const t = useTranslations("table");
     const tHeader = useTranslations("header");
@@ -309,7 +309,7 @@ export default function Page() {
                                                         <span
                                                             className={`w-2 block aspect-square rounded-full ${getStatusColor(ticket.status)}`}
                                                         />
-                                                        <p className="text-xs truncate text-gray-700 dark:text-gray-200">
+                                                        <p className="text-xs truncate  text-gray-700 dark:text-gray-200">
                                                             {ticket.status}
                                                         </p>
                                                     </div>
@@ -323,7 +323,7 @@ export default function Page() {
                                                         <span
                                                             className={`w-2 block aspect-square rounded-full ${getPriorityColor(ticket.priority || '')}`}
                                                         />
-                                                        <p className="text-xs truncate text-gray-700 dark:text-gray-200">
+                                                        <p className="text-xs truncatetext-gray-700 dark:text-gray-200">
                                                             {ticket.priority}
                                                         </p>
                                                     </div>
@@ -337,20 +337,20 @@ export default function Page() {
 
                                                 {/* Requester */}
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <p className="text-gray-500 dark:text-gray-300 truncate">
+                                                    <p className="text-gray-500 text-[14px] dark:text-gray-300 truncate">
                                                         {ticket.requester ? ticket.requester.name || "-" : "-"}
                                                     </p>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                                                    <p className="text-gray-500  dark:text-gray-400 text-xs truncate">
                                                         {ticket.requester ? ticket.requester.email || "-" : "-"}
                                                     </p>
                                                 </td>
 
                                                 {/* Assigned To */}
                                                 <td className="px-5 py-4 sm:px-6">
-                                                    <p className="text-gray-500 dark:text-gray-300 truncate">
+                                                    <p className="text-gray-500 text-[14px] dark:text-gray-300 truncate">
                                                         {ticket.assignedTo ? ticket.assignedTo.name || "-" : "-"}
                                                     </p>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                                                    <p className="text-gray-500  dark:text-gray-400 text-xs truncate">
                                                         {ticket.assignedTo ? ticket.assignedTo.email || "-" : "-"}
                                                     </p>
                                                 </td>

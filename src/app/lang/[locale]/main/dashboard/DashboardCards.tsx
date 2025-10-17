@@ -80,18 +80,7 @@ const DashboardCard: React.FC<CardData> = ({
       </div>
       <div className="flex items-end justify-between">
         <div className="text-md font-semibold text-gray-900 dark:text-gray-100">{count}</div>
-        {/* <div
-          className={`bg-${badgeColor}-100 dark:bg-${badgeColor}-700 text-${badgeColor}-700 dark:text-gray-900 text-sm px-2 py-0.5 rounded-full font-medium flex items-center gap-1`}
-        >
-          <svg
-            viewBox="0 0 13 12"
-            fill="currentColor"
-            className={`h-3 w-3 ${badgeIconRotate ? "rotate-180" : ""}`}
-          >
-            <path d="M6.1 1.6a.7.7 0 011 .1l3 3a.7.7 0 01-1 1L7.4 3.9v6.2a.7.7 0 11-1.4 0V3.9L4.1 5.7a.7.7 0 01-1-1l3-3a.7.7 0 011-.1z" />
-          </svg>
-          {badgeText}
-        </div> */}
+      
 
         <div
           className={`${badgeColorMap[badgeColor]} dark:text-gray-900 text-sm px-2 py-0.5 rounded-full font-medium flex items-center gap-1`}

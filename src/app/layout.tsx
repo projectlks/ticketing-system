@@ -13,6 +13,7 @@ import { UserDataProvider } from "@/context/UserProfileContext";
 
 import "@/libs/cron"; // <- starts cron job when server boots
 import { ThemeProvider } from "next-themes";
+import { ReactQueryProvider } from "./provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,12 +59,16 @@ export default async function RootLayout({
           >
             <UserDataProvider>
               <TicketCountProvider>
-                {children}
+                <html lang="en">
+                  <body className={`${geistSans.variable} ${geistMono.variable}`}>
+                    <ReactQueryProvider>{children}</ReactQueryProvider>
+                  </body>
+                </html>
                 <PortalRoot />
               </TicketCountProvider>
             </UserDataProvider>
           </ThemeProvider>
-        <div id="portal-root"></div>
+          <div id="portal-root"></div>
         </Providers>
       </body>
     </html>
