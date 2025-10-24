@@ -47,11 +47,7 @@ export default function Cards({ title = "", count = 0 }: CardsProps) {
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center">
-        {/* <div
-          className={`rounded-full relative h-12 w-12 flex justify-center items-center border ${getColorClasses()}`}
-        >
-          {getIcon()}
-        </div> */}
+       
         <div className="h-fit flex justify-between w-full ">
           <span>
 

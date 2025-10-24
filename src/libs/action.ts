@@ -254,7 +254,8 @@ export async function getUnseenTicketCount() {
     return prisma.ticket.count({
       where: {
         isArchived: false,
-        assignedToId: user.id,
+        // assignedToId: user.id,
+        departmentId: user.departmentId,
         views: {
           none: {
             userId: user.id,

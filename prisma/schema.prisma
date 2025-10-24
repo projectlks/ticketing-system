@@ -39,6 +39,14 @@ enum Status {
   CANCELED
 }
 
+enum Severity {
+  INFORMATION
+  WARNING
+  AVERAGE
+  HIGH
+  DISASTER
+}
+
 model Logs {
   id              String    @id @default(cuid())
   datetime        DateTime
@@ -46,7 +54,7 @@ model Logs {
   status          String
   host            String
   description     String?
-  problemSeverity String
+  problemSeverity Severity  @default(INFORMATION)
   duration        String?
   contactId       String
   contact         User      @relation(fields: [contactId], references: [id])

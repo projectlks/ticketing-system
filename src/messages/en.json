@@ -322,6 +322,56 @@
       "cancelDeny": "No, keep editing"
     }
   },
+"logForm": {
+  "headings": {
+    "create": "Create New Log",
+    "createDesc": "Fill out the form to create a new log entry",
+    "update": "Update Log",
+    "updateDesc": "Update the details of an existing log"
+  },
+  "labels": {
+    "host": "Host",
+    "description": "Description",
+    "status": "Status",
+    "severity": "Problem Severity",
+    "contact": "Contact",
+    "remark": "Remark",
+    "duration": "Duration"
+  },
+  "placeholders": {
+    "host": "Enter host name or IP",
+    "description": "Enter problem description",
+    "status": "Select status",
+    "severity": "Select severity level",
+    "contact": "Enter contact name or ID",
+    "remark": "Enter remark or notes",
+    "duration": "Enter duration (e.g., 15m, 2h)"
+  },
+  "buttons": {
+    "cancel": "Cancel",
+    "create": "Create Log",
+    "update": "Update Log",
+    "creating": "Creating...",
+    "updating": "Updating..."
+  },
+  "alerts": {
+    "success": {
+      "title": "Success",
+      "created": "Log created successfully!",
+      "updated": "Log updated successfully!"
+    },
+    "error": "Something went wrong. Please try again."
+  },
+  "errors": {
+    "host": "Host is required",
+    "status": "Status is required",
+    "severity": "Problem severity is required"
+  }
+},
+
+
+
+
   "viewContext": {
     "id": "User ID",
     "name": "Name",

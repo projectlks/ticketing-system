@@ -13,10 +13,13 @@ import {
 import Portal from "@/components/Portal";
 import TableBody from "@/components/TableBody";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getCounts, getLogs, LogsResponse } from "./action";
+import { getCounts, getAllLogs, LogsResponse } from "./action";
 import Loading from "@/components/Loading";
 import Form from "./Form";
 import { Logs } from "@prisma/client";
+import DotMenu from "@/components/DotMenu";
+import { useDaillyActivityPriorityColor } from "@/hooks/useDailyActivityPriority";
+// import { useDaillyActivityPriorityColor } from "@/hooks/useDailyActivityPriorityColor";
 
 
 export type LogWithContact = Logs & {
@@ -34,6 +37,7 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
+  const [updateId, setUpdateId] = useState<string | null>(null);
 
   // const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -47,7 +51,7 @@ export default function Page() {
   // ✅ Fetch logs with React Query
   const { data, isLoading } = useQuery<LogsResponse>({
     queryKey: ["logs", page, searchQuery],
-    queryFn: () => getLogs({ page, search: searchQuery }),
+    queryFn: () => getAllLogs({ page, search: searchQuery }),
     staleTime: 60000,
   });
 
@@ -63,14 +67,14 @@ export default function Page() {
     if (data?.nextPage) {
       queryClient.prefetchQuery({
         queryKey: ["logs", data.nextPage, searchQuery],
-        queryFn: () => getLogs({ page: data.nextPage, search: searchQuery }),
+        queryFn: () => getAllLogs({ page: data.nextPage, search: searchQuery }),
       });
     }
   }, [data, searchQuery, queryClient]);
 
   // ✅ Logs list
   const logs: LogWithContact[] = data?.data || [];
-
+  const getPriorityColor = useDaillyActivityPriorityColor;
 
 
 
@@ -80,11 +84,12 @@ export default function Page() {
       {isLoading && <Loading />}
       <section className="flex flex-col gap-y-5">
         {/* Dashboard cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          <Cards title="CRITICAL" count={counts?.Critical} />
-          <Cards title="MAJOR" count={counts?.Major} />
-          <Cards title="MINOR" count={counts?.Minor} />
-          <Cards title="REQUEST" count={counts?.Request} />
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5">
+          <Cards title="DISASTER" count={counts?.DISASTER} />
+          <Cards title="HIGH" count={counts?.HIGH} />
+          <Cards title="AVERAGE" count={counts?.AVERAGE} />
+          <Cards title="WARNING" count={counts?.WARNING} />
+          <Cards title="INFORMATION" count={counts?.INFORMATION} />
         </div>
 
         {/* Table Section */}
@@ -92,7 +97,7 @@ export default function Page() {
           <Header
             title={tHeader("tickets.title")}
             placeholder={tHeader("tickets.placeholder")}
-            click={() => setShowForm(true)}
+            click={() => { setShowForm(true); setUpdateId(null); }}
             setSearchQuery={setSearchQuery}
             searchQuery={searchQuery}
             showNewBtn={true}
@@ -115,6 +120,7 @@ export default function Page() {
                         <TableHead data="Duration" />
                         <TableHead data="Contact" />
                         <TableHead data="Remark" />
+                        <TableHead data="Action" />
                       </tr>
                     </thead>
                     <tbody>
@@ -124,7 +130,9 @@ export default function Page() {
                             key={log.id}
                             className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                           >
-                            <TableBody data={String(index + 1)} />
+                            {/* <TableBody data={String(index + 1)} /> */}
+                            <TableBody data={String((page - 1) * 10 + index + 1)} />
+
                             <TableBody
                               data={new Date(log.datetime).toLocaleString()}
                             />
@@ -135,13 +143,46 @@ export default function Page() {
                                   : "-"
                               }
                             />
-                            <TableBody data={log.status} />
+                            {/* <TableBody data={log.status} /> */}
+
+                            <td
+                              className={`px-5 py-2.5 sm:px-6  max-w-[500px]  `}
+                            >
+                              <p className={` ${log.status === "RESOLVED" ? "text-green-500" : "text-red-500"} text-[14px]  truncate `}>{log.status}</p>
+                            </td>
                             <TableBody data={log.host} />
                             <TableBody data={log.description || "-"} />
-                            <TableBody data={log.problemSeverity} />
+                            {/* <TableBody data={log.problemSeverity} /> */}
+
+
+                            <td className="px-5 py-4 sm:px-6">
+                              <div
+                                className={`flex items-center px-2 py-1 rounded-full ${getPriorityColor(log.problemSeverity || '', "borderAndText")} space-x-2 border`}
+                              >
+                                <span
+                                  className={`w-2 block aspect-square rounded-full ${getPriorityColor(log.problemSeverity || '')}`}
+                                />
+                                <p className="text-xs truncatetext-gray-700 dark:text-gray-200">
+                                  {log.problemSeverity}
+                                </p>
+                              </div>
+                            </td>
                             <TableBody data={log.duration || "-"} />
-                            <TableBody data={ log.contact.name || "-"} />
+                            {/* <TableBody data={log.contact.name || "-"} /> */}
+                            <td className="px-5 py-4 sm:px-6">
+                              <p className="text-gray-500 text-[14px] dark:text-gray-300 truncate">
+                                {log.contact ? log.contact.name || "-" : "-"}
+                              </p>
+                              <p className="text-gray-500  dark:text-gray-400 text-xs truncate">
+                                {log.contact ? log.contact.email || "-" : "-"}
+                              </p>
+                            </td>
+
                             <TableBody data={log.remark || "-"} />
+                            <td className="px-5 py-4 flex items-center space-x-3 sm:px-6">
+                              <DotMenu option={{ view: true, edit: true }} isBottom={index >= logs.length - 2} onEdit={() => { setUpdateId(log.id); setShowForm(true); }} />
+                            </td>
+
                           </tr>
                         ))
                       ) : (
@@ -194,7 +235,7 @@ export default function Page() {
         {showForm && (
           <Portal containerId="modal-root">
             {/* You can later add a Log form modal here */}
-            <Form setShowForm={setShowForm} />
+            <Form setShowForm={setShowForm} updateId={updateId} />
           </Portal>
         )}
       </section>
