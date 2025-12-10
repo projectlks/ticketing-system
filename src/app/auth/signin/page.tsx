@@ -1,20 +1,16 @@
-
-
-
 "use client";
 
 import { useState } from "react";
-// import Input from "@/components/Input";
+import Input from "@/components/Input";
 import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
-import Input from "@/components/Input";
 // import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function SignInPage() {
-  // const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -96,7 +92,7 @@ export default function SignInPage() {
       // localStorage မှာ saved language ရှိရင်ယူမယ်, မရှိရင် default "en"
 
       // redirect with saved/default language
-      router.push(`/helpdesk`);
+      router.push(`/helpdesk/dashboard`);
     }
   };
 
@@ -137,7 +133,7 @@ export default function SignInPage() {
                   {/* Password Input */}
                   <div className="relative">
                     <Input
-                      // type={showPassword ? "text" : "password"}
+                      type={showPassword ? "text" : "password"}
                       id="password"
                       name="password"
                       placeholder="Enter your password"

@@ -1,0 +1,15 @@
+-- AlterTable
+ALTER TABLE "ZabbixTicket" ADD COLUMN     "emailSent" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "hostGroup" TEXT,
+ADD COLUMN     "hostName" TEXT,
+ADD COLUMN     "hostTag" TEXT,
+ADD COLUMN     "itemDescription" TEXT,
+ADD COLUMN     "itemId" TEXT,
+ADD COLUMN     "itemName" TEXT,
+ADD COLUMN     "last5Values" TEXT,
+ADD COLUMN     "tags" TEXT,
+ADD COLUMN     "triggerDesc" TEXT,
+ADD COLUMN     "triggerId" TEXT,
+ADD COLUMN     "triggerName" TEXT,
+ADD COLUMN     "triggerSeverity" TEXT,
+ADD COLUMN     "triggerStatus" TEXT;
