@@ -30,7 +30,7 @@
     "i18next": "^25.4.2",
     "lottie-react": "^2.4.1",
     "moment": "^2.30.1",
-    "next": "15.4.6",
+    "next": "15.4.8",
     "next-auth": "^4.24.11",
     "next-i18next": "^15.4.2",
     "next-intl": "^4.3.5",
