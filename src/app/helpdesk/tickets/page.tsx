@@ -5,14 +5,13 @@ import Searchbox from "@/components/SearchBox/SearchBox";
 import TableBody from "@/components/TableBody";
 import TableHead from "@/components/TableHead";
 import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
-import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import { useStatusColor } from "@/hooks/useStatusColor";
 import { usePriorityColor } from "@/hooks/usePriorityColor";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getAllTickets } from "./action";
-import { Ticket } from "@prisma/client";
 import Countdown from "@/components/Countdown";
+import { Ticket } from "@/generated/prisma/client";
 
 export type TicketWithRelations = Ticket & {
     requester?: { name: string; email: string } | null;
@@ -48,9 +47,6 @@ export default function Page() {
     );
 
     const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
-    const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
-        Object.fromEntries(columns.map((col) => [col.key, 150]))
-    );
 
     const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
     const [selectedSearchQueryFilters, setSelectedSearchQueryFilters] = useState<Record<string, string[]>>({});
@@ -62,7 +58,6 @@ export default function Page() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10); // tickets per page
     const totalPages = Math.ceil(totalTickets / pageSize);
-    // const router = useRouter()
 
     const toggleColumn = (key: string) => {
         setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -79,9 +74,6 @@ export default function Page() {
         else setSelectedTickets(tickets.map((t) => t.id));
     };
 
-    const handleResize = (key: string, newWidth: number) => {
-        setColumnWidths((prev) => ({ ...prev, [key]: newWidth }));
-    };
 
     const getStatusColor = useStatusColor;
     const getPriorityColor = usePriorityColor;
@@ -258,55 +250,52 @@ export default function Page() {
             </div>
 
             {/* Table */}
-            <div className="w-full overflow-x-auto bg-white mt-4 border border-gray-200 rounded">
+            <table className="w-full overflow-x-auto bg-white mt-4 border border-gray-200 rounded">
                 {/* Table Header */}
-                <div className="flex border-b border-gray-200">
-                    <div className="w-12 flex items-center justify-center border-r border-gray-200">
-                        <input
-                            type="checkbox"
-                            checked={selectedTickets.length === tickets.length && tickets.length > 0}
-                            onChange={toggleSelectAll}
-                            className="accent-main"
-                        />
-                    </div>
 
-                    {columns.map(
-                        (col) =>
-                            visibleColumns[col.key] && (
-                                <ResizableBox
-                                    key={col.key}
-                                    width={columnWidths[col.key]}
-                                    height={40}
-                                    axis="x"
-                                    minConstraints={[120, 40]}
-                                    maxConstraints={[500, 40]}
-                                    onResize={(e, data) => handleResize(col.key, data.size.width)}
-                                    resizeHandles={["e"]}
-                                    handle={<span className="absolute right-0 top-0 h-full w-0.5 cursor-col-resize bg-gray-300" />}
-                                >
-                                    <TableHead key={col.key} data={col.label} width={columnWidths[col.key]} />
-                                </ResizableBox>
-                            )
-                    )}
-                </div>
+          
+                <thead className="border-b border-gray-200">
+                    <tr>
+                        <th className="w-12">
+                            <input
+                                type="checkbox"
+                                checked={selectedTickets.length === tickets.length && tickets.length > 0}
+                                onChange={toggleSelectAll}
+                                className="accent-main"
+                            />
+                        </th>
+
+                        {columns.map(
+                            (col) =>
+                                visibleColumns[col.key] && (
+                                    <TableHead data={col.label} key={col.key} />
+                                )
+                        )}
+                    </tr>
+                </thead>
+
+                {/* 
+
+
+
 
                 {/* Table Body */}
-                <div>
+                <tbody>
                     {tickets.map((ticket) => (
-                        <div
+                        <tr
                             key={ticket.id}
+                            className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                             onClick={() => router.push(`/helpdesk/tickets/${ticket.id}`)}
-                            className="flex border-b items-center border-gray-100 hover:bg-gray-50"
                         >
                             {/* Row checkbox */}
-                            <div className="w-12 flex items-center justify-center">
+                            <td className="">
                                 <input
                                     type="checkbox"
                                     checked={selectedTickets.includes(ticket.id)}
                                     onChange={() => toggleSelectTicket(ticket.id)}
-                                    className="accent-main"
+                                    className="accent-main block mx-auto"
                                 />
-                            </div>
+                            </td>
 
                             {columns.map((col) => {
                                 if (!visibleColumns[col.key]) return null;
@@ -317,7 +306,7 @@ export default function Page() {
                                     description: ticket.description,
                                     department: ticket.department?.name,
                                     status: (
-                                        <div key={Math.random()} className="px-5 py-2 sm:px-6" style={{ width: columnWidths[col.key] }}>
+                                        <td key={Math.random()} className="px-5 py-2 sm:px-6">
                                             <div
                                                 className={`flex items-center w-fit pr-3 px-2  rounded-full  border-gray-300 ${getStatusColor(ticket.status, "borderAndText")} space-x-2 border`}
                                             >
@@ -328,10 +317,10 @@ export default function Page() {
                                                     {ticket.status.toLocaleLowerCase()}
                                                 </p>
                                             </div>
-                                        </div>
+                                        </td>
                                     ),
                                     priority: (
-                                        <div key={Math.random()} className="px-5 py-2 sm:px-6" style={{ width: columnWidths[col.key] }}>
+                                        <td key={Math.random()} className="px-5 py-2 sm:px-6">
                                             <div
                                                 className={`flex items-center w-fit pr-3 px-2  rounded-full border-gray-300 space-x-1.5 ${getPriorityColor(ticket.priority || '', "borderAndText")} h-6 border`}
                                             >
@@ -342,44 +331,44 @@ export default function Page() {
                                                     {ticket.priority?.toLocaleLowerCase()}
                                                 </p>
                                             </div>
-                                        </div>
+                                        </td>
                                     ),
                                     createdAt: new Date(ticket.createdAt).toLocaleString(
                                         "en-US",
                                         { timeZone: "Asia/Yangon" }
                                     ),
                                     requester: (
-                                        <div style={{ width: columnWidths[col.key] }} key={col.key} className="px-5 py-4 sm:px-6">
+                                        <td key={col.key} className="px-5 py-4 sm:px-6">
                                             <p className="text-gray-500 text-[14px] truncate">
                                                 {ticket.requester?.name || "-"}
                                             </p>
                                             <p className="text-gray-500 text-xs truncate">
                                                 {ticket.requester?.email || "-"}
                                             </p>
-                                        </div>
+                                        </td>
                                     ),
                                     assignedTo: (
-                                        <div key={col.key} style={{ width: columnWidths[col.key] }} className="px-5 py-4 sm:px-6">
+                                        <td key={col.key} className="px-5 py-4 sm:px-6">
                                             <p className="text-gray-500 text-[14px] truncate">
                                                 {ticket.assignedTo?.name || "-"}
                                             </p>
                                             <p className="text-gray-500 text-xs truncate">
                                                 {ticket.assignedTo?.email || "-"}
                                             </p>
-                                        </div>
+                                        </td>
                                     ),
                                     isSlaViolated: ticket.isSlaViolated ? "Yes" : "No",
                                     actions: "...",
                                     responseDue: ticket.responseDue ? (
-                                        <div style={{ width: columnWidths["responseDue"] }} className="px-5 py-2 sm:px-6">
+                                        <td className="px-5 py-2 sm:px-6">
                                             <Countdown targetTime={ticket.responseDue.toString()} />
-                                        </div>
+                                        </td>
                                     ) : "-",
 
                                     resolutionDue: ticket.resolutionDue ? (
-                                        <div style={{ width: columnWidths["resolutionDue"] }} className="px-5 py-2 sm:px-6">
+                                        <td className="px-5 py-2 sm:px-6">
                                             <Countdown targetTime={ticket.resolutionDue.toString()} />
-                                        </div>
+                                        </td>
                                     ) : "-",
 
                                 };
@@ -391,15 +380,16 @@ export default function Page() {
                                 ) : (
                                     <TableBody
                                         key={col.key}
-                                        data={cellContent as string | number}
-                                        width={columnWidths[col.key]}
+                                        data={cellContent as string}
+                                    // width={columnWidths[col.key]}
                                     />
                                 );
                             })}
-                        </div>
+                        </tr>
                     ))}
-                </div>
-            </div>
+                </tbody>
+            </table>
         </div>
     );
 }
+

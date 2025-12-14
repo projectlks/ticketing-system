@@ -92,7 +92,7 @@ export default function SignInPage() {
       // localStorage မှာ saved language ရှိရင်ယူမယ်, မရှိရင် default "en"
 
       // redirect with saved/default language
-      router.push(`/helpdesk/dashboard`);
+      router.push(`/helpdesk`);
     }
   };
 
