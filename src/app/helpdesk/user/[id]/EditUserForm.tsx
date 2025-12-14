@@ -7,7 +7,7 @@ import { updateUser } from "../action";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Button from "@/components/Button";
-import { Role } from "@prisma/client";
+import { Role } from "@/generated/prisma/client";
 
 const RoleEnum = z.enum(["ADMIN", "REQUESTER", "AGENT", "SUPER_ADMIN"]);
 

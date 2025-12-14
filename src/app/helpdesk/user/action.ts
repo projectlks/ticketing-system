@@ -4,7 +4,7 @@ import { getCurrentUserId } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { Role } from "@prisma/client";
+import { Role } from "@/generated/prisma/client";
 import { TicketStats } from "./page";
 
 /* -------------------------------
@@ -76,17 +76,17 @@ export async function createUser(formData: FormData): Promise<void> {
   });
 
   // Add audit log
-  await prisma.audit.create({
-    data: {
-      entity: "User",
-      entityId: newUser.id,
-      field: "ALL",
-      oldValue: "",
-      newValue: "",
-      userId: currentUserId,
-      action: "CREATE",
-    },
-  });
+  // await prisma.audit.create({
+  //   data: {
+  //     entity: "User",
+  //     entityId: newUser.id,
+  //     field: "ALL",
+  //     oldValue: "",
+  //     newValue: "",
+  //     userId: currentUserId,
+  //     action: "CREATE",
+  //   },
+  // });
 }
 
 /* -------------------------------
@@ -144,32 +144,32 @@ export async function updateUser(formData: FormData) {
 
   // ---- Audit log ----
   const changedFields: Array<keyof typeof updateData> = ["name", "email", "role", "departmentId"];
-  for (const field of changedFields) {
-    let oldValue = "";
-    let newValue = "";
+  // for (const field of changedFields) {
+  //   let oldValue = "";
+  //   let newValue = "";
 
-    if (field === "departmentId") {
-      oldValue = oldUser.department?.name ?? "";
-      newValue = updated.department?.name ?? "";
-    } else {
-      oldValue = String(oldUser[field] ?? "");
-      newValue = String(updateData[field] ?? "");
-    }
+  //   if (field === "departmentId") {
+  //     oldValue = oldUser.department?.name ?? "";
+  //     newValue = updated.department?.name ?? "";
+  //   } else {
+  //     oldValue = String(oldUser[field] ?? "");
+  //     newValue = String(updateData[field] ?? "");
+  //   }
 
-    if (oldValue !== newValue) {
-      await prisma.audit.create({
-        data: {
-          entity: "User",
-          entityId: updated.id,
-          field,
-          oldValue,
-          newValue,
-          userId: currentUserId,
-          action: "UPDATE",
-        },
-      });
-    }
-  }
+  //   if (oldValue !== newValue) {
+  //     await prisma.audit.create({
+  //       data: {
+  //         entity: "User",
+  //         entityId: updated.id,
+        
+  //         oldValue,
+  //         newValue,
+  //         userId: currentUserId,
+  //         action: "UPDATE",
+  //       },
+  //     });
+  //   }
+  // }
 }
 
 

@@ -2,22 +2,23 @@
 
 import { getCurrentUserId } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
-import { Priority, Prisma, Status, Ticket } from "@prisma/client";
+import { Priority, Prisma, Status, Ticket } from "@/generated/prisma/client";
 import { z } from "zod";
 import { startOfDay, endOfDay } from "date-fns";
 
 import dayjs from 'dayjs';
+// import { Priority } from "@/generated/prisma/enums";
 // ======================
 // Zod Schemas
 // ======================
 const PriorityEnum = z.enum(["REQUEST", "MINOR", "MAJOR", "CRITICAL"]);
 const StatusEnum = z.enum(["NEW", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELED"]);
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
 
 const TicketFormSchema = z.object({
     // id: z.string(),
@@ -28,7 +29,7 @@ const TicketFormSchema = z.object({
     priority: PriorityEnum,
     remark: z.string().optional(),
     assignedToId: z.string().optional(),
-    status : StatusEnum
+    status: StatusEnum
 });
 
 const createFormSchema = TicketFormSchema
@@ -89,7 +90,7 @@ export async function createTicket(formData: FormData) {
         departmentId: formData.get("departmentId")?.toString().trim() || undefined,
         categoryId: formData.get("categoryId")?.toString().trim() || undefined,
         priority: (formData.get("priority")?.toString() as Priority) || undefined,
-        status : (formData.get("status")) || "NEW"
+        status: (formData.get("status")) || "NEW"
     };
 
     // Validate using Zod
@@ -178,7 +179,7 @@ export async function createTicket(formData: FormData) {
     await prisma.audit.create({
         data: {
             entity: "Ticket",
-            entityId: ticket.id,           
+            entityId: ticket.id,
             userId: userId,
             action: "CREATE",
         },
@@ -200,7 +201,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
         priority: (formData.get("priority")?.toString() as Priority) || undefined,
         remark: formData.get("remark")?.toString(),
         assignedToId: formData.get("assignedToId")?.toString(),
-        status : formData.get("status")
+        status: formData.get("status")
     };
 
     // Validate input (partial allowed)
@@ -347,48 +348,48 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
 
 
-  // Collect changes first
-const changedFields: Array<keyof typeof updateData> = [
-    "title", "description", "departmentId", "categoryId", "priority", "remark", "assignedToId", "status"
-];
+    // Collect changes first
+    const changedFields: Array<keyof typeof updateData> = [
+        "title", "description", "departmentId", "categoryId", "priority", "remark", "assignedToId", "status"
+    ];
 
-const changes: { field: string; oldValue: string; newValue: string }[] = [];
+    const changes: { field: string; oldValue: string; newValue: string }[] = [];
 
-for (const field of changedFields) {
-    let oldValue = "";
-    let newValue = "";
+    for (const field of changedFields) {
+        let oldValue = "";
+        let newValue = "";
 
-    if (field === "departmentId") {
-        oldValue = oldData?.department?.name ?? "";
-        newValue = updated.department?.name ?? "";
-    } else if (field === "categoryId") {
-        oldValue = oldData?.category?.name ?? "";
-        newValue = updated.category?.name ?? "";
-    } else if (field === "assignedToId") {
-        oldValue = oldData?.assignedTo?.name ?? "";
-        newValue = updated.assignedTo?.name ?? "";
-    } else {
-        oldValue = String(oldData[field] ?? "");
-        newValue = String(updateData[field] ?? "");
+        if (field === "departmentId") {
+            oldValue = oldData?.department?.name ?? "";
+            newValue = updated.department?.name ?? "";
+        } else if (field === "categoryId") {
+            oldValue = oldData?.category?.name ?? "";
+            newValue = updated.category?.name ?? "";
+        } else if (field === "assignedToId") {
+            oldValue = oldData?.assignedTo?.name ?? "";
+            newValue = updated.assignedTo?.name ?? "";
+        } else {
+            oldValue = String(oldData[field] ?? "");
+            newValue = String(updateData[field] ?? "");
+        }
+
+        if (oldValue !== newValue) {
+            changes.push({ field, oldValue, newValue });
+        }
     }
 
-    if (oldValue !== newValue) {
-        changes.push({ field, oldValue, newValue });
-    }
-}
-
-// Save a single audit row
-if (changes.length > 0) {
-    await prisma.audit.create({
-        data: {
-            entity: "Ticket",
-            entityId: updated.id,
-            userId: currentUserId,
-            action: "UPDATE",
-            changes: changes as unknown as Prisma.JsonValue, // ✅ Type assertion
-        },
-    });
-}
+    // Save a single audit row
+    // if (changes.length > 0) {
+    //     await prisma.audit.create({
+    //         data: {
+    //             entity: "Ticket",
+    //             entityId: updated.id,
+    //             userId: currentUserId,
+    //             action: "UPDATE",
+    //             changes: changes as unknown as Prisma.JsonValue, // ✅ Type assertion
+    //         },
+    //     });
+    // }
 
 
     return updated;

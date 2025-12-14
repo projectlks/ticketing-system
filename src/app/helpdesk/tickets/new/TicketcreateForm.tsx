@@ -7,11 +7,12 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createTicket, getTicketAuditLogs, updateTicket } from "../action";
 import AuditLogList from "@/components/AuditLogList";
-import { Audit, Status } from "@prisma/client";
+// import { Audit, Status } from "generated/prisma/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import ImageInput from "../ImageInput";
 import { PriorityStars } from "@/components/PriorityStars";
 import Countdown from "@/components/Countdown";
+import { Audit , Status} from "@/generated/prisma/client";
 
 // =====================
 // Zod Schema
