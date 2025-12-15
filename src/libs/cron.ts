@@ -198,7 +198,8 @@ const BASE_URL = process.env.BASE_URL;
 // });
 
 
-cron.schedule("*/5 * * * * *", async () => {
+cron.schedule("*/5 * * * *", async () => {
+
     if (!BASE_URL) {
         console.error("❌ BASE_URL is not defined");
         return;
