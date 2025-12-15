@@ -290,7 +290,7 @@ export async function GET(req: NextRequest) {
 
       if (from === "cron") {
         console.log("🟢 CRON fetch — can send email");
-        // await sendEmail("mglinkar08@gmail.com", subject, body);
+        await sendEmail("mglinkar08@gmail.com", subject, body);
 
         return NextResponse.json({ ok: true });
       }

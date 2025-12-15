@@ -379,17 +379,18 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     }
 
     // Save a single audit row
-    // if (changes.length > 0) {
-    //     await prisma.audit.create({
-    //         data: {
-    //             entity: "Ticket",
-    //             entityId: updated.id,
-    //             userId: currentUserId,
-    //             action: "UPDATE",
-    //             changes: changes as unknown as Prisma.JsonValue, // ✅ Type assertion
-    //         },
-    //     });
-    // }
+    if (changes.length > 0) {
+        await prisma.audit.create({
+            data: {
+                entity: "Ticket",
+                entityId: updated.id,
+                userId: currentUserId,
+                action: "UPDATE",
+                changes: changes
+                // changes: changes as unknown as Prisma.JsonValue, // ✅ Type assertion
+            },
+        });
+    }
 
 
     return updated;

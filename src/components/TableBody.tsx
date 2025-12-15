@@ -16,7 +16,7 @@ export default function TableBody({ data, textAlign = "left" }: TableBodyProps) 
         <td
             className={`px-5 py-2.5 sm:px-6 ${alignmentClass} max-w-[500px]  `}
         >
-            <p className="text-gray-500 text-[14px] dark:text-gray-300 truncate">{data}</p>
+            <div className="text-gray-500 text-[14px] dark:text-gray-300 truncate">{data}</div>
         </td>
     );
 }

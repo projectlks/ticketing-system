@@ -47,17 +47,14 @@ export async function createDepartment(formData: FormData): Promise<void> {
     });
 
 
-    // await prisma.audit.create({
-    //     data: {
-    //         entity: "Department",
-    //         entityId: department.id,
-    //         // field: "",
-    //         // oldValue: "",
-    //         newValue: JSON.stringify(parsed),
-    //         userId,
-    //         action: "CREATE",
-    //     },
-    // });
+    await prisma.audit.create({
+        data: {
+            entity: "Department",
+            entityId: department.id,
+            userId,
+            action: "CREATE",
+        },
+    });
 
 
     // No return value needed
