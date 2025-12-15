@@ -184,14 +184,33 @@ const BASE_URL = process.env.BASE_URL;
 
 // Schedule every 5 seconds
 
-cron.schedule("0 */5 * * * *", async () => {
+// cron.schedule("0 */5 * * * *", async () => {
+
+//     console.log("⏳ Running Zabbix fetch...");
+
+//     try {
+//         const res = await fetch(`${BASE_URL}/api/problems?from=cron`);
+//         console.group(res.json())
+//         console.log("✅ Cron success:");
+//     } catch (err) {
+//         console.error("❌ Cron fetch error:", err);
+//     }
+// });
+
+
+cron.schedule("*/5 * * * * *", async () => {
+    if (!BASE_URL) {
+        console.error("❌ BASE_URL is not defined");
+        return;
+    }
 
     console.log("⏳ Running Zabbix fetch...");
 
     try {
         const res = await fetch(`${BASE_URL}/api/problems?from=cron`);
-        console.group(res.json())
-        console.log("✅ Cron success:");
+        const data = await res.json();
+
+        console.log("✅ Cron success:", data);
     } catch (err) {
         console.error("❌ Cron fetch error:", err);
     }
