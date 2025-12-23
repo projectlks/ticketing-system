@@ -10,7 +10,7 @@
     "lint": "eslint",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
-      "postinstall": "prisma generate"
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -46,6 +46,7 @@
     "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.16",
     "tsx": "^4.20.6"
+
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

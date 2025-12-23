@@ -71,7 +71,7 @@ export default function DepartmentPage() {
 
                         <input
                             type="text"
-                            placeholder={"Search"}
+                            placeholder={"Search by name or email..."}
                             className="h-6 w-full flex-1  pl-9 pr-10 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -140,100 +140,14 @@ export default function DepartmentPage() {
 
 
 
-                                    {/* detail */}
-                                    {/* <p className="mt-8  mb-2 text-xs text-gray-500">Assign to this user</p>
-                                    <div className=" grid grid-cols-3  ">
-                                           <span className="flex items-center flex-col ">
-                                            <h1 className="text-indigo-500 font-bold text-[12px] ">
-                                                {user.assigned.new}
-                                            </h1>
-
-                                            <p className="text-xs text-gray-500">
-                                                New
-                                            </p>
-                                        </span>
-
-                                        <span className="flex items-center flex-col ">
-                                            <h1 className="text-indigo-500 font-bold text-[12px] ">
-                                                {user.assigned.open}
-                                            </h1>
-
-                                            <p className="text-xs text-gray-500">
-                                                Open
-                                            </p>
-                                        </span>
-
-                                        <span className="flex items-center border-l border-r border-gray-300 flex-col ">
-                                            <h1 className="text-indigo-500 font-bold text-[12px] ">
-                                                {user.assigned.inprogress}
-                                            </h1>
-
-                                            <p className="text-xs text-gray-500">
-                                                Inprogress
-                                            </p>
-                                        </span>
-
-                                        <span className="flex items-center flex-col ">
-                                            <h1 className="text-indigo-500 font-bold text-[12px] ">
-                                                {user.assigned.closed}
-
-                                            </h1>
-
-                                            <p className="text-xs text-gray-500">
-                                                Closed
-                                            </p>
-                                        </span>
-
-
-
-                                    </div>
-
-                                    <p className="mt-8  mb-2 text-xs text-gray-500">Assign to this user</p>
-
-
-                                    <div className="grid grid-cols-3  ">
-
-                                        <span className="flex items-center flex-col ">
-                                            <h1 className="text-indigo-500 font-bold text-[12px] ">
-                                                {user.created.open}
-                                            </h1>
-
-                                            <p className="text-xs text-gray-500">
-                                                Open
-                                            </p>
-                                        </span>
-
-                                        <span className="flex items-center border-l border-r border-gray-300 flex-col ">
-                                            <h1 className="text-indigo-500 font-bold text-[12px] ">
-                                                {user.created.inprogress}
-                                            </h1>
-
-                                            <p className="text-xs text-gray-500">
-                                                Inprogress
-                                            </p>
-                                        </span>
-
-                                        <span className="flex items-center flex-col ">
-                                            <h1 className="text-indigo-500 font-bold text-[12px] ">
-                                                {user.created.closed}
-
-                                            </h1>
-
-                                            <p className="text-xs text-gray-500">
-                                                Closed
-                                            </p>
-                                        </span>
-
-
-
-                                    </div> */}
+                             
 
                                     {/* ASSIGNED SECTION */}
                                     <p className="mt-8 mb-2 text-xs text-gray-500 font-semibold">
                                         Assigned to this user
                                     </p>
 
-                                    <div className="grid grid-cols-4 text-center border border-gray-300 rounded overflow-hidden">
+                                    <div className="grid grid-cols-4 text-center  overflow-hidden">
                                         <div className="py-2">
                                             <h1 className="text-indigo-500 font-bold text-[12px]">
                                                 {user.assigned.new}
@@ -269,7 +183,7 @@ export default function DepartmentPage() {
                                         Tickets created by this user
                                     </p>
 
-                                    <div className="grid grid-cols-4 text-center border border-gray-300 rounded overflow-hidden">
+                                    <div className="grid grid-cols-4 text-center    overflow-hidden">
                                         <div className="py-2">
                                             <h1 className="text-indigo-500 font-bold text-[12px]">
                                                 {user.created.new}

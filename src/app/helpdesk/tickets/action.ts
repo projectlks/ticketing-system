@@ -21,7 +21,6 @@ const StatusEnum = z.enum(["NEW", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "
 
 
 const TicketFormSchema = z.object({
-    // id: z.string(),
     title: z.string().min(5),
     description: z.string().min(10),
     departmentId: z.string(),
@@ -90,6 +89,7 @@ export async function createTicket(formData: FormData) {
         departmentId: formData.get("departmentId")?.toString().trim() || undefined,
         categoryId: formData.get("categoryId")?.toString().trim() || undefined,
         priority: (formData.get("priority")?.toString() as Priority) || undefined,
+        assignedToId: formData.get("assignedToId")?.toString(),
         status: (formData.get("status")) || "NEW"
     };
 
@@ -151,6 +151,7 @@ export async function createTicket(formData: FormData) {
             startSlaTime: now,
             responseDue,
             resolutionDue,
+            assignedToId: parsed.assignedToId,
 
             ticketId,
             title: parsed.title,

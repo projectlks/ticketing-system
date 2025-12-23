@@ -7,3 +7,26 @@
   --color-mainHover: #52374B;
  
 }
+
+/* @layer base {
+
+
+  option {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  option:checked {
+    background-color: red;
+    color: white;
+  }
+}
+
+@layer utilities {
+  select::picker(select) {
+    background-color: red;
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  }
+} */
