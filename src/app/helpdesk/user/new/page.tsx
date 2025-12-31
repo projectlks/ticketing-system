@@ -111,11 +111,10 @@ export default function UserForm() {
 
             <form
                 onSubmit={handleSubmit}
-                className={`shadow-md p-8 space-y-6 ${
-                    errorMessage
+                className={`shadow-md p-8 space-y-6 ${errorMessage
                         ? " bg-red-100 "
                         : "bg-white"
-                }`}
+                    }`}
             >
                 {/* Name */}
                 <div>
@@ -125,11 +124,10 @@ export default function UserForm() {
                     <input
                         name="name"
                         type="text"
-                        className={`border-b-2 w-full py-2 text-2xl focus:outline-none ${
-                            errors.name
+                        className={`border-b-2 w-full py-2 text-2xl focus:outline-none ${errors.name
                                 ? "border-red-500"
                                 : "border-indigo-500"
-                        }`}
+                            }`}
                         placeholder="Enter User Name"
                         value={form.name}
                         onChange={handleChange}
@@ -149,11 +147,10 @@ export default function UserForm() {
                         <input
                             name="email"
                             type="email"
-                            className={`w-full border-b py-2 focus:outline-none ${
-                                errors.email
+                            className={`w-full border-b py-2 focus:outline-none ${errors.email
                                     ? "border-red-500"
                                     : "border-gray-400 focus:border-indigo-500"
-                            }`}
+                                }`}
                             placeholder="Enter User Email"
                             value={form.email}
                             onChange={handleChange}
@@ -173,11 +170,10 @@ export default function UserForm() {
                         <input
                             name="password"
                             type="password"
-                            className={`w-full border-b py-2 focus:outline-none ${
-                                errors.password
+                            className={`w-full border-b py-2 focus:outline-none ${errors.password
                                     ? "border-red-500"
                                     : "border-gray-400 focus:border-indigo-500"
-                            }`}
+                                }`}
                             placeholder="Enter User Password"
                             value={form.password}
                             onChange={handleChange}
@@ -196,11 +192,10 @@ export default function UserForm() {
                         </label>
                         <select
                             name="department"
-                            className={`w-full border-b py-2 focus:outline-none ${
-                                errors.department
+                            className={`w-full border-b py-2 focus:outline-none ${errors.department
                                     ? "border-red-500"
                                     : "border-gray-400 focus:border-indigo-500"
-                            }`}
+                                }`}
                             value={form.department}
                             onChange={handleChange}
                         >
