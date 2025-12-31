@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import UserProfile from "@/components/UserProfile";
+import { useSession } from "next-auth/react";
 
 type DropdownItem = {
   label: string;
@@ -44,6 +45,11 @@ const menuItems: MenuItem[] = [
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+
+
+
+  const { data } = useSession();
+
   return (
     <section className="w-full h-screen bg-[#f5f5f5]">
       {/* Top Bar */}
@@ -60,10 +66,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Menu */}
         <ul className="flex items-center space-x-1 text-xs">
           {menuItems.map((item) =>
+
+
+
             item.dropdown ? (
               <li key={item.label} className="relative group cursor-pointer px-2 py-1 rounded hover:bg-gray-300">
-                <span>{item.label}</span>
-
+                {/* <span>{data?.user.role === "superadmin" ? item.label : ""}</span> */}
+                <span>
+                  {item.label === "Configuration"
+                    ? data?.user.role === "SUPER_ADMIN" || data?.user.role === "ADMIN"
+                      ? item.label
+                      : ""
+                    : item.label}
+                </span>
                 {/* Dropdown */}
                 <div className="absolute left-0 top-[calc(100%+5px)] z-50 w-[140px] rounded border border-gray-300 bg-white p-1 text-[10px] opacity-0 invisible transition-all duration-200 group-hover:visible group-hover:opacity-100">
                   {item.dropdown.map((drop, index) => (
@@ -78,6 +93,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <Link href={item.href!}>{item.label}</Link>
               </li>
             )
+
+
+
           )}
         </ul>
 
