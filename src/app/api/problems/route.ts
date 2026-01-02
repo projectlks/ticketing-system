@@ -46,16 +46,7 @@ type ZabbixItem = {
 // ======================
 // Nodemailer setup
 // ======================
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   auth: {
-//     // user: "iamlinkar13@gmail.com", // Gmail address
-//     // pass: "scwdrdkfhsrhitfs", // App password
 
-//     user : process.env.SMTP_USER,
-//     pass: process.env.SMTP_PASSWORD
-//   },
-// });
 
 
 const transporter = nodemailer.createTransport({
@@ -211,21 +202,6 @@ Event Detail: "http://10.2.10.10/tr_events.php?triggerid=${trigger.triggerid}&ev
 // ======================
 // Send Email
 // ======================
-// async function sendEmail(to: string, subject: string, body: string) {
-
-//   console.log("mail sending ")
-
-//   await transporter.sendMail({
-//     from: `"Zabbix Alerts" <${process.env.GMAIL_USER}>`,
-//     to,
-//     subject,
-//     text: body,
-//   });
-
-
-//   console.log("mail sending Success")
-// }
-
 
 async function sendEmail(to: string, subject: string, body: string) {
   console.log("📧 Sending mail...");
@@ -247,24 +223,6 @@ async function sendEmail(to: string, subject: string, body: string) {
 // ======================
 // API Route
 // ======================
-// export async function GET(req: NextRequest) {
-//   try {
-//     const problems = await fetchProblems();
-
-//     for (const problem of problems) {
-//       const { subject, body } = await generateEmail(problem);
-//       // await sendEmail("iamlinkar13@gmail.com", subject, body); // replace with real customer email
-//       console.log(`✅ Problem ${problem.eventid} sent`);
-//     }
-
-//     return NextResponse.json({ success: true, count: problems.length });
-//   } catch (err: unknown) {
-//     return NextResponse.json({
-//       success: false,
-//       error: (err as Error).message ?? "Unknown error",
-//     });
-//   }
-// }
 
 
 

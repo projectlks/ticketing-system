@@ -102,13 +102,13 @@ export default function SignInPage() {
       <div className="relative min-h-screen flex items-center justify-center p-6 sm:p-0">
         <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row sm:p-0 mx-auto">
           {/* Left: Form Section */}
-          <div className="flex flex-col flex-1 w-full bg-white dark:bg-gray-800 lg:w-1/2 p-6">
+          <div className="flex flex-col flex-1 w-full bg-white  lg:w-1/2 p-6">
             <div className="flex flex-col justify-center w-full max-w-md mx-auto flex-1">
               <div className="mb-8">
-                <h1 className="text-4xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                <h1 className="text-4xl font-semibold text-gray-800  mb-2">
                   Sign In
                 </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-300">
+                <p className="text-sm text-gray-500 ">
                   Please sign in to access your tickets and support.
                 </p>
               </div>
@@ -149,7 +149,7 @@ export default function SignInPage() {
 
                   {/* General Response Error */}
                   {errors.response && (
-                    <p className="mt-1 text-xs text-red-500 dark:text-red-400">{errors.response}</p>
+                    <p className="mt-1 text-xs text-red-500 ">{errors.response}</p>
                   )}
 
                   {/* Submit Button */}
@@ -158,8 +158,8 @@ export default function SignInPage() {
                     disabled={loading}
                     className={`mt-6 flex w-full items-center justify-center px-4 py-3 text-sm font-medium rounded-lg shadow-md transition
                 ${loading
-                        ? "bg-indigo-300 cursor-not-allowed dark:bg-indigo-500/60"
-                        : "bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                        ? "bg-indigo-300 cursor-not-allowed "
+                        : "bg-indigo-500 hover:bg-indigo-600 "
                       } text-white`}
                   >
                     {loading ? "Signing In..." : "Sign In"}

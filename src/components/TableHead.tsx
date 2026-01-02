@@ -6,8 +6,8 @@ interface TableProps {
 
 export default function Table({ data }: TableProps) {
     return (
-        <th className="px-5 py-3  dark:bg-gray-800 text-left sm:px-6">
-            <div className="font-medium whitespace-nowrap text-[14px] text-gray-500 dark:text-gray-300">
+        <th className="px-5 py-3   text-left sm:px-6">
+            <div className="font-medium whitespace-nowrap text-[14px] text-gray-500 ">
                 {data}
             </div>
         </th>
@@ -34,7 +34,7 @@ export default function Table({ data }: TableProps) {
 //       className={`px-5 py-2.5 sm:px-6 ${alignmentClass} overflow-hidden whitespace-nowrap  max-w-full `}
 //       style={{ width }}
 //     >
-//          <p className="font-medium   text-[14px] text-gray-500 truncate max-w-full  dark:text-gray-300">
+//          <p className="font-medium   text-[14px] text-gray-500 truncate max-w-full  ">
 //                  {data}
 //              </p>
 //       {/* {data} */}

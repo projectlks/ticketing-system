@@ -81,8 +81,8 @@ export default function ImageUploader({
       className={`rounded-xl border border-dashed p-5 lg:p-10 w-full cursor-pointer text-center
         ${
           isDragActive
-            ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900"
-            : "border-gray-300 bg-gray-50 hover:border-indigo-600 dark:bg-gray-800 dark:border-gray-700"
+            ? "border-indigo-600 bg-indigo-50 "
+            : "border-gray-300 bg-gray-50 hover:border-indigo-600 "
         }`}
     >
       <ToastContainer />
@@ -91,12 +91,12 @@ export default function ImageUploader({
       {previews.length === 0 && existingImages.length === 0 ? (
         <div className="text-center">
           <div className="mb-[22px] flex justify-center">
-            <div className="h-[68px] w-[68px] rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+            <div className="h-[68px] w-[68px] rounded-full bg-gray-200  flex items-center justify-center">
               <ArrowUpTrayIcon className="w-[29px] h-7" />
             </div>
           </div>
 
-          <span className="mx-auto mb-5 block text-xs text-gray-700 dark:text-gray-300 max-w-[290px]">
+          <span className="mx-auto mb-5 block text-xs text-gray-700  max-w-[290px]">
             You can upload up to <strong>3 images</strong>. Each image must be
             under <strong>1MB</strong>. Supported formats:{" "}
             <strong>PNG, JPG, JPEG</strong>.
@@ -107,7 +107,7 @@ export default function ImageUploader({
           </span>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-gray-300 dark:bg-gray-700 p-3 rounded-xl">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-gray-300  p-3 rounded-xl">
           {/* Existing images */}
           {existingImages.map((img) => (
             <div

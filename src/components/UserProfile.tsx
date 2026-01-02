@@ -52,7 +52,7 @@ export default function UserMenu() {
             <div className="relative" ref={dropdownRef}>
                 <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center text-gray-700 dark:text-gray-200 focus:outline-none"
+                    className="flex items-center text-gray-700  focus:outline-none"
                     aria-haspopup="true"
                     aria-expanded={dropdownOpen}
                 >
@@ -60,24 +60,24 @@ export default function UserMenu() {
                         <Avatar name={displayName} profileUrl={displayProfileUrl} />
                     </span>
                     <span className="hidden mr-1 text-sm font-medium sm:inline-block">{displayName}</span>
-                    <ChevronDownIcon aria-hidden="true" className="hidden w-5 h-5 stroke-gray-500 dark:stroke-gray-300 sm:inline-block" />
+                    <ChevronDownIcon aria-hidden="true" className="hidden w-5 h-5 stroke-gray-500  sm:inline-block" />
                 </button>
 
                 {dropdownOpen && (
-                    <div className="absolute right-0 mt-4 w-[260px] rounded-2xl border border-gray-200 bg-white p-3 shadow-lg z-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                    <div className="absolute right-0 mt-4 w-[260px] rounded-2xl border border-gray-200 bg-white p-3 shadow-lg z-50 ">
                         <div>
-                            <span className="block text-sm font-medium text-gray-700 dark:text-gray-200">{displayName}</span>
-                            <span className="block text-xs text-gray-500 mt-0.5 dark:text-gray-400">{displayEmail}</span>
+                            <span className="block text-sm font-medium text-gray-700 ">{displayName}</span>
+                            <span className="block text-xs text-gray-500 mt-0.5 ">{displayEmail}</span>
                         </div>
 
-                        <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 ">
                             <li
                                 onClick={() => {
                                     setDropdownOpen(false);
                                     //   router.push(`/lang/${locale}/main/profile`);
                                 }}
                             >
-                                <button className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100 w-full dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white">
+                                <button className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100 w-full ">
                                     <PencilSquareIcon className="w-6 h-6" />
                                     Edit profile
                                 </button>
@@ -97,7 +97,7 @@ export default function UserMenu() {
                                     alert("Logout failed. Please try again.");
                                 }
                             }}
-                            className="flex items-center justify-center w-full gap-3 px-3 py-2 mt-3 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white"
+                            className="flex items-center justify-center w-full gap-3 px-3 py-2 mt-3 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed "
                         >
                             <ArrowRightOnRectangleIcon className="w-6 h-6" />
                             Sign out

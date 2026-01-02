@@ -1,31 +1,4 @@
 
-// import { checkEventStatus } from "@/libs/action";
-// import { prisma } from "@/libs/prisma";
-// import { NextResponse } from "next/server";
-
-// export async function POST(req: Request) {
-//   const data = await req.json();
-
-//   const eventid =
-//     data.text.match(/Original event ID:\s*(\d+)/)?.[1] ?? null;
-
-//   console.log("EventID is :", eventid);
-
-//   const res = await checkEventStatus(eventid)
-
-
-//   // : { exists: true, status: '0' }
-
-//   if ( res.exists && res.status == "0") {
-
-//   }else {
-//     prisma.zabbixTicket.update({where: {eventid } , {data}})
-//   }
-
-
-//   return NextResponse.json({ success: true });
-// }
-
 
 import { checkEventStatus } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
