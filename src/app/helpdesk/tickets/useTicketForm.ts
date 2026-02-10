@@ -240,7 +240,7 @@ export function useTicketForm({
     const priorityChanged = mode === "edit" && form.priority !== originalPriority;
 
     /* ---------------- Effects ---------------- */
-    // Apply filter from search params
+    // URL search params ထဲက `filter` (department) ကို form ထဲ apply
     useEffect(() => {
         const filter = searchParams.get("filter");
         if (filter) {
@@ -248,7 +248,7 @@ export function useTicketForm({
         }
     }, [searchParams]);
 
-    // Reset remark when priority changes
+    // Priority ပြောင်းသွားရင် remark ကို reset (edit mode မှာသာ သက်ရောက်)
     useEffect(() => {
         if (priorityChanged) {
             setRemark("");
@@ -256,7 +256,7 @@ export function useTicketForm({
         }
     }, [priorityChanged]);
 
-    // Socket listener
+    // Realtime update (audit log / ticket data) ရဖို့ socket listener
     useEffect(() => {
         if (!ticket?.id) return;
 
@@ -271,7 +271,8 @@ export function useTicketForm({
 
             setForm(prev => ({
                 ...prev,
-                ...updatedTicket, // or merge safely like in the full version
+                // Server ကလာတဲ့ updated ticket data ကို local form ထဲ merge
+                ...updatedTicket,
             }));
 
 
@@ -293,7 +294,7 @@ export function useTicketForm({
         setErrors({});
         setRemarkError("");
 
-        // Validate form
+        // Form validation (resolutionDue ကို Date အဖြစ် normalize လုပ်ပြီး validate)
         // const PartialTicketSchema = TicketSchema.partial();
         // const parsed = PartialTicketSchema.safeParse(form);
 
@@ -316,6 +317,7 @@ export function useTicketForm({
             return;
         }
 
+        // Priority ပြောင်းထားရင် remark မဖြစ်မနေရ ထည့်ခိုင်း (audit အတွက်)
         if (priorityChanged && !remark.trim()) {
             setRemarkError("Remark is required when changing priority");
             toast.error("Please add a remark for priority change");
@@ -353,6 +355,7 @@ export function useTicketForm({
 
 
 
+                // တခြား client တွေကို audit + updated ticket info ကို realtime ပြန်ပို့
                 socket.emit("update-ticket", {
                     id: ticket.id,
                     audit: audits[0], // latest audit

@@ -16,9 +16,20 @@ interface Props {
     parentId: string,
     replyComment: CommentWithRelations,
   ) => Promise<void>;
+  isReply?: boolean;
+  showReplyForm?: boolean;
+  setShowReplyForm?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function CommentInput({ ticketId, parentId, onReply }: Props) {
+export default function CommentInput({
+  ticketId,
+  parentId,
+  onReply,
+  isReply,
+  showReplyForm = true,
+  setShowReplyForm,
+}: Props) {
+  // hidden `<input type="file" />` ကို button ကနေ click ခေါ်ဖို့ ref
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [commentText, setCommentText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -27,23 +38,23 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
 
   const { data: session } = useSession();
 
-  // 🟢 Socket Ref to persist connection across re-renders
+  // Socket instance ကို re-render တိုင်း မအသစ်ဖန်တီးဘဲ ref ထဲမှာပဲ ထိန်းထားပါတယ်
   const socketRef = useRef(getSocket());
   const typingTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // 🔹 Join ticket room on mount
+  // Component mount ဖြစ်ချိန် ticket room ထဲ join (ဒီ ticket အတွက် event တွေရယူဖို့)
   useEffect(() => {
     const socket = socketRef.current;
     socket.emit("join-ticket", ticketId);
     console.log("Joined ticket:", ticketId);
 
-    // Optional: listen for typing events
+    // (Optional) Typing event လာမလာ log ထုတ်ပြီး စစ်ချင်ရင် listener ထားနိုင်
     socket.on("user-typing", (data) => {
       console.log("Someone is typing:", data);
     });
 
     return () => {
-      // ⚠️ Do NOT disconnect socket here if you want it alive for other components
+      // သတိ: socket ကို ဒီမှာ disconnect လုပ်လိုက်ရင် တခြား component တွေမှာလည်း အကျိုးသက်ရောက်နိုင်
       // socket.disconnect();
     };
   }, [ticketId]);
@@ -51,6 +62,7 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+      // 1MB ထက်ကြီးတဲ့ပုံတွေကို မခွင့်ပြု (လိုအပ်ရင် limit ကိုပြောင်းနိုင်)
       if (file.size > 1024 * 1024) {
         e.target.value = "";
         setImageFile(null);
@@ -65,6 +77,7 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
     }
   };
 
+  // Image ကို `/api/uploads` သို့တင်ပြီး URL ပြန်ယူ (comment payload ထဲမှာသုံးဖို့)
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -75,6 +88,7 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
   };
 
   const handlePostComment = async () => {
+    // စာလည်းမရှိ ပုံလည်းမရှိရင် မပို့
     if (!commentText.trim() && !imageFile) return;
     setLoading(true);
     const socket = socketRef.current;
@@ -83,6 +97,7 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
       let imgUrl = "";
       if (imageFile) imgUrl = await uploadImage(imageFile);
 
+      // DB ထဲသို့ comment ကို server action နဲ့ save
       const { data, success } = await uploadComment({
         content: commentText || null,
         imageUrl: imgUrl || null,
@@ -90,6 +105,7 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
         parentId,
       });
 
+      // Realtime update အတွက် socket နဲ့ event ပို့ (server က broadcast လုပ်ပေးမယ်)
       socket.emit("send-comment", data);
 
       if (success) {
@@ -102,6 +118,9 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
         setCommentText("");
         setImageFile(null);
         setImagePreview(null);
+        if (isReply && setShowReplyForm) {
+          setShowReplyForm(false);
+        }
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     } catch (error) {
@@ -111,7 +130,7 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
     }
   };
 
-  // 🔹 Emit typing event
+  // Typing indicator ပြသနိုင်ဖို့ socket နဲ့ typing event ပို့ (throttle သဘောနဲ့ timeout ထား)
   const handleTyping = () => {
     const socket = socketRef.current;
 
@@ -119,17 +138,22 @@ export default function CommentInput({ ticketId, parentId, onReply }: Props) {
       ticketId,
       userName: session?.user?.name || "Unknown",
     });
-    // Optional: throttle typing events
+    // (Optional) typing event တွေကို flood မဖြစ်အောင် throttle သဘောနဲ့ timeout ထား
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
       // console.log("Typing stopped");
     }, 5000);
   };
 
+  // Reply form ပိတ်ထားရင် UI မပြ
+  if (!showReplyForm) {
+    return null;
+  }
+
   return (
     <>
       {loading && <Loading />}
-      <div className="mx-auto max-h-[162px] w-full rounded-2xl border border-gray-200 shadow-xs">
+      <div className="mx-auto max-h-[162px] w-full rounded-2xl border border-gray-300 shadow-xs">
         <textarea
           placeholder="Type your reply here..."
           value={commentText}

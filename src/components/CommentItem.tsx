@@ -223,12 +223,14 @@ export default function CommentItem({
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
+  // UI state: reply form ဖွင့်/ပိတ်, like လုပ်ထားသူတွေ list ပြ/ဖျောက်, likes ကို local မှာ update (optimistic UX)
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showLikeUsers, setShowLikeUsers] = useState(false);
   const [likes, setLikes] = useState<Like[]>(comment.likes ?? []);
 
   const hasLiked = likes.some((like) => like.user.id === currentUserId);
 
+  // Like/unlike ကို server action နဲ့ toggle လုပ်ပြီး local state ကို update
   const handleLikeComment = async (commentId: string) => {
     if (!currentUserId) return;
     const result = await likeComment({ commentId });
@@ -326,12 +328,15 @@ export default function CommentItem({
         </div>
       </div>
 
-      {showReplyForm && (
-        <div className="ml-12 mt-3 animate-in fade-in slide-in-from-top-2">
-          <CommentInput ticketId={ticketId} parentId={comment.id} />
-        </div>
-      )}
+      <CommentInput
+        ticketId={ticketId}
+        parentId={comment.id}
+        isReply={true}
+        showReplyForm={showReplyForm}
+        setShowReplyForm={setShowReplyForm}
+      />
 
+      {/* Replies ရှိရင် nested comment အဖြစ် recursive ပြ (threaded view) */}
       {comment.replies && comment.replies.length > 0 && (
         <div className="relative mt-4 ml-3 pl-5">
           <div className="absolute left-0 top-0 h-full w-px bg-gray-200"></div>

@@ -87,7 +87,7 @@ export async function getCommentWithTicketId(ticketId: string): Promise<CommentW
       commenter: { select: { id: true, name: true, email: true } },
       likes: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: 'desc' } }, // include users who liked
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
   });
 
   // Group comments by parentId for quick lookup

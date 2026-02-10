@@ -164,8 +164,7 @@
 
 // import { getTicketAuditLogs } from "@/app/helpdesk/tickets/action";
 import { TicketFormData } from "@/app/helpdesk/tickets/ticket.schema";
-import { Audit, Ticket } from "@/generated/prisma/client";
-import { log } from "console";
+import { Audit } from "@/generated/prisma/client";
 import http from "http";
 import { Server } from "socket.io";
 

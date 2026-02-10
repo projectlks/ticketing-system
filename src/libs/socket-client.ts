@@ -8,7 +8,7 @@ let socket: Socket | null = null;
 // Get a singleton socket instance
 export function getSocket(): Socket {
     if (!socket) {
-        socket = io("http://192.168.100.107:3001", {
+        socket = io("http://192.168.88.4:3001", {
             autoConnect: false, // we will connect manually
         });
 
