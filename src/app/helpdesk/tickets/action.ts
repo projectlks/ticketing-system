@@ -435,7 +435,7 @@ export async function getSingleTicket(id: string): Promise<SingleTicket | null> 
 
 
 // ======================
-// Get All Tickets (Optional)
+// Get All Tickets 
 // ======================
 
 
@@ -456,17 +456,26 @@ export interface GetTicketsOptions {
 export async function getAllTickets(
     options?: GetTicketsOptions
 ): Promise<{ tickets: TicketWithRelations[]; total: number }> {
-    const { search, filters, page = 1, pageSize = 20 } = options ?? {};
+    const { search, filters, page = 1, pageSize = 20 } = options ?? {}     ;
     const where: Prisma.TicketWhereInput = {};
     const currentUserId = await getCurrentUserId();
 
     // ---- Column-based search (selectedSearchQueryFilters) ----
-    // { 'Ticket ID': [ 's' ] }
+
+
+    // for (const value of values) {     
+    //   // code
+    // }
+
 
     if (search) {
         const orArray: Prisma.TicketWhereInput[] = [];
 
-        for (const [columnKey, values] of Object.entries(search)) {
+        // Object.entries(search) စိုတာ  search obj ကို array ပြောင်
+
+        const searchArray = Object.entries(search)
+
+        for (const [columnKey, values] of searchArray) {
             for (const value of values) {
                 if (!value) continue;
                 if (columnKey === "Ticket ID") orArray.push({ ticketId: { contains: value, mode: "insensitive" } });
@@ -479,7 +488,13 @@ export async function getAllTickets(
         }
 
         if (orArray.length) {
-            const currentAND = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+            const currentAND =
+                Array.isArray(where.AND) ?
+
+                    where.AND :
+
+                    (where.AND ? [where.AND] : []);
+
             where.AND = [...currentAND, { OR: orArray }];
         }
     }
@@ -516,9 +531,9 @@ export async function getAllTickets(
     }
 
     // Optional: delete tickets older than 3 months
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    await prisma.ticket.deleteMany({ where: { createdAt: { lt: threeMonthsAgo } } });
+    // const threeMonthsAgo = new Date();
+    // threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    // await prisma.ticket.deleteMany({ where: { createdAt: { lt: threeMonthsAgo } } });
 
     // --- count total tickets for pagination ---
     const total = await prisma.ticket.count({ where });

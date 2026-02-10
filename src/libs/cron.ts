@@ -56,14 +56,7 @@ async function sendSlaViolationMail({
     const recipients = new Set<string>();
     if (ticket.requester?.email) recipients.add(ticket.requester.email);
     if (ticket.assignedTo?.email) recipients.add(ticket.assignedTo.email);
-    // if (ticket.department?.manager?.email) recipients.add(ticket.department.manager.email);
 
-    // Include admins/supports
-    // const supportUsers = await prisma.user.findMany({
-    //     where: { role: { in: ["SUPER_ADMIN"] } },
-    //     select: { email: true },
-    // });
-    // supportUsers.forEach((u) => recipients.add(u.email));
 
     const mailOptions = {
         from: `"Ticketing System" <${process.env.EMAIL_SERVER_USER}>`,
@@ -192,12 +185,18 @@ cron.schedule("*/1 * * * *", async () => {
     }
 
     console.log("⏳ Running Zabbix fetch...");
+    const apiKey = process.env.API_SECRET_KEY; // server-side only
+
+    if (!apiKey) throw new Error("API_SECRET_KEY is not defined");
 
     try {
-        const res = await fetch(`${BASE_URL}/api/problems?from=cron`);
-        const data = await res.json();
+        await fetch(`${BASE_URL}/api/alerts/sync`, {
+            headers: {
+                "x-api-key": apiKey,
+            },
+        });
 
-        console.log("✅ Cron success:", data);
+        console.log("✅ Cron success:",);
     } catch (err) {
         console.error("❌ Cron fetch error:", err);
     }

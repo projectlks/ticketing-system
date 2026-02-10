@@ -12,7 +12,7 @@ export default function TitleInput({ value, error, onChange }: Props) {
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`focus:border-b-2 w-[75%] py-2 text-xl focus:outline-none
+        className={`border-b-2 w-[75%] py-2 text-xl border-gray-300 focus:outline-none
           ${error ? "border-red-500" : "focus:border-indigo-500"}`}
         placeholder="Enter ticket title"
       />

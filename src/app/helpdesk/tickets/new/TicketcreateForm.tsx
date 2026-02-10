@@ -17,13 +17,10 @@ import SubmitSection from "@/components/ticket/SubmitSection";
 import AuditPanel from "@/components/ticket/AuditPanel";
 import ImageInput from "../ImageInput";
 
-import {
-  createTicket,
-  updateTicket,
-  getTicketAuditLogs,
-} from "../action";
+import { createTicket, updateTicket, getTicketAuditLogs } from "../action";
 
 import { Audit, Status } from "@/generated/prisma/client";
+import { CommentWithRelations } from "@/components/CommentSection";
 
 /* =====================
    Zod Schema
@@ -66,6 +63,7 @@ type TicketFormProps = {
   depts: { id: string; name: string }[];
   users: { id: string; name: string; email: string; departmentId: string }[];
   auditLog?: Audit[];
+  commets?: CommentWithRelations[];
 };
 
 /* =====================
@@ -97,18 +95,17 @@ export default function TicketcreateForm({
     assignedToId: ticket?.assignedToId ?? "",
   });
 
-  const [errors, setErrors] =
-    useState<Partial<Record<keyof FormType, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormType, string>>>(
+    {},
+  );
   const [submitting, setSubmitting] = useState(false);
 
   /* =====================
      Priority / Remark
   ===================== */
-  const originalPriority =
-    ticket?.priority ?? "REQUEST";
+  const originalPriority = ticket?.priority ?? "REQUEST";
 
-  const priorityChanged =
-    mode === "edit" && form.priority !== originalPriority;
+  const priorityChanged = mode === "edit" && form.priority !== originalPriority;
 
   const [remark, setRemark] = useState("");
   const [remarkError, setRemarkError] = useState("");
@@ -125,16 +122,12 @@ export default function TicketcreateForm({
      Images
   ===================== */
   const [images, setImages] = useState<File[]>([]);
-  const [existingImages, setExistingImages] = useState(
-    ticket?.images ?? []
-  );
-  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState(ticket?.images ?? []);
 
   /* =====================
      Audit
   ===================== */
-  const [auditLogs, setAuditLogs] =
-    useState<Audit[]>(auditLog);
+  const [auditLogs, setAuditLogs] = useState<Audit[]>(auditLog);
 
   /* =====================
      Default filter
@@ -164,9 +157,7 @@ export default function TicketcreateForm({
   /* =====================
      Submit
   ===================== */
-  const handleSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrors({});
     setRemarkError("");
@@ -174,15 +165,16 @@ export default function TicketcreateForm({
     const parsed = TicketSchema.safeParse(form);
     if (!parsed.success) {
       const errs: Partial<Record<keyof FormType, string>> = {};
-      parsed.error.issues.forEach((err) => { const key = err.path[0] as keyof FormType; errs[key] = err.message; });
+      parsed.error.issues.forEach((err) => {
+        const key = err.path[0] as keyof FormType;
+        errs[key] = err.message;
+      });
       setErrors(errs);
       return;
     }
 
     if (priorityChanged && !remark.trim()) {
-      setRemarkError(
-        "Remark is required when changing priority"
-      );
+      setRemarkError("Remark is required when changing priority");
       return;
     }
 
@@ -192,9 +184,7 @@ export default function TicketcreateForm({
       const uploaded = await uploadImages(images);
       const fd = new FormData();
 
-      Object.entries(form).forEach(([k, v]) =>
-        fd.append(k, String(v))
-      );
+      Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
 
       if (mode === "create") {
         fd.append("images", JSON.stringify(uploaded));
@@ -209,7 +199,7 @@ export default function TicketcreateForm({
         fd.append("newImages", JSON.stringify(uploaded));
         fd.append(
           "existingImageIds",
-          JSON.stringify(existingImages.map((i) => i.id))
+          JSON.stringify(existingImages.map((i) => i.id)),
         );
 
         await updateTicket(ticket.id, fd);
@@ -233,32 +223,25 @@ export default function TicketcreateForm({
       <section className="flex gap-5 bg-gray-100  p-5">
         <form
           onSubmit={handleSubmit}
-           className="w-2/3 bg-white sticky h-fit top-5 z-10 shadow-md p-8"
-        >
+          className="w-2/3 bg-white sticky h-fit top-5 z-10 shadow-md p-8">
           <Header
             ticketId={form.ticketId ?? "NEW"}
             mode={mode}
             resolutionDue={ticket?.resolutionDue}
             status={form.status!}
-            onStatusChange={(s) =>
-              setForm((p) => ({ ...p, status: s }))
-            }
+            onStatusChange={(s) => setForm((p) => ({ ...p, status: s }))}
           />
 
           <TitleInput
             value={form.title}
             error={errors.title}
-            onChange={(v) =>
-              setForm((p) => ({ ...p, title: v }))
-            }
+            onChange={(v) => setForm((p) => ({ ...p, title: v }))}
           />
 
           <PrioritySection
             value={form.priority}
             mode={mode}
-            onChange={(priority) =>
-              setForm((p) => ({ ...p, priority }))
-            }
+            onChange={(priority) => setForm((p) => ({ ...p, priority }))}
           />
 
           <AssignmentSection
@@ -293,9 +276,7 @@ export default function TicketcreateForm({
           <DescriptionInput
             value={form.description}
             error={errors.description}
-            onChange={(v) =>
-              setForm((p) => ({ ...p, description: v }))
-            }
+            onChange={(v) => setForm((p) => ({ ...p, description: v }))}
           />
 
           <ImageInput
@@ -303,13 +284,9 @@ export default function TicketcreateForm({
             setImages={setImages}
             existingImages={existingImages}
             setExistingImages={setExistingImages}
-            setDeletedImageIds={setDeletedImageIds}
           />
 
-          <SubmitSection
-            submitting={submitting}
-            mode={mode}
-          />
+          <SubmitSection submitting={submitting} mode={mode} />
         </form>
 
         <AuditPanel logs={auditLogs} />

@@ -7,8 +7,6 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
-
 // import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function SignInPage() {
@@ -81,7 +79,7 @@ export default function SignInPage() {
       redirect: false,
       email: data.email,
       password: data.password,
-      callbackUrl: "/helpesk"
+      // callbackUrl: "/helpesk"
     });
 
     setLoading(false);
@@ -152,9 +150,7 @@ export default function SignInPage() {
 
                   {/* General Response Error */}
                   {errors.response && (
-                    <p className="mt-1 text-xs text-red-500 ">
-                      {errors.response}
-                    </p>
+                    <p className="mt-1 text-xs text-red-500 ">{errors.response}</p>
                   )}
 
                   {/* Submit Button */}
@@ -162,79 +158,59 @@ export default function SignInPage() {
                     type="submit"
                     disabled={loading}
                     className={`mt-6 flex w-full items-center justify-center px-4 py-3 text-sm font-medium rounded-lg shadow-md transition
-                ${
-                  loading
-                    ? "bg-indigo-300 cursor-not-allowed "
-                    : "bg-indigo-500 hover:bg-indigo-600 "
-                } text-white`}>
+                ${loading
+                        ? "bg-indigo-300 cursor-not-allowed "
+                        : "bg-indigo-500 hover:bg-indigo-600 "
+                      } text-white`}
+                  >
                     {loading ? "Signing In..." : "Sign In"}
                   </button>
                 </div>
               </form>
             </div>
           </div>
-          {/* Right: Visual Section */}{" "}
-          <div className="hidden lg:flex relative items-center justify-center w-1/2 bg-[#161950] p-10">
-            {/* Top Grid Image */}{" "}
-            <div className="absolute top-0 right-0 z-0 w-full max-w-[250px] xl:max-w-[450px]">
-              {" "}
-              <Image
-                src="/grid-01.svg"
-                alt="grid"
-                width={450}
-                height={254}
-              />{" "}
-            </div>
+
+          {/* Right: Visual Section */} <div className="hidden lg:flex relative items-center justify-center w-1/2 bg-[#161950] p-10">
+
+
+
+
+            {/* Top Grid Image */} <div className="absolute top-0 right-0 z-0 w-full max-w-[250px] xl:max-w-[450px]"> <Image src="/grid-01.svg" alt="grid" width={450} height={254} /> </div>
+
+
+
+
             {/* Bottom Grid Image */}
-            <div className="absolute bottom-0 left-0 z-0 w-full max-w-[250px] rotate-180 xl:max-w-[450px]">
-              {" "}
-              <Image
-                src="/grid-01.svg"
-                alt="grid"
-                width={450}
-                height={254}
-              />{" "}
-            </div>{" "}
-            {/* Logo and Description */}{" "}
-            <div className="flex flex-col items-center w-[80%] z-10">
-              {" "}
-              <Link href="/">
-                <Image
-                  src="/logo.png"
-                  alt="Logo"
-                  width={96}
-                  height={96}
-                  className="h-24 w-24"
-                />{" "}
-              </Link>
+
+
+
+            <div className="absolute bottom-0 left-0 z-0 w-full max-w-[250px] rotate-180 xl:max-w-[450px]"> <Image src="/grid-01.svg" alt="grid" width={450} height={254} /> </div> {/* Logo and Description */} <div className="flex flex-col items-center w-[80%] z-10"> <Link href="/">
+
+
+
+              <Image src="/logo.png" alt="Logo" width={96} height={96} className="h-24 w-24" /> </Link>
+
+
+
+
               {/* <h3 className="mb-4 text-4xl font-semibold text-center text-white"> East Wind Myanmar Company Limited </h3> */}
-              <h3 className="mb-4 text-4xl font-semibold text-center text-white">
-                {" "}
-                Internal Revenue Department{" "}
-              </h3>
+              <h3 className="mb-4 text-4xl font-semibold text-center text-white"> Internal Revenue Department </h3>
+
+
+
+
+
               {/* <p className="text-center text-gray-400 font-semibold"> To be Premier and Preferred Technology Solutions Provider in ICT industry. We create technologies for more efficient business and more comfortable life. </p> */}
-            </div>{" "}
-          </div>
+
+
+
+
+
+            </div> </div>
         </div>
       </div>
 
-      <Script id="chatwoot">
-        {`
-    (function(d,t) {
-      var BASE_URL="http://192.168.100.27:3000";
-      var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-      g.src=BASE_URL+"/packs/js/sdk.js";
-      g.async = true;
-      s.parentNode.insertBefore(g,s);
-      g.onload=function(){
-        window.chatwootSDK.run({
-          websiteToken: '23UsVfLSL7vpy2NSdVaLjSd4',
-          baseUrl: BASE_URL
-        })
-      }
-    })(document,"script");
-  `}
-      </Script>
+
     </>
   );
 }

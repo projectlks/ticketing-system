@@ -11,8 +11,9 @@
 // schema.prisma
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client"
+  engineType = "binary" // 🔥 IMPORTANT
+  output     = "../src/generated/prisma"
 }
 
 datasource db {
@@ -88,7 +89,10 @@ model ZabbixTicket {
   last5Values     String? // Save as multiline string
   tags            String? // comma-separated "key:value"
 
-  emailSent Boolean @default(false)
+  // emailSent Boolean @default(false)
+
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
 
   createdAt DateTime @default(now())
 }
@@ -130,6 +134,8 @@ model User {
   requestTickets  Ticket[]      @relation("TicketRequester")
   assignedTickets Ticket[]      @relation("TicketAssignedTo")
   likes           CommentLike[]
+
+  //  likes           CommentLike[]
 
   // Audits & Comments
   audits   Audit[]

@@ -4,9 +4,7 @@ import { getCategoriesNames } from "../../category/action";
 import { getSingleTicket } from "../action"; // You need this for edit
 import TicketcreateForm from "./TicketcreateForm";
 import { getUserToAssign } from "../../user/action";
-
-
-
+import TicketForm from "../TicketForm";
 
 type PageProps = {
   se?: Promise<{
@@ -31,18 +29,16 @@ export default async function Page({ se }: PageProps) {
 
   const departments = await getDepartmentNames();
   const categories = await getCategoriesNames();
-  const users = await getUserToAssign()
+  const users = await getUserToAssign();
 
   // Load ticket only for edit mode
-  const ticket = mode === "edit" && ticketId
-    ? await getSingleTicket(ticketId)
-    : null;
-
-
-
+  const ticket =
+    mode === "edit" && ticketId ? await getSingleTicket(ticketId) : null;
 
   return (
-    <TicketcreateForm
+
+
+    <TicketForm
       mode={mode}
       cats={categories}
       depts={departments}

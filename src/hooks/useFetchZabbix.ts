@@ -8,6 +8,10 @@ export const useFetchZabbix = (filter: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
+  const apiKey = process.env.NEXT_PUBLIC_API_SECRET_KEY;
+
+
   useEffect(() => {
     const abortController = new AbortController();
     const signal = abortController.signal;
@@ -28,9 +32,9 @@ export const useFetchZabbix = (filter: string) => {
               clock: Math.floor(new Date(t.clock).getTime() / 1000).toString(),
               tags: t.tags
                 ? t.tags.split(",").map((pair) => {
-                    const [tag, value] = pair.split(":");
-                    return { tag, value };
-                  })
+                  const [tag, value] = pair.split(":");
+                  return { tag, value };
+                })
                 : [],
               opdata: "",
               r_clock: "",
@@ -51,7 +55,18 @@ export const useFetchZabbix = (filter: string) => {
             }))
           );
         } else {
-          const res = await fetch("/api/problems");
+
+
+          if (!apiKey) throw new Error("API_SECRET_KEY is not defined");
+
+
+
+
+          const res = await fetch("/api/alerts", {
+            headers: {
+              "x-api-key": apiKey, // now it's definitely a string
+            },
+          });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error ?? "Failed");
           setData(json.result);
@@ -67,7 +82,7 @@ export const useFetchZabbix = (filter: string) => {
     fetchData();
 
     let interval: NodeJS.Timeout;
-    if (filter !== "All Alerts") interval = setInterval(fetchData, 5000);
+    if (filter !== "All Alerts") interval = setInterval(fetchData, 60000);
 
     return () => {
       abortController.abort();

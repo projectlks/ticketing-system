@@ -13,7 +13,6 @@ interface ImageUploaderProps {
   setExistingImages: React.Dispatch<
     React.SetStateAction<{ id: string; url: string }[]>
   >;
-  setDeletedImageIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export default function ImageUploader({
@@ -21,7 +20,6 @@ export default function ImageUploader({
   setImages,
   existingImages,
   setExistingImages,
-  setDeletedImageIds,
 }: ImageUploaderProps) {
   const [previews, setPreviews] = useState<
     { file: File; url: string }[]
@@ -115,7 +113,7 @@ export default function ImageUploader({
               className="group relative"
               onClick={(e) => {
                 e.stopPropagation();
-                setDeletedImageIds((prev) => [...prev, img.url]);
+                // setDeletedImageIds((prev) => [...prev, img.url]);
                 setExistingImages((prev) =>
                   prev.filter((i) => i.id !== img.id)
                 );

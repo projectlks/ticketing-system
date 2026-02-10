@@ -45,7 +45,7 @@ export default function Input({
                     value={value}
                     onChange={onChange}
                     placeholder={placeholder}
-                    className={`h-11 w-full rounded-lg border ${error ? "border-red-500" : "border-gray-300 "} bg-white  placeholder:text-gray-400  focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50`}
+                    className={`h-11 w-full rounded-lg px-4 border ${error ? "border-red-500" : "border-gray-300 "} bg-white  placeholder:text-gray-400  focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300/50`}
                 />
                 {errorMessage && (
                     <p id="name-error" className="text-red-600 text-sm mt-1" role="alert">

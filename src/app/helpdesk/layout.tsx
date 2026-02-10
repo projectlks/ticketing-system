@@ -60,11 +60,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </span>
 
         <Link href={{ pathname: "/helpdesk" }}>
-          <h3>Helpdesk</h3>
+          <h3 className="text-xl font-bold">Helpdesk</h3>
         </Link>
 
         {/* Menu */}
-        <ul className="flex items-center space-x-1 text-xs">
+        <ul className="flex items-center space-x-1.5 text-base">
           {menuItems.map((item) =>
 
 
@@ -80,7 +80,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     : item.label}
                 </span>
                 {/* Dropdown */}
-                <div className="absolute left-0 top-[calc(100%+5px)] z-50 w-[140px] rounded border border-gray-300 bg-white p-1 text-[10px] opacity-0 invisible transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                <div className="absolute left-0 top-[calc(100%+5px)] z-50 w-[140px] rounded border border-gray-300 bg-white p-1 text-sm opacity-0 invisible transition-all duration-200 group-hover:visible group-hover:opacity-100">
                   {item.dropdown.map((drop, index) => (
                     <Link key={index} href={drop.href}>
                       <p className="px-2 py-1 rounded hover:bg-gray-100">{drop.label}</p>

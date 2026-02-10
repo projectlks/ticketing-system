@@ -7,6 +7,9 @@
   --color-mainHover: #52374B;
  
 }
+body {
+  font-family: var(--font-roboto), sans-serif;
+}
 
 /* @layer base {
 
@@ -30,3 +33,10 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   }
 } */
+
+
+/* For modern browsers */
+.hiddenscrollbar::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari */
+}
