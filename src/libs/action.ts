@@ -121,10 +121,10 @@ export async function getCurrentUserId(): Promise<string | undefined> {
 
 
 // Slim version (only basic info)
-export async function getBasicUserData(): Promise<BasicUserData | null> {
+export async function getBasicUserData(): Promise<BasicUserData> {
   const userId = await getCurrentUserId();
   // if (!userId) throw new Error("No logged-in user found");
-  if (!userId) return null;
+  // if (!userId) return null;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
