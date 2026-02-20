@@ -169,7 +169,7 @@ import http from "http";
 import { Server } from "socket.io";
 
 const server = http.createServer();
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.WEB_SOCKET_PORT) || 3001;
 
 const io = new Server(server, {
     cors: {
@@ -193,23 +193,6 @@ io.on("connection", (socket) => {
         io.to(`ticket:${comment.ticketId}`).emit("new-comment", comment);
     });
 
-
-    // socket.on("update-ticket", async (data: { id: string; remark: string }) => {
-    //     console.log("Ticket update received:", data);
-
-    //     // Optionally update DB here if you still want server-side storage
-    //     // await updateTicketInDB(data.id, data.remark);
-
-    //     // Broadcast to all in the ticket room
-    //     io.to(`ticket:${data.id}`).emit("ticket-updated", data);
-    // });3
-    // socket.on("update-ticket", (data: { id: string; audit: Audit, ticket: TicketFormData }) => {
-    //     // io.to(`ticket:${data.id}`).emit("ticket-updated", data.audit);
-
-    //     log("Ticket update received:", data);
-    //     io.to(`ticket:${data.id}`).emit("ticket-updated", data.audit, data.ticket);
-
-    // });
 
 
     socket.on("update-ticket", (data: { id: string; audit: Audit; ticket: TicketFormData }) => {

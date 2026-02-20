@@ -7,6 +7,7 @@ import { UserDataProvider } from "@/context/UserProfileContext";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import Providers from "@/components/Provider";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -31,8 +32,26 @@ export default async function RootLayout({
         <Providers session={session}>
           <UserDataProvider>{children}</UserDataProvider>
         </Providers>
-  
+        <Script id="testing">
+          {` (function(d,t) {
+    var BASE_URL="http://192.168.100.110:3000";
+    var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+    g.src=BASE_URL+"/packs/js/sdk.js";
+    g.async = true;
+    s.parentNode.insertBefore(g,s);
+    g.onload=function(){
+      window.chatwootSDK.run({
+        websiteToken: 'FfQhi5Mj1skDw4u4BsDCcg4z',
+        baseUrl: BASE_URL
+      })
+    }
+  })(document,"script");`}
+        </Script>
       </body>
     </html>
   );
 }
+
+
+
+// alda tifn zhak xqmy

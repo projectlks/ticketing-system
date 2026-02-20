@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-// import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import CommentInput from "./CommentInput";
 import CommentItem from "./CommentItem";
 import type { Comment } from "../generated/prisma/client";
@@ -28,7 +27,6 @@ export default function CommentSection({
   ticketId,
   comments: initialComments,
 }: Props) {
-  // const [showComments, setShowComments] = useState(true);
   // Socket ကနေ realtime update လုပ်ဖို့ comment list ကို local state ထဲမှာ ထိန်းထားပါတယ်
   const [comments, setComments] = useState<CommentWithRelations[]>([]);
   // တစ်ယောက်ယောက် typing လုပ်နေတယ်ဆိုတာ ပြသဖို့ (ticket အလိုက်) userName ကို ထိန်းထားပါတယ်
@@ -142,17 +140,18 @@ export default function CommentSection({
       setComments(initialComments || []);
       // render ပြီးမှ scroll
       setTimeout(() => {
-        scrollToBottom(true);
+        scrollToBottom(false);
       }, 1);
     }, 1);
   }, [initialComments]);
 
   return (
-    <div className=" ">
-      {/* {showComments && ( */}
+    <div className="h-[calc(100vh-40px)] p-5  flex flex-col">
+      {/* COMMENTS – take remaining height */}
       <div
         id="commentsSection"
-        className="h-[calc(100vh-350px)]  hiddenscrollbar overflow-y-auto space-y-1">
+        className="flex-1 hiddenscrollbar overflow-y-auto space-y-1 
+        ">
         {comments.map((comment) => (
           <CommentItem
             key={comment.id}
@@ -164,16 +163,16 @@ export default function CommentSection({
 
         <div ref={commentsEndRef} />
       </div>
-      {/* )} */}
 
-      <div className="my-8 flex items-center justify-between">
+      {/* Footer / meta */}
+      <div className="my-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-medium text-gray-700">
             {comments.length} {comments.length === 1 ? "comment" : "comments"}
           </h2>
 
-          {typingUser ? (
-            <div className="flex items-center  gap-1.5">
+          {typingUser && (
+            <div className="flex items-center gap-1.5">
               <Player
                 autoplay
                 loop
@@ -184,22 +183,11 @@ export default function CommentSection({
                 {typingUser} is typing
               </span>
             </div>
-          ) : null}
-        </div>
-
-        {/* <button
-          type="button"
-          onClick={() => setShowComments((prev) => !prev)}
-          className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
-          aria-label={showComments ? "Hide comments" : "Show comments"}>
-          {!showComments ? (
-            <EyeSlashIcon className="w-4 h-4" />
-          ) : (
-            <EyeIcon className="w-4 h-4" />
           )}
-        </button> */}
+        </div>
       </div>
 
+      {/* Input – always at bottom */}
       <CommentInput ticketId={ticketId} />
     </div>
   );

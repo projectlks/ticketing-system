@@ -281,7 +281,7 @@ export default function CommentItem({
             <Image
               src={comment.imageUrl || "/placeholder.svg"}
               alt={`Image by ${comment.commenter?.name}`}
-              className="mt-3 rounded object-cover"
+              className="mt-3 rounded object-cover border border-gray-300"
               width={320}
               height={160}
               unoptimized

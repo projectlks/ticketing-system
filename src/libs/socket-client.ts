@@ -4,11 +4,12 @@ import type { CommentWithRelations } from "@/components/CommentSection";
 import { Audit } from "@/generated/prisma/client";
 
 let socket: Socket | null = null;
+const url = `${process.env.NEXT_PUBLIC_WEB_SOCKET_URL}:${process.env.NEXT_PUBLIC_WEB_SOCKET_PORT}`;
+console.log("Connecting to socket at", url);
 
-// Get a singleton socket instance
 export function getSocket(): Socket {
     if (!socket) {
-        socket = io("http://192.168.88.4:3001", {
+        socket = io(url, {
             autoConnect: false, // we will connect manually
         });
 

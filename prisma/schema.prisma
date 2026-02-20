@@ -56,14 +56,6 @@ enum Severity {
 
 // prisma/schema.prisma
 
-// model ZabbixTicket {
-//   id        Int      @id @default(autoincrement())
-//   eventid   String   @unique
-//   name      String
-//   status    String
-//   clock     DateTime
-//   createdAt DateTime @default(now())
-// }
 
 model ZabbixTicket {
   id      Int      @id @default(autoincrement())
@@ -310,26 +302,6 @@ enum AuditAction {
   DELETE
 }
 
-// model Audit {
-//   id        String   @id @default(cuid())
-//   changedAt DateTime @default(now())
-
-//   entity   String
-//   entityId String
-
-//   field    String
-//   oldValue String?
-//   newValue String?
-
-//   userId String
-//   user   User   @relation(fields: [userId], references: [id])
-
-//   action AuditAction // 👈 this is the mode you want
-
-//   @@index([entity, entityId])
-//   @@index([changedAt])
-//   @@map("audit")
-// }
 
 model Audit {
   id        String   @id @default(cuid())
@@ -368,7 +340,6 @@ model Category {
   subcategories Category[] @relation("CategoryHierarchy")
 
   tickets Ticket[] @relation("CategoryTickets")
-  // subTickets Ticket[] @relation("SubcategoryTickets")
 
   @@map("category")
 }

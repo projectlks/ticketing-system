@@ -55,7 +55,7 @@ export default function Page() {
 
 
     return (
-        <>
+        <div className="  mx-auto">
 
 
 
@@ -92,6 +92,9 @@ export default function Page() {
 
                 </div>
             </div>
+
+
+            
             {/* 
   
   
@@ -236,7 +239,7 @@ export default function Page() {
 
 
 
-        </>
+        </div>
 
 
     )

@@ -153,6 +153,31 @@ export default function CommentInput({
   return (
     <>
       {loading && <Loading />}
+
+      {imagePreview && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setImageFile(null);
+            setImagePreview(null);
+          }}
+          className="group mb-2 w-fit relative">
+          <div className="absolute inset-0 bg-transparent flex justify-center items-center group-hover:bg-[rgba(0,0,0,0.5)] transition-colors">
+            <span className="w-[50px] aspect-square group-hover:opacity-100 opacity-0 rounded-full bg-gray-100 flex justify-center items-center">
+              <TrashIcon className="w-6 h-6 text-red-400" />
+            </span>
+          </div>
+          <Image
+            src={imagePreview}
+            width={500}
+            height={500}
+            alt="Preview"
+            className=" w-auto border border-gray-300 h-[200px] rounded"
+            unoptimized
+          />
+        </div>
+      )}
+      
       <div className="mx-auto max-h-[162px] w-full rounded-2xl border border-gray-300 shadow-xs">
         <textarea
           placeholder="Type your reply here..."
@@ -187,7 +212,7 @@ export default function CommentInput({
           </button>
         </div>
       </div>
-
+      {/* 
       {imagePreview && (
         <div
           onClick={(e) => {
@@ -210,7 +235,7 @@ export default function CommentInput({
             unoptimized
           />
         </div>
-      )}
+      )} */}
     </>
   );
 }

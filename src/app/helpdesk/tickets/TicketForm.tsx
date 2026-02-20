@@ -234,7 +234,7 @@ export default function TicketForm(props: TicketFormProps) {
           </div>
         </div>
         {ticketId ? (
-          <div className="w-2/5 bg-white sticky top-5 h-fit p-8 shadow-md">
+          <div className="w-2/5 bg-white sticky top-5 h-fit">
             <CommentSection
               ticketId={ticketId}
               comments={props.comment ? props.comment : []}
