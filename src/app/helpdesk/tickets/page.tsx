@@ -40,6 +40,30 @@ export interface GetTicketsOptions {
     pageSize?: number;
 }
 
+const OWNERSHIP_OPTIONS = new Set([
+    "My Tickets",
+    "Assigned To Me",
+    "Followed",
+    "Unassigned",
+]);
+
+const STATUS_OPTIONS = new Set([
+    "NEW",
+    "OPEN",
+    "IN_PROGRESS",
+    "RESOLVED",
+    "CLOSED",
+    "CANCELED",
+]);
+
+const PRIORITY_OPTIONS = new Set(["REQUEST", "MINOR", "MAJOR", "CRITICAL"]);
+
+const parseEnumList = (rawValue: string | null, enumSet: Set<string>) =>
+    (rawValue ?? "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => enumSet.has(item));
+
 export default function Page() {
     const [visibleColumns, setVisibleColumns] = useState(
         Object.fromEntries(columns.map((col) => [col.key, true]))
@@ -59,19 +83,58 @@ export default function Page() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Merge default filters from URL
+    // URL query param ကို table filter state နဲ့ sync လုပ်ထားပါတယ်။
     useEffect(() => {
         const newFilters: Record<string, string[]> = {};
-        if (searchParams.get("filter")) newFilters.Ownership = [searchParams.get("filter")!];
-        if (searchParams.get("status")) newFilters.Status = [searchParams.get("status")!];
-        if (searchParams.get("ownership")) newFilters.Ownership = [searchParams.get("ownership")!];
-        if (searchParams.get("priority")) newFilters.Priority = [searchParams.get("priority")!];
+        const statusParam = searchParams.get("status");
+        const ownershipParam = searchParams.get("ownership");
+        const priorityParam = searchParams.get("priority");
+        const archivedParam = searchParams.get("archived");
+        const legacyFilterParam = searchParams.get("filter");
 
-        setSelectedFilters((prev) => ({ ...prev, ...newFilters }));
+        const statusValues = parseEnumList(statusParam, STATUS_OPTIONS);
+        if (statusValues.length) {
+            newFilters.Status = statusValues;
+        }
+
+        if (ownershipParam && OWNERSHIP_OPTIONS.has(ownershipParam)) {
+            newFilters.Ownership = [ownershipParam];
+        }
+
+        const priorityValues = parseEnumList(priorityParam, PRIORITY_OPTIONS);
+        if (priorityValues.length) {
+            newFilters.Priority = priorityValues;
+        }
+
+        if (archivedParam && (archivedParam === "Archived" || archivedParam === "UnArchived")) {
+            newFilters.Archived = [archivedParam];
+        }
 
         const newSearchFilters: Record<string, string[]> = {};
-        if (searchParams.get("department")) newSearchFilters.department = [searchParams.get("department")!];
-        setSelectedSearchQueryFilters((prev) => ({ ...prev, ...newSearchFilters }));
+        const departmentParam = searchParams.get("department");
+        const departmentIdParam = searchParams.get("departmentId");
+
+        if (departmentParam) {
+            newSearchFilters.department = [departmentParam];
+        }
+
+        if (departmentIdParam) {
+            newSearchFilters.departmentId = [departmentIdParam];
+        }
+
+        // legacy filter query ကို ownership မဟုတ်ဘဲ departmentId အဖြစ် fallback ထည့်ထားပါတယ်။
+        if (legacyFilterParam) {
+            if (OWNERSHIP_OPTIONS.has(legacyFilterParam)) {
+                newFilters.Ownership = [legacyFilterParam];
+            } else {
+                newSearchFilters.departmentId = [legacyFilterParam];
+            }
+        }
+
+        // merge မလုပ်ဘဲ replace လုပ်ထားလို့ previous stale filter ကြောင့် data မလွဲတော့ပါ။
+        setSelectedFilters(newFilters);
+        setSelectedSearchQueryFilters(newSearchFilters);
+        setCurrentPage(1);
     }, [searchParams]);
 
     // Fetch tickets whenever filters/search/page change
@@ -155,7 +218,10 @@ export default function Page() {
     // Render cell helper
 
     // Memoized visible columns
-    const visibleColumnKeys = useMemo(() => columns.filter((col) => visibleColumns[col.key]), [columns, visibleColumns]);
+    const visibleColumnKeys = useMemo(
+        () => columns.filter((col) => visibleColumns[col.key]),
+        [visibleColumns],
+    );
 
     return (
         <div className="p-4">

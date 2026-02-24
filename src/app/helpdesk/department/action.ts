@@ -89,6 +89,9 @@ export async function getDepartments(): Promise<DepartmentTicketStats[]> {
     const results: DepartmentTicketStats[] = [];
 
     for (const dept of departments) {
+        // Department overview count တွေမှာ archived ticket မပါစေဖို့ shared base filter သတ်မှတ်ထားပါတယ်။
+        const baseWhere = { departmentId: dept.id, isArchived: false };
+
         const [
             newCount,
             open,
@@ -97,23 +100,33 @@ export async function getDepartments(): Promise<DepartmentTicketStats[]> {
             unassigned,
         ] = await Promise.all([
             prisma.ticket.count({
-                where: { departmentId: dept.id, status: "NEW" },
+                where: { ...baseWhere, status: "NEW" },
             }),
 
             prisma.ticket.count({
-                where: { departmentId: dept.id, status: "OPEN" },
+                // OPEN + IN_PROGRESS ကို active open work အဖြစ်ယူထားပါတယ်။
+                where: { ...baseWhere, status: { in: ["OPEN", "IN_PROGRESS"] } },
             }),
 
             prisma.ticket.count({
-                where: { departmentId: dept.id, status: "CLOSED" },
+                // CLOSED-like status တွေကို closed summary ထဲပေါင်းထားပါတယ်။
+                where: {
+                    ...baseWhere,
+                    status: { in: ["CLOSED", "RESOLVED", "CANCELED"] },
+                },
             }),
 
             prisma.ticket.count({
-                where: { departmentId: dept.id, priority: "CRITICAL" },
+                // Urgent ကို CRITICAL priority + active status နဲ့တွက်ထားပါတယ်။
+                where: {
+                    ...baseWhere,
+                    priority: "CRITICAL",
+                    status: { in: ["OPEN", "IN_PROGRESS", "NEW"] },
+                },
             }), // urgent
 
             prisma.ticket.count({
-                where: { departmentId: dept.id, assignedToId: null },
+                where: { ...baseWhere, assignedToId: null },
             }), // unassigned
         ]);
 

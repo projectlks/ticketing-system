@@ -33,6 +33,30 @@ const TicketFormSchema = z.object({
 
 const createFormSchema = TicketFormSchema
 
+// Ticket list filter မှာ unknown status/priority value မဝင်အောင် enum set ကို shared validation အဖြစ်ထားပါတယ်။
+const VALID_STATUS_SET = new Set<Status>(
+    Object.values(Status) as Status[],
+);
+const VALID_PRIORITY_SET = new Set<Priority>(
+    Object.values(Priority) as Priority[],
+);
+
+const ACTIVE_WORK_STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "NEW" ];
+const CLOSED_LIKE_STATUSES: Status[] = ["CLOSED", "RESOLVED", "CANCELED"];
+
+// "Today" ကို Myanmar timezone (+06:30) အတိုင်းတွက်ပြီး KPI count မှာ timezone mismatch မဖြစ်အောင် helper ထည့်ထားပါတယ်။
+const MYANMAR_OFFSET_MS = (6 * 60 + 30) * 60 * 1000;
+const getMyanmarDayRange = (baseDate = new Date()) => {
+    const shifted = new Date(baseDate.getTime() + MYANMAR_OFFSET_MS);
+    const startShifted = startOfDay(shifted);
+    const endShifted = endOfDay(shifted);
+
+    return {
+        start: new Date(startShifted.getTime() - MYANMAR_OFFSET_MS),
+        end: new Date(endShifted.getTime() - MYANMAR_OFFSET_MS),
+    };
+};
+
 // const updateFormSchema = TicketFormSchema.partial(); // allow partial update
 
 // ======================
@@ -456,8 +480,9 @@ export interface GetTicketsOptions {
 export async function getAllTickets(
     options?: GetTicketsOptions
 ): Promise<{ tickets: TicketWithRelations[]; total: number }> {
-    const { search, filters, page = 1, pageSize = 20 } = options ?? {}     ;
-    const where: Prisma.TicketWhereInput = {};
+    const { search, filters, page = 1, pageSize = 20 } = options ?? {};
+    // Default အဖြစ် archived ticket မပါစေချင်လို့ unarchived only condition နဲ့စပါတယ်။
+    const where: Prisma.TicketWhereInput = { isArchived: false };
     const currentUserId = await getCurrentUserId();
 
     // ---- Column-based search (selectedSearchQueryFilters) ----
@@ -478,12 +503,41 @@ export async function getAllTickets(
         for (const [columnKey, values] of searchArray) {
             for (const value of values) {
                 if (!value) continue;
-                if (columnKey === "Ticket ID") orArray.push({ ticketId: { contains: value, mode: "insensitive" } });
-                if (columnKey === "title") orArray.push({ title: { contains: value, mode: "insensitive" } });
-                if (columnKey === "description") orArray.push({ description: { contains: value, mode: "insensitive" } });
-                if (columnKey === "requester") orArray.push({ requester: { name: { contains: value, mode: "insensitive" } } });
-                if (columnKey === "assignedTo") orArray.push({ assignedTo: { name: { contains: value, mode: "insensitive" } } });
-                if (columnKey === "department") orArray.push({ department: { name: { contains: value, mode: "insensitive" } } });
+                const normalizedKey = columnKey.replace(/\s+/g, "").toLowerCase();
+
+                if (normalizedKey === "ticketid") {
+                    orArray.push({ ticketId: { contains: value, mode: "insensitive" } });
+                    continue;
+                }
+
+                if (normalizedKey === "title") {
+                    orArray.push({ title: { contains: value, mode: "insensitive" } });
+                    continue;
+                }
+
+                if (normalizedKey === "description") {
+                    orArray.push({ description: { contains: value, mode: "insensitive" } });
+                    continue;
+                }
+
+                if (normalizedKey === "requester") {
+                    orArray.push({ requester: { name: { contains: value, mode: "insensitive" } } });
+                    continue;
+                }
+
+                if (normalizedKey === "assignedto") {
+                    orArray.push({ assignedTo: { name: { contains: value, mode: "insensitive" } } });
+                    continue;
+                }
+
+                if (normalizedKey === "department") {
+                    orArray.push({ department: { name: { contains: value, mode: "insensitive" } } });
+                    continue;
+                }
+
+                if (normalizedKey === "departmentid") {
+                    orArray.push({ departmentId: value });
+                }
             }
         }
 
@@ -504,8 +558,24 @@ export async function getAllTickets(
         for (const [group, values] of Object.entries(filters)) {
             if (!values.length) continue;
 
-            if (group === "Status") where.status = { in: values as Status[] };
-            if (group === "Priority") where.priority = { in: values as Priority[] };
+            if (group === "Status") {
+                // Invalid status value (ဥပမာ URGENT) ပါလာရင် Prisma error မဖြစ်စေဖို့ enum validation လုပ်ထားပါတယ်။
+                const statusValues = values.filter((item): item is Status =>
+                    VALID_STATUS_SET.has(item as Status),
+                );
+                if (statusValues.length) {
+                    where.status = { in: statusValues };
+                }
+            }
+
+            if (group === "Priority") {
+                const priorityValues = values.filter((item): item is Priority =>
+                    VALID_PRIORITY_SET.has(item as Priority),
+                );
+                if (priorityValues.length) {
+                    where.priority = { in: priorityValues };
+                }
+            }
 
             if (group === "SLA") {
                 const slaArray: Prisma.TicketWhereInput[] = [];
@@ -522,9 +592,28 @@ export async function getAllTickets(
                 if (values.includes("Unassigned")) ownershipArray.push({ assignedToId: null });
                 if (values.includes("My Tickets")) ownershipArray.push({ requesterId: currentUserId });
                 if (values.includes("Assigned To Me")) ownershipArray.push({ assignedToId: currentUserId });
+                if (values.includes("Followed")) {
+                    ownershipArray.push({
+                        views: { some: { userId: currentUserId } },
+                    });
+                }
                 if (ownershipArray.length) {
                     const currentAND = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
                     where.AND = [...currentAND, { OR: ownershipArray }];
+                }
+            }
+
+            if (group === "Archived") {
+                const hasArchived = values.includes("Archived");
+                const hasUnArchived = values.includes("UnArchived");
+
+                // Archived/UnArchived နှစ်ခုလုံးရွေးထားရင် all ကိုပြမယ်၊ တစ်ခုတည်းရွေးထားရင် အဲဒီ condition ကိုသတ်မှတ်မယ်။
+                if (hasArchived && !hasUnArchived) {
+                    where.isArchived = true;
+                } else if (hasUnArchived && !hasArchived) {
+                    where.isArchived = false;
+                } else if (hasArchived && hasUnArchived) {
+                    delete where.isArchived;
                 }
             }
         }
@@ -564,54 +653,62 @@ export async function getAllTickets(
 // ======================
 export async function getMyTickets() {
     const userId = await getCurrentUserId();
+    if (!userId) {
+        throw new Error("Unauthorized");
+    }
 
     const [request, minor, major, critical] = await Promise.all([
         prisma.ticket.count({
             where: {
                 assignedToId: userId,
                 priority: "REQUEST",
-                NOT: { status: { in: ["NEW", "CLOSED"] } } // exclude NEW and CLOSED
+                isArchived: false,
+                status: { in: ACTIVE_WORK_STATUSES },
             }
         }),
         prisma.ticket.count({
             where: {
                 assignedToId: userId,
                 priority: "MINOR",
-                NOT: { status: { in: ["NEW", "CLOSED"] } }
+                isArchived: false,
+                status: { in: ACTIVE_WORK_STATUSES },
             }
         }),
         prisma.ticket.count({
             where: {
                 assignedToId: userId,
                 priority: "MAJOR",
-                NOT: { status: { in: ["NEW", "CLOSED"] } }
+                isArchived: false,
+                status: { in: ACTIVE_WORK_STATUSES },
             }
         }),
         prisma.ticket.count({
             where: {
                 assignedToId: userId,
                 priority: "CRITICAL",
-                NOT: { status: { in: ["NEW", "CLOSED"] } }
+                isArchived: false,
+                status: { in: ACTIVE_WORK_STATUSES },
             }
         })
     ]);
 
 
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
+    const { start: todayStart, end: todayEnd } = getMyanmarDayRange();
 
     const [closedCount, slaSuccess, slaFail] = await Promise.all([
         prisma.ticket.count({
             where: {
                 assignedToId: userId,
-                status: "CLOSED",
+                isArchived: false,
+                status: { in: CLOSED_LIKE_STATUSES },
                 updatedAt: { gte: todayStart, lte: todayEnd },
             },
         }),
         prisma.ticket.count({
             where: {
                 assignedToId: userId,
-                status: "CLOSED",
+                isArchived: false,
+                status: { in: CLOSED_LIKE_STATUSES },
                 updatedAt: { gte: todayStart, lte: todayEnd },
                 isSlaViolated: false,
             },
@@ -619,7 +716,8 @@ export async function getMyTickets() {
         prisma.ticket.count({
             where: {
                 assignedToId: userId,
-                status: "CLOSED",
+                isArchived: false,
+                status: { in: CLOSED_LIKE_STATUSES },
                 updatedAt: { gte: todayStart, lte: todayEnd },
                 isSlaViolated: true,
             },

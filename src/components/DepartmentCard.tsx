@@ -14,10 +14,11 @@ type DashboardCardProps = {
 export default function DashboardCard({ dept }: DashboardCardProps) {
 
     const stats = [
-        { label: "New", value: dept.count.new, status: "NEW" },
-        { label: "Open", value: dept.count.open, status: "OPEN" },
-        { label: "Unassigned", value: dept.count.unassigned, status: "Unassigned" },
-        { label: "Urgent", value: dept.count.urgent, status: "URGENT" },
+        { label: "New", value: dept.count.new, query: "status=NEW" },
+        { label: "Open", value: dept.count.open, query: "status=OPEN,IN_PROGRESS" },
+        { label: "Unassigned", value: dept.count.unassigned, query: "ownership=Unassigned" },
+        // Urgent ကို active critical tickets အဖြစ်ပြဖို့ priority + active statuses နှစ်ခုလုံး query ထည့်ထားပါတယ်။
+        { label: "Urgent", value: dept.count.urgent, query: "priority=CRITICAL&status=NEW,OPEN,IN_PROGRESS" },
     ];
 
 
@@ -41,14 +42,12 @@ export default function DashboardCard({ dept }: DashboardCardProps) {
             <div className=" grid grid-cols-3 mt-5 ">
 
                 <Link href={`/helpdesk/tickets/new?&filter=${dept.id}`}>
-                    <Button buttonLabel="Tickets" click={() => {
-                        console.log("Create Ticket clicked");
-                    }} />
+                    <Button buttonLabel="Tickets" />
                 </Link>
 
 
 
-                <Link href={`/helpdesk/tickets?filter=${dept.id}&status=CLOSED`} className="flex col-span-2 text-xs text-indigo-500 justify-between items-center ">
+                <Link href={`/helpdesk/tickets?departmentId=${dept.id}&status=CLOSED,RESOLVED,CANCELED`} className="flex col-span-2 text-xs text-indigo-500 justify-between items-center ">
                     <p>
                         Tickets Closed
                     </p>
@@ -67,7 +66,7 @@ export default function DashboardCard({ dept }: DashboardCardProps) {
                 {stats.map((item, idx) => (
                     <Link
                         key={idx}
-                        href={`/helpdesk/tickets?department=${dept.name}&${item.status === "Unassigned" ? "ownership" : "status"}=${item.status}`}
+                        href={`/helpdesk/tickets?departmentId=${dept.id}&${item.query}`}
                         className={`flex items-center flex-col ${idx === 1 ? "border-l border-gray-300" : ""
                             } ${idx === 2 ? "border-l border-r border-gray-300" : ""}`}
                     >
