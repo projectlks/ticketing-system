@@ -1,16 +1,40 @@
-   type PriorityType = "REQUEST" | "MINOR" | "MAJOR" | "CRITICAL";
+﻿type PriorityType = "REQUEST" | "MINOR" | "MAJOR" | "CRITICAL";
 
-    const priorityColors: Record<PriorityType | "DEFAULT", { bg: string; borderAndText: string }> = {
-        REQUEST: { bg: "bg-blue-500", borderAndText: " text-blue-500" },
-        MINOR: { bg: "bg-yellow-500", borderAndText: " text-yellow-500" },
-        MAJOR: { bg: "bg-orange-500", borderAndText: " text-orange-500" },
-        CRITICAL: { bg: "bg-red-500", borderAndText: " text-red-500" },
-        DEFAULT: { bg: "bg-gray-500", borderAndText: " text-gray-500" },
-    };
+type PriorityTone = {
+  bg: string;
+  borderAndText: string;
+};
 
-    export function usePriorityColor(priority: string, type: "bg" | "borderAndText" = "bg"): string {
-        if (priority in priorityColors) {
-            return priorityColors[priority as keyof typeof priorityColors][type];
-        }
-        return priorityColors.DEFAULT[type];
-    }
+const priorityColors: Record<PriorityType | "DEFAULT", PriorityTone> = {
+  REQUEST: {
+    bg: "bg-sky-400",
+    borderAndText: "border-sky-200 bg-sky-50 text-sky-700",
+  },
+  MINOR: {
+    bg: "bg-amber-400",
+    borderAndText: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  MAJOR: {
+    bg: "bg-orange-400",
+    borderAndText: "border-orange-200 bg-orange-50 text-orange-700",
+  },
+  CRITICAL: {
+    bg: "bg-rose-400",
+    borderAndText: "border-rose-200 bg-rose-50 text-rose-700",
+  },
+  DEFAULT: {
+    bg: "bg-zinc-400",
+    borderAndText: "border-zinc-200 bg-zinc-100 text-zinc-700",
+  },
+};
+
+export function usePriorityColor(
+  priority: string,
+  type: "bg" | "borderAndText" = "bg",
+): string {
+  if (priority in priorityColors) {
+    return priorityColors[priority as keyof typeof priorityColors][type];
+  }
+
+  return priorityColors.DEFAULT[type];
+}

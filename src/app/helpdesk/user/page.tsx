@@ -1,161 +1,142 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Button from "@/components/Button";
-import "react-resizable/css/styles.css";
-import { EnvelopeIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { getUsers } from "./action";
-import Avatar from "@/components/Avatar";
+import { useMemo, useState } from "react";
 
-/* ================= TYPES ================= */
+import UserDetailPanel from "./components/UserDetailPanel";
+import UserQuickListItem from "./components/UserQuickListItem";
+import UserToolbar from "./components/UserToolbar";
+import { usersQueryOptions } from "../queries/query-options";
+import type { TicketStats, UserTicketStatus } from "./types";
 
-export type TicketStats = {
-    id: string;
-    name: string;
-    email: string;
-    assigned: {
-        new: number;
-        open: number;
-        inprogress: number;
-        closed: number;
-    };
-    created: {
-        new: number;
-        open: number;
-        inprogress: number;
-        closed: number;
-    };
-};
+const sumStatus = (value: UserTicketStatus) =>
+  value.new + value.open + value.inprogress + value.closed;
 
-type StatusKey = "new" | "open" | "inprogress" | "closed";
+export default function UserPage() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-/* ================= CONSTANTS ================= */
+  const usersQuery = useQuery(usersQueryOptions());
+  const users = useMemo(
+    () => ((usersQuery.data ?? []) as TicketStats[]),
+    [usersQuery.data],
+  );
 
-const STATUS_KEYS: { key: StatusKey; label: string }[] = [
-    { key: "new", label: "new" },
-    { key: "open", label: "open" },
-    { key: "inprogress", label: "inprogress" },
-    { key: "closed", label: "closed" },
-];
+  const filteredUsers = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return users;
 
-/* ================= COMPONENTS ================= */
-
-function StatusGrid({
-    data,
-}: {
-    data: Record<StatusKey, number>;
-}) {
-    return (
-        <div className="grid grid-cols-4 text-center overflow-hidden">
-            {STATUS_KEYS.map((item, index) => (
-                <div
-                    key={item.key}
-                    className={`py-2 ${index !== 0 ? "border-l border-gray-200" : ""}`}
-                >
-                    <h1 className="text-indigo-500 font-bold text-[12px]">
-                        {data[item.key]}
-                    </h1>
-                    <p className="text-xs text-gray-500">{item.label}</p>
-                </div>
-            ))}
-        </div>
+    return users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(keyword) ||
+        user.email.toLowerCase().includes(keyword),
     );
-}
+  }, [users, searchQuery]);
 
-/* ================= PAGE ================= */
+  const resolvedSelectedUserId = useMemo(() => {
+    if (!filteredUsers.length) return null;
+    if (selectedUserId && filteredUsers.some((user) => user.id === selectedUserId)) {
+      return selectedUserId;
+    }
 
-export default function DepartmentPage() {
-    const [searchQuery, setSearchQuery] = useState("");
-    const [users, setUsers] = useState<TicketStats[]>([]);
-    const router = useRouter();
+    return filteredUsers[0].id;
+  }, [filteredUsers, selectedUserId]);
 
-    /* ===== FETCH USERS ===== */
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const data = await getUsers();
-                setUsers(data);
-            } catch (error) {
-                console.error("Failed to load users:", error);
-            }
-        };
+  const selectedUser = useMemo(
+    () => filteredUsers.find((user) => user.id === resolvedSelectedUserId) ?? null,
+    [filteredUsers, resolvedSelectedUserId],
+  );
 
-        fetchData();
-    }, []);
+  const summary = useMemo(() => {
+    return filteredUsers.reduce(
+      (accumulator, user) => {
+        accumulator.totalAssigned += sumStatus(user.assigned);
+        accumulator.totalOpened += sumStatus(user.created);
+        return accumulator;
+      },
+      { totalAssigned: 0, totalOpened: 0 },
+    );
+  }, [filteredUsers]);
 
-    /* ===== FILTERED USERS ===== */
-    const filteredUsers = users.filter((user) => {
-        const query = searchQuery.toLowerCase();
-        return (
-            user.name.toLowerCase().includes(query) ||
-            user.email.toLowerCase().includes(query)
-        );
-    });
+  const isLoading = usersQuery.isLoading;
+  const errorMessage = usersQuery.error
+    ? usersQuery.error instanceof Error
+      ? usersQuery.error.message
+      : "Failed to load users."
+    : null;
+  const lastUpdatedAt = usersQuery.dataUpdatedAt
+    ? new Date(usersQuery.dataUpdatedAt).toLocaleString()
+    : "";
 
-    return (
-        <div className="p-4">
-            {/* ================= TOP BAR ================= */}
-            <div className="flex justify-between items-center bg-white px-4 py-4 border-b border-gray-300 rounded-t-md">
-                <div className="flex items-center space-x-2">
-                    <Button
-                        click={() => router.push("/helpdesk/user/new")}
-                        buttonLabel="NEW"
-                    />
-                    <h1 className="text-sm text-gray-800 font-medium">Users</h1>
-                </div>
+  return (
+    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+      <UserToolbar
+        searchQuery={searchQuery}
+        shownCount={filteredUsers.length}
+        totalAssigned={summary.totalAssigned}
+        totalOpened={summary.totalOpened}
+        totalLoad={summary.totalAssigned + summary.totalOpened}
+        isLoading={isLoading}
+        lastUpdatedAt={lastUpdatedAt}
+        activeUserName={selectedUser?.name ?? null}
+        onSearchChange={setSearchQuery}
+        onCreateUser={() => router.push("/helpdesk/user/new")}
+      />
 
-                {/* SEARCH */}
-                <div className="relative min-w-[40%] flex items-center border border-gray-300 rounded min-h-[34px]">
-                    <MagnifyingGlassIcon className="absolute left-3 w-4 h-4 text-gray-700" />
-                    <input
-                        type="text"
-                        placeholder="Search by name or email..."
-                        className="h-6 w-full pl-9 pr-3 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
+      <main className="mx-auto w-full max-w-7xl space-y-3 px-4 py-4 sm:px-6 sm:py-5">
+        {usersQuery.isFetching && !isLoading && (
+          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-500">
+            Syncing users...
+          </div>
+        )}
 
-                <div></div>
-            </div>
+        {isLoading && (
+          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-500">
+            Loading users...
+          </div>
+        )}
 
-            {/* ================= USERS GRID ================= */}
-            <section className="w-full grid-cols-4 grid gap-4 py-4">
+        {!isLoading && errorMessage && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        )}
+
+        {!isLoading && !errorMessage && filteredUsers.length === 0 && (
+          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-500">
+            No users matched your search.
+          </div>
+        )}
+
+        {!isLoading && !errorMessage && filteredUsers.length > 0 && (
+          <section className="grid gap-3 lg:grid-cols-[300px_minmax(0,1fr)]">
+            <aside className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+              <div className="border-b border-zinc-200 bg-zinc-50 px-3 py-2">
+                <p className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+                  Team List
+                </p>
+              </div>
+              <div className="max-h-[65vh] divide-y divide-zinc-200 overflow-y-auto p-2">
                 {filteredUsers.map((user) => (
-                    <div
-                        key={user.id}
-                          onClick={() => router.push(`/helpdesk/user/${user.id}`)}
-                        className="w-full h-full bg-white border border-gray-300 px-5 py-3"
-                    >
-                        {/* USER HEADER */}
-                        <div className="flex space-x-2">
-                            <Avatar name={user.name} />
-
-
-                            <div>
-                                <h1 className="font-bold text-[18px]">{user.name}</h1>
-                                <span className="flex items-end text-[12px] -mt-1 text-indigo-500 space-x-1">
-                                    <EnvelopeIcon className="w-4 h-4" />
-                                    <p>{user.email}</p>
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* ASSIGNED */}
-                        <p className="mt-8 mb-2 text-xs text-gray-500 font-semibold">
-                            Assigned to this user
-                        </p>
-                        <StatusGrid data={user.assigned} />
-
-                        {/* CREATED */}
-                        <p className="mt-4 mb-2 text-xs text-gray-500 font-semibold">
-                            Tickets created by this user
-                        </p>
-                        <StatusGrid data={user.created} />
-                    </div>
+                  <UserQuickListItem
+                    key={user.id}
+                    user={user}
+                    isActive={user.id === resolvedSelectedUserId}
+                    onSelect={() => setSelectedUserId(user.id)}
+                  />
                 ))}
-            </section>
-        </div>
-    );
+              </div>
+            </aside>
+
+            <UserDetailPanel
+              user={selectedUser}
+              onOpenProfile={(id) => router.push(`/helpdesk/user/${id}`)}
+            />
+          </section>
+        )}
+      </main>
+    </div>
+  );
 }

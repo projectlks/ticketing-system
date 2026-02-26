@@ -1,49 +1,20 @@
-import React from "react";
+﻿import React from "react";
 
 interface TableBodyProps {
-    data: string;
-    textAlign?: "left" | "center" | "right";
+  data: string;
+  textAlign?: "left" | "center" | "right";
 }
 
 export default function TableBody({ data, textAlign = "left" }: TableBodyProps) {
-    const alignmentClass = {
-        left: "text-left",
-        center: "text-center",
-        right: "text-right",
-    }[textAlign];
+  const alignmentClass = {
+    left: "text-left",
+    center: "text-center",
+    right: "text-right",
+  }[textAlign];
 
-    return (
-        <td
-            className={`px-5 py-2.5 sm:px-6 ${alignmentClass} max-w-[500px]  `}
-        >
-            <div className="text-gray-500 text-[14px]  truncate">{data}</div>
-        </td>
-    );
+  return (
+    <td className={`max-w-[420px] px-4 py-3 ${alignmentClass}`}>
+      <div className="truncate text-sm text-zinc-700">{data}</div>
+    </td>
+  );
 }
-
-
-
-// import React from "react";
-
-// interface TableBodyProps {
-//   data: string | number;
-//   width?: number; // header column width ကို prop အဖြစ်ပေးမယ်
-//   textAlign?: "left" | "center" | "right";
-// }
-
-// export default function TableBody({ data, width, textAlign = "left" }: TableBodyProps) {
-//   const alignmentClass = {
-//     left: "text-left",
-//     center: "text-center",
-//     right: "text-right",
-//   }[textAlign];
-
-//   return (
-//     <div
-//       className={`px-5 py-2.5 sm:px-6 ${alignmentClass} max-w-[500px]`}
-//       style={{ width }} // width ကို header နဲ့ sync
-//     >
-//       <p className="text-gray-500 text-[16px]  truncate">{data}</p>
-//     </div>
-//   );
-// }

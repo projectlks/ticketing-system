@@ -1,6 +1,4 @@
-// components/SearchBox/SearchSuggestionDropdown.tsx
-
-import React from "react";
+﻿import React from "react";
 import { Column } from "./types";
 
 interface Props {
@@ -11,7 +9,7 @@ interface Props {
   setSelectedSearchQueryFilters: React.Dispatch<
     React.SetStateAction<Record<string, string[]>>
   >;
-  setSearchQuery: (v: string) => void;
+  setSearchQuery: (value: string) => void;
 }
 
 const SearchSuggestionDropdown: React.FC<Props> = ({
@@ -22,35 +20,37 @@ const SearchSuggestionDropdown: React.FC<Props> = ({
   setSelectedSearchQueryFilters,
   setSearchQuery,
 }) => (
-  <div className="absolute top-[calc(100%+5px)] left-0 w-[600px] bg-white shadow-lg rounded-lg p-4 overflow-y-auto z-20 border border-gray-200">
+  <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-[min(92vw,640px)] rounded-xl border border-zinc-200 bg-white p-3 shadow-lg">
     {columns.length ? (
       <div className="space-y-1">
-        {columns.map((col, idx) => (
+        {columns.map((column, index) => (
           <div
-            key={col.key}
-            className={`text-sm px-3 py-2 cursor-pointer flex flex-wrap items-center gap-2 rounded ${
-              idx === activeIndex
-                ? "bg-gray-200 text-gray-900"
-                : "hover:bg-gray-200 text-gray-700"
+            key={column.key}
+            className={`flex cursor-pointer flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm ${
+              index === activeIndex
+                ? "bg-zinc-100 text-zinc-900"
+                : "text-zinc-700 hover:bg-zinc-100"
             }`}
-            onMouseEnter={() => setActiveIndex(idx)}
+            onMouseEnter={() => setActiveIndex(index)}
             onClick={() => {
-              setSelectedSearchQueryFilters((prev) => ({
-                ...prev,
-                [col.label]: [...(prev[col.label] || []), searchQuery],
+              setSelectedSearchQueryFilters((previous) => ({
+                ...previous,
+                [column.label]: [...(previous[column.label] || []), searchQuery],
               }));
               setSearchQuery("");
             }}
           >
             <p>Search</p>
-            <h1 className="font-semibold">{col.label}</h1>
-            <p>for:</p>
-            <span className="font-semibold italic">{searchQuery}</span>
+            <strong>{column.label}</strong>
+            <p>for</p>
+            <span className="font-medium text-zinc-500">
+              &quot;{searchQuery}&quot;
+            </span>
           </div>
         ))}
       </div>
     ) : (
-      <p className="text-gray-500 text-sm px-3">No columns available</p>
+      <p className="px-2 text-sm text-zinc-500">No columns available</p>
     )}
   </div>
 );

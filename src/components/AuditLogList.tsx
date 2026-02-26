@@ -1,6 +1,7 @@
-import { Audit } from "../generated/prisma/client";
 import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
+
+import { Audit } from "../generated/prisma/client";
 import Avatar from "./Avatar";
 
 interface AuditLogItem extends Audit {
@@ -23,18 +24,17 @@ interface AuditChange {
   newValue: string;
 }
 
-// Safely parse Prisma JSON field
 const parseChanges = (changes: unknown): AuditChange[] => {
   if (!changes) return [];
 
   if (Array.isArray(changes)) {
     return changes.filter(
-      (c): c is AuditChange =>
-        typeof c === "object" &&
-        c !== null &&
-        "field" in c &&
-        "oldValue" in c &&
-        "newValue" in c,
+      (change): change is AuditChange =>
+        typeof change === "object" &&
+        change !== null &&
+        "field" in change &&
+        "oldValue" in change &&
+        "newValue" in change,
     );
   }
 
@@ -43,12 +43,12 @@ const parseChanges = (changes: unknown): AuditChange[] => {
       const parsed = JSON.parse(changes);
       if (Array.isArray(parsed)) {
         return parsed.filter(
-          (c): c is AuditChange =>
-            typeof c === "object" &&
-            c !== null &&
-            "field" in c &&
-            "oldValue" in c &&
-            "newValue" in c,
+          (change): change is AuditChange =>
+            typeof change === "object" &&
+            change !== null &&
+            "field" in change &&
+            "oldValue" in change &&
+            "newValue" in change,
         );
       }
     } catch {
@@ -65,34 +65,26 @@ export function AuditLogList({
   emptyText = "No audit log entries.",
 }: AuditLogListProps) {
   if (!items.length) {
-    return (
-      <p className={`text-sm text-muted-foreground ${className}`}>
-        {emptyText}
-      </p>
-    );
+    return <p className={`text-sm text-zinc-500 ${className}`}>{emptyText}</p>;
   }
 
   return (
-    <ul
-      className={`relative space-y-4 pl-2 ${className}`}
-      aria-label="Audit log">
-      {/* Vertical line */}
+    <ul className={`relative space-y-4 pl-2 ${className}`} aria-label="Audit log">
       <div
         aria-hidden="true"
-        className="absolute left-3.5 top-0 h-full border-l border-indigo-500 "
+        className="absolute left-3.5 top-0 h-full border-l border-zinc-200"
       />
 
       {items.map((item, idx) => {
         const key = item.id ?? `${idx}-${String(item.changedAt)}`;
-        // const userInitial = item.user?.name?.charAt(0).toUpperCase() ?? "?";
 
         const changedAtISO =
-          item.changedAt && !isNaN(new Date(item.changedAt).getTime())
+          item.changedAt && !Number.isNaN(new Date(item.changedAt).getTime())
             ? new Date(item.changedAt).toISOString()
             : undefined;
 
         const changedAtText =
-          item.changedAt && !isNaN(new Date(item.changedAt).getTime())
+          item.changedAt && !Number.isNaN(new Date(item.changedAt).getTime())
             ? moment(item.changedAt).fromNow()
             : "Unknown time";
 
@@ -100,64 +92,50 @@ export function AuditLogList({
 
         return (
           <li key={key} className="relative pl-8">
-            {/* Blue dot */}
             <span
               aria-hidden="true"
-              className="absolute left-0 top-1 inline-flex h-3.5 w-3.5 rounded-full bg-white  ring-4 ring-indigo-500 "
+              className="absolute left-0 top-1 inline-flex h-3.5 w-3.5 rounded-full bg-white ring-4 ring-zinc-300"
             />
 
-            <div className="rounded-lg border border-gray-200  bg-card/60  p-3 shadow-sm hover:bg-accent/40">
-              {/* USER INFO */}
-              <div className="flex justify-between items-center gap-3 text-xs text-muted-foreground ">
+            <article className="rounded-lg border border-zinc-200 bg-white p-3 shadow-xs">
+              <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
                 <div className="flex items-center gap-3">
-                  {/* <span className="flex items-center justify-center h-11 w-11 text-2xl text-white bg-blue-500 rounded-full select-none">
-                                        {userInitial}
-                                    </span> */}
-
-                  <div className="relative overflow-hidden rounded-full h-9 w-9 shrink-0 bg-gray-100">
+                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-100">
                     <Avatar name={item.user?.name} />
                   </div>
 
-                  <div className="flex flex-col text-sm font-medium">
-                    <p>{item.user?.name ?? "Loading..."}</p>
-                    <p className="text-xs text-gray-600 ">
-                      {item.user?.email ?? "—"}
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium text-zinc-800">
+                      {item.user?.name ?? "Unknown"}
                     </p>
+                    <p className="text-xs text-zinc-500">{item.user?.email ?? "-"}</p>
                   </div>
                 </div>
 
-                <time
-                  dateTime={changedAtISO}
-                  className="text-xs text-gray-500 ">
+                <time dateTime={changedAtISO} className="text-xs text-zinc-500">
                   {changedAtText}
                 </time>
               </div>
 
-              {/* CONTENT */}
               {item.action === "CREATE" ? (
-                <p className="mt-2 text-sm leading-relaxed">Ticket created</p>
+                <p className="mt-2 text-sm text-zinc-700">Ticket created</p>
               ) : (
-                <div className="mt-2 text-sm">
-                  {/* REMARK CHANGES */}
+                <div className="mt-2 space-y-2 text-sm">
+                  {changes.map((change, changeIndex) => (
+                    <div key={`change-${changeIndex}`} className="flex items-start gap-3">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
 
-                  {changes.map((c, idx) => (
-                    <div
-                      key={`change-${idx}`}
-                      className="flex items-start space-x-5 mt-3">
-                      <span className="w-1.5 h-1.5 rounded-full mt-1.5 bg-main shrink-0" />
-
-                      <span className="flex items-center space-x-3 flex-wrap">
-                        <i className="text-gray-500">
-                          {c.oldValue ? c.oldValue : "NONE "}
+                      <span className="flex flex-wrap items-center gap-2 text-zinc-700">
+                        <i className="text-zinc-500">
+                          {change.oldValue ? change.oldValue : "NONE"}
                         </i>
-                        <ArrowLongRightIcon className="text-gray-700 size-5" />
-                        <i className="text-indigo-500">{c.newValue}</i>
-
-                        <p className="italic">
+                        <ArrowLongRightIcon className="size-4 text-zinc-500" />
+                        <i className="text-zinc-900">{change.newValue}</i>
+                        <p className="italic text-zinc-500">
                           (
-                          {c.field.endsWith("Id")
-                            ? c.field.slice(0, -2)
-                            : c.field}
+                          {change.field.endsWith("Id")
+                            ? change.field.slice(0, -2)
+                            : change.field}
                           )
                         </p>
                       </span>
@@ -165,7 +143,7 @@ export function AuditLogList({
                   ))}
                 </div>
               )}
-            </div>
+            </article>
           </li>
         );
       })}

@@ -1,88 +1,6 @@
-// "use client";
-
-// type Props = {
-//   departmentId: string;
-//   categoryId: string;
-//   assignedToId: string;
-//   depts: { id: string; name: string }[];
-//   cats: { id: string; name: string; departmentId: string }[];
-//   users: { id: string; name: string; email: string; departmentId: string }[];
-//   errors: Record<string, string | undefined>;
-//   onChange: (name: string, value: string) => void;
-// };
-
-// export default function AssignmentSection({
-//   departmentId,
-//   categoryId,
-//   assignedToId,
-//   depts,
-//   cats,
-//   users,
-//   errors,
-//   onChange,
-// }: Props) {
-//   const filteredCategories = cats.filter((c) => c.departmentId === departmentId);
-//   const filteredUsers = users.filter((u) => u.departmentId === departmentId);
-
-//   return (
-//     <div className="grid grid-cols-1 md:grid-cols-3 mb-6 gap-8">
-//       {/* Department */}
-//       <div>
-//         <label className="block font-medium mb-1">Department</label>
-//         <select
-//           value={departmentId}
-//           onChange={(e) => onChange("departmentId", e.target.value)}
-//           className={`w-full px-1 py-2 appearance-none [&::-ms-expand]:hidden bg-no-repeat bg-right focus:outline-none ${errors.departmentId ? "border-b border-red-500" : ""}`}
-
-//         >
-//           <option value="">Select Department</option>
-//           {depts.map((d) => (
-//             <option key={d.id} value={d.id}>{d.name}</option>
-//           ))}
-//         </select>
-//         {errors.departmentId && <p className="text-red-500 text-sm">{errors.departmentId}</p>}
-//       </div>
-
-//       {/* Category */}
-//       <div>
-//         <label className="block font-medium mb-1">Category</label>
-//         <select
-//           value={categoryId}
-//           disabled={!departmentId}
-//           onChange={(e) => onChange("categoryId", e.target.value)}
-//           className={`w-full px-1 py-2 appearance-none [&::-ms-expand]:hidden bg-no-repeat bg-right focus:outline-none ${errors.categoryId ? "border-b border-red-500" : ""}`}
-//         >
-//           <option value="">Select Category</option>
-//           {filteredCategories.map((c) => (
-//             <option key={c.id} value={c.id}>{c.name}</option>
-//           ))}
-//         </select>
-//         {errors.categoryId && <p className="text-red-500 text-sm">{errors.categoryId}</p>}
-
-//       </div>
-
-//       {/* Assign */}
-//       <div>
-//         <label className="block font-medium mb-1">Assign To</label>
-//         <select
-//           value={assignedToId}
-//           disabled={!departmentId}
-//           onChange={(e) => onChange("assignedToId", e.target.value)}
-//           // className="w-full px-1 py-2"
-//           className={`w-full px-1 py-2 appearance-none [&::-ms-expand]:hidden bg-no-repeat bg-right focus:outline-none ${errors.departmentId ? "border-b border-red-500" : ""}`}
-//         >
-//           <option value="">Assign To</option>
-//           {filteredUsers.map((u) => (
-//             <option key={u.id} value={u.id}>
-//               {u.name} ({u.email})
-//             </option>
-//           ))}
-//         </select>
-//       </div>
-//     </div>
-//   );
-// }
 "use client";
+
+import { ChevronUpDownIcon } from "@heroicons/react/24/outline";
 
 type Props = {
   departmentId: string;
@@ -95,6 +13,62 @@ type Props = {
   onChange: (name: string, value: string) => void;
 };
 
+type SelectFieldProps = {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  error?: string;
+  placeholder: string;
+};
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  error,
+  placeholder,
+}: SelectFieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-zinc-700">{label}</label>
+
+      {/* Select element ပေါ်မှာ icon ကို absolute ထည့်ထားပြီး pointer-events-none သတ်မှတ်ထားလို့
+          ဘယ်နေရာနှိပ်နှိပ် native select dropdown ပဲဖွင့်သွားစေပါတယ်။ */}
+      <div className="relative">
+        <select
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          className={`h-11 w-full appearance-none rounded-xl border bg-white px-3 pr-10 text-sm outline-none transition ${
+            disabled
+              ? "cursor-not-allowed border-zinc-200 text-zinc-400"
+              : error
+              ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-100"
+              : "border-zinc-200 text-zinc-900 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+          }`}>
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        <ChevronUpDownIcon
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+        />
+      </div>
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
 export default function AssignmentSection({
   departmentId,
   categoryId,
@@ -106,110 +80,48 @@ export default function AssignmentSection({
   onChange,
 }: Props) {
   const filteredCategories = cats.filter(
-    (c) => c.departmentId === departmentId
+    (category) => category.departmentId === departmentId,
   );
-  const filteredUsers = users.filter(
-    (u) => u.departmentId === departmentId
-  );
-
-  const base =
-    "w-full bg-transparent px-1 py-2 text-sm outline-none border-b transition-colors appearance-none [&::-ms-expand]:hidden bg-no-repeat bg-right truncate";
-  const normal = "border-gray-300 focus:border-blue-600";
-  const error = "border-red-500 focus:border-red-600";
-  const disabled = "border-gray-200 text-gray-400 cursor-not-allowed";
+  const filteredUsers = users.filter((user) => user.departmentId === departmentId);
 
   return (
-    <div className="mb-8">
-      {/* <h3 className="mb-4 text-sm font-semibold text-gray-700">
-        Assignment
-      </h3> */}
+    <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <SelectField
+        label="Department"
+        value={departmentId}
+        placeholder="Select department"
+        options={depts.map((department) => ({
+          value: department.id,
+          label: department.name,
+        }))}
+        onChange={(value) => onChange("departmentId", value)}
+        error={errors.departmentId}
+      />
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-        {/* Department */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Department
-          </label>
-          <select
-            value={departmentId}
-            onChange={(e) =>
-              onChange("departmentId", e.target.value)
-            }
-            className={`${base} ${
-              errors.departmentId ? error : normal
-            }`}
-          >
-            <option value="">Select department</option>
-            {depts.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-          {errors.departmentId && (
-            <p className="mt-1 text-xs text-red-500">
-              {errors.departmentId}
-            </p>
-          )}
-        </div>
+      <SelectField
+        label="Category"
+        value={categoryId}
+        disabled={!departmentId}
+        placeholder="Select category"
+        options={filteredCategories.map((category) => ({
+          value: category.id,
+          label: category.name,
+        }))}
+        onChange={(value) => onChange("categoryId", value)}
+        error={errors.categoryId}
+      />
 
-        {/* Category */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Category
-          </label>
-          <select
-            value={categoryId}
-            disabled={!departmentId}
-            onChange={(e) =>
-              onChange("categoryId", e.target.value)
-            }
-            className={`${base} ${
-              !departmentId
-                ? disabled
-                : errors.categoryId
-                ? error
-                : normal
-            }`}
-          >
-            <option value="">Select category</option>
-            {filteredCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {errors.categoryId && (
-            <p className="mt-1 text-xs text-red-500">
-              {errors.categoryId}
-            </p>
-          )}
-        </div>
-
-        {/* Assign To */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Assign to
-          </label>
-          <select
-            value={assignedToId}
-            disabled={!departmentId}
-            onChange={(e) =>
-              onChange("assignedToId", e.target.value)
-            }
-            className={`${base} ${
-              !departmentId ? disabled : normal
-            }`}
-          >
-            <option value="">Select user</option>
-            {filteredUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} ({u.email})
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-    </div>
+      <SelectField
+        label="Assign To"
+        value={assignedToId}
+        disabled={!departmentId}
+        placeholder="Select user"
+        options={filteredUsers.map((user) => ({
+          value: user.id,
+          label: `${user.name} (${user.email})`,
+        }))}
+        onChange={(value) => onChange("assignedToId", value)}
+      />
+    </section>
   );
 }

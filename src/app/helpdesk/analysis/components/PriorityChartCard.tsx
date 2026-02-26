@@ -16,7 +16,8 @@ export default function PriorityChartCard({
   const doughnutRef = useRef<HTMLCanvasElement>(null);
   const doughnutInstance = useRef<Chart | null>(null);
 
-  // Priority doughnut chart ကို breakdown data ပြောင်းတိုင်း repaint လုပ်ပါတယ်။
+  // Breakdown data ပြောင်းတိုင်း doughnut chart instance ကိုပြန်တည်ဆောက်ပြီး
+  // အရင် instance ကို destroy လုပ်ထားလို့ stale canvas state မကျန်စေပါ။
   useEffect(() => {
     if (!doughnutRef.current) return;
 
@@ -25,6 +26,7 @@ export default function PriorityChartCard({
 
     if (doughnutInstance.current) {
       doughnutInstance.current.destroy();
+      doughnutInstance.current = null;
     }
 
     doughnutInstance.current = new Chart(ctx, {
@@ -49,7 +51,7 @@ export default function PriorityChartCard({
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: "bottom" as const,
+            position: "bottom",
             labels: {
               color: "#1a1a1a",
               font: { size: 12 },
@@ -71,16 +73,20 @@ export default function PriorityChartCard({
     return () => {
       if (doughnutInstance.current) {
         doughnutInstance.current.destroy();
+        doughnutInstance.current = null;
       }
     };
   }, [priorityBreakdown.high, priorityBreakdown.medium, priorityBreakdown.low]);
 
   return (
     <div className="rounded-2xl bg-white border border-black/5 p-6">
-      <h2 className="text-lg font-semibold tracking-tight mb-6">Priority Distribution</h2>
+      <h2 className="text-lg font-semibold tracking-tight mb-6">
+        Priority Distribution
+      </h2>
       <div className="h-80">
         <canvas ref={doughnutRef}></canvas>
       </div>
     </div>
   );
 }
+

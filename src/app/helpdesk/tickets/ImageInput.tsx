@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { ArrowUpTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
-import Image from "next/image";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 
 interface ImageUploaderProps {
   images: File[];
@@ -21,26 +21,21 @@ export default function ImageUploader({
   existingImages,
   setExistingImages,
 }: ImageUploaderProps) {
-  const [previews, setPreviews] = useState<
-    { file: File; url: string }[]
-  >([]);
+  const [previews, setPreviews] = useState<Array<{ file: File; url: string }>>(
+    [],
+  );
 
-  /** ---------------------------------------
-   *  Generate previews WHEN images change
-   *  (NO setState inside useEffect)
-   * -------------------------------------- */
   useEffect(() => {
-    const urls = previews.map((p) => p.url);
-
+    const previewUrls = previews.map((preview) => preview.url);
     return () => {
-      urls.forEach((url) => URL.revokeObjectURL(url));
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [previews]);
 
-  /** Handle file selection */
   const onDrop = (acceptedFiles: File[]) => {
     if (images.length + existingImages.length + acceptedFiles.length > 3) {
-      return toast.error(`You can upload a maximum of 3 images.`);
+      toast.error("You can upload up to 3 images.");
+      return;
     }
 
     const validFiles = acceptedFiles.filter((file) => {
@@ -51,16 +46,16 @@ export default function ImageUploader({
       return true;
     });
 
-    // Add new images
-    setImages((prev) => [...prev, ...validFiles]);
+    if (!validFiles.length) return;
 
-    // Generate previews IMMEDIATELY
-    const newPreview = validFiles.map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-    }));
-
-    setPreviews((prev) => [...prev, ...newPreview]);
+    setImages((previous) => [...previous, ...validFiles]);
+    setPreviews((previous) => [
+      ...previous,
+      ...validFiles.map((file) => ({
+        file,
+        url: URL.createObjectURL(file),
+      })),
+    ]);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -73,97 +68,90 @@ export default function ImageUploader({
     maxFiles: 3 - (images.length + existingImages.length),
   });
 
+  const showEmptyState = previews.length === 0 && existingImages.length === 0;
+
   return (
-    <div
-      {...getRootProps()}
-      className={`rounded-xl border border-dashed p-5 lg:p-10 w-full cursor-pointer text-center
-        ${
+    <section className="space-y-2">
+      <p className="text-sm font-medium text-zinc-700">Attachments</p>
+
+      <div
+        {...getRootProps()}
+        className={`cursor-pointer rounded-xl border border-dashed p-5 text-center transition-colors ${
           isDragActive
-            ? "border-indigo-600 bg-indigo-50 "
-            : "border-gray-300 bg-gray-50 hover:border-indigo-600 "
-        }`}
-    >
-      <ToastContainer />
-      <input {...getInputProps()} />
+            ? "border-zinc-500 bg-zinc-100"
+            : "border-zinc-300 bg-zinc-50 hover:border-zinc-400"
+        }`}>
+        <input {...getInputProps()} />
 
-      {previews.length === 0 && existingImages.length === 0 ? (
-        <div className="text-center">
-          <div className="mb-[22px] flex justify-center">
-            <div className="h-[68px] w-[68px] rounded-full bg-gray-200  flex items-center justify-center">
-              <ArrowUpTrayIcon className="w-[29px] h-7" />
-            </div>
+        {showEmptyState ? (
+          <div className="space-y-2">
+            <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300 bg-white">
+              <ArrowUpTrayIcon className="h-5 w-5 text-zinc-500" />
+            </span>
+            <p className="text-sm font-medium text-zinc-700">
+              Drop images here or click to upload
+            </p>
+            <p className="text-xs text-zinc-500">
+              Maximum 3 files, each under 1MB (PNG/JPG/WEBP)
+            </p>
           </div>
-
-          <span className="mx-auto mb-5 block text-xs text-gray-700  max-w-[290px]">
-            You can upload up to <strong>3 images</strong>. Each image must be
-            under <strong>1MB</strong>. Supported formats:{" "}
-            <strong>PNG, JPG, JPEG</strong>.
-          </span>
-
-          <span className="text-sm text-indigo-500 font-medium underline">
-            Drag & drop or browse files
-          </span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-gray-300  p-3 rounded-xl">
-          {/* Existing images */}
-          {existingImages.map((img) => (
-            <div
-              key={img.id}
-              className="group relative"
-              onClick={(e) => {
-                e.stopPropagation();
-                // setDeletedImageIds((prev) => [...prev, img.url]);
-                setExistingImages((prev) =>
-                  prev.filter((i) => i.id !== img.id)
-                );
-              }}
-            >
-              <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition-colors">
-                <span className="w-[50px] aspect-square opacity-0 group-hover:opacity-100 rounded-full bg-gray-100 flex items-center justify-center">
-                  <TrashIcon className="w-6 h-6 text-red-400" />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {/* Existing image / new preview နှစ်မျိုးလုံးကိုတူညီတဲ့ tile UI နဲ့ပြထားလို့ action consistency ကောင်းပါတယ်။ */}
+            {existingImages.map((image) => (
+              <button
+                key={image.id}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setExistingImages((previous) =>
+                    previous.filter((item) => item.id !== image.id),
+                  );
+                }}
+                className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                <Image
+                  src={image.url}
+                  alt="existing ticket attachment"
+                  width={420}
+                  height={280}
+                  className="h-28 w-full object-cover"
+                />
+                <span className="absolute inset-0 hidden items-center justify-center bg-black/35 group-hover:flex">
+                  <TrashIcon className="h-5 w-5 text-white" />
                 </span>
-              </div>
+              </button>
+            ))}
 
-              <Image
-                src={img.url}
-                alt="existing"
-                width={500}
-                height={500}
-                className="rounded"
-              />
-            </div>
-          ))}
-
-          {/* New previews */}
-          {previews.map(({ file, url }) => (
-            <div
-              key={url}
-              className="group relative"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreviews((prev) => prev.filter((p) => p.url !== url));
-                setImages((prev) => prev.filter((f) => f.name !== file.name));
-                URL.revokeObjectURL(url);
-              }}
-            >
-              <div className="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/50 transition-colors">
-                <span className="w-[50px] aspect-square opacity-0 group-hover:opacity-100 rounded-full bg-gray-100 flex items-center justify-center">
-                  <TrashIcon className="w-6 h-6 text-red-400" />
+            {previews.map(({ file, url }) => (
+              <button
+                key={url}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPreviews((previous) =>
+                    previous.filter((preview) => preview.url !== url),
+                  );
+                  setImages((previous) =>
+                    previous.filter((item) => item.name !== file.name),
+                  );
+                  URL.revokeObjectURL(url);
+                }}
+                className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                <Image
+                  src={url}
+                  alt="new ticket attachment preview"
+                  width={420}
+                  height={280}
+                  className="h-28 w-full object-cover"
+                />
+                <span className="absolute inset-0 hidden items-center justify-center bg-black/35 group-hover:flex">
+                  <TrashIcon className="h-5 w-5 text-white" />
                 </span>
-              </div>
-
-              <Image
-                src={url}
-                alt="preview"
-                width={500}
-                height={500}
-                className="rounded"
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

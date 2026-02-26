@@ -305,8 +305,6 @@ export function useTicketForm({
             resolutionDue: form.resolutionDue ? new Date(form.resolutionDue) : undefined,
         });
         if (!parsed.success) {
-
-            toast.error("Please fix the errors in the form 1");
             const nextErrors: FormErrors = {};
             parsed.error.issues.forEach((issue) => {
                 const key = issue.path[0] as keyof TicketFormData;

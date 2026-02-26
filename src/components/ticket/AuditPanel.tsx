@@ -1,18 +1,19 @@
 "use client";
 
-import AuditLogList from "@/components/AuditLogList";
 import { Audit } from "@/generated/prisma/client";
+
+import AuditLogList from "@/components/AuditLogList";
 
 export default function AuditPanel({ logs }: { logs: Audit[] }) {
   return (
-    <div className="border-l-4 w-full h-fit border-indigo-300 bg-white shadow-sm rounded-lg">
-      <div className="pb-4 px-6 pt-6">
-        <h2 className="text-lg font-semibold">History Logs</h2>
-        <p className="text-sm text-gray-500">Recent changes</p>
-      </div>
-      <div className="px-6 pb-6">
-        <AuditLogList items={logs} />
-      </div>
-    </div>
+    <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs sm:p-5">
+      <header className="mb-4 border-b border-zinc-100 pb-3">
+        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+          Activity
+        </h2>
+        <p className="text-xs text-zinc-500">Latest ticket change history</p>
+      </header>
+      <AuditLogList items={logs} emptyText="No update history yet." />
+    </section>
   );
 }

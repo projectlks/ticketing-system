@@ -1,110 +1,94 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-    ChevronDownIcon,
-    PencilSquareIcon,
-    ArrowRightOnRectangleIcon,
+  ArrowRightOnRectangleIcon,
+  ChevronDownIcon,
+  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { signOut, useSession } from "next-auth/react";
-// import { useUserData } from "@/context/UserProfileContext";
+
 import Avatar from "./Avatar";
 import { useUserData } from "@/context/UserProfileContext";
 
-// type Props = {
-//     menuToggle: boolean;
-//     setMenuToggle: (val: boolean) => void;
-// };
-
 export default function UserMenu() {
-    const [dropdownOpen, setDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const { data: session } = useSession();
-    const { userData } = useUserData();
+  const { data: session } = useSession();
+  const { userData } = useUserData();
 
-    const displayName = userData?.name || session?.user?.name || "Loading...";
-    const displayEmail = userData?.email || session?.user?.email || "Loading...";
-    const displayProfileUrl = userData?.profileUrl || session?.user?.image || null;
+  const displayName = userData?.name || session?.user?.name || "Loading...";
+  const displayEmail = userData?.email || session?.user?.email || "Loading...";
+  const displayProfileUrl = userData?.profileUrl || session?.user?.image || null;
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
 
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setDropdownOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+  if (!session?.user) return null;
 
-    if (!session?.user) return null;
+  return (
+    <div className="relative flex items-center" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setDropdownOpen((previous) => !previous)}
+        className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-50"
+        aria-haspopup="true"
+        aria-expanded={dropdownOpen}
+      >
+        <span className="relative h-8 w-8 overflow-hidden rounded-full border border-zinc-200">
+          <Avatar name={displayName} profileUrl={displayProfileUrl} />
+        </span>
+        <span className="hidden text-sm font-medium sm:inline-block">{displayName}</span>
+        <ChevronDownIcon className="hidden h-4 w-4 text-zinc-400 sm:inline-block" />
+      </button>
 
+      {dropdownOpen && (
+        <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(92vw,280px)] rounded-xl border border-zinc-200 bg-white p-3 shadow-lg">
+          <div className="rounded-lg bg-zinc-50 px-3 py-2">
+            <p className="text-sm font-medium text-zinc-800">{displayName}</p>
+            <p className="mt-0.5 truncate text-xs text-zinc-500">{displayEmail}</p>
+          </div>
 
-    return (
-        <div
-            className={` flex-col lg:flex lg:flex-row items-center justify-between w-full gap-4 px-5    lg:justify-end lg:px-0 lg:shadow-none`}
-        >
+          <div className="mt-3 space-y-1">
+            <button
+              type="button"
+              onClick={() => setDropdownOpen(false)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+            >
+              <PencilSquareIcon className="h-4 w-4" />
+              Edit profile
+            </button>
 
-
-            {/* User profile dropdown */}
-            <div className="relative" ref={dropdownRef}>
-                <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center text-gray-700  focus:outline-none"
-                    aria-haspopup="true"
-                    aria-expanded={dropdownOpen}
-                >
-                    <span className="relative mr-3 overflow-hidden rounded-full h-11 w-11">
-                        <Avatar name={displayName} profileUrl={displayProfileUrl} />
-                    </span>
-                    <span className="hidden mr-1 text-sm font-medium sm:inline-block">{displayName}</span>
-                    <ChevronDownIcon aria-hidden="true" className="hidden w-5 h-5 stroke-gray-500  sm:inline-block" />
-                </button>
-
-                {dropdownOpen && (
-                    <div className="absolute right-0 mt-4 w-[260px] rounded-2xl border border-gray-200 bg-white p-3 shadow-lg z-50 ">
-                        <div>
-                            <span className="block text-sm font-medium text-gray-700 ">{displayName}</span>
-                            <span className="block text-xs text-gray-500 mt-0.5 ">{displayEmail}</span>
-                        </div>
-
-                        <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 ">
-                            <li
-                                onClick={() => {
-                                    setDropdownOpen(false);
-                                    //   router.push(`/lang/${locale}/main/profile`);
-                                }}
-                            >
-                                <button className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100 w-full ">
-                                    <PencilSquareIcon className="w-6 h-6" />
-                                    Edit profile
-                                </button>
-                            </li>
-                        </ul>
-
-                        <button
-                            disabled={!(userData?.id || session?.user?.id) || !(userData?.email || session?.user?.email)}
-                            onClick={async () => {
-                                try {
-
-                                    // await signOut({ redirect: false });
-                                    await signOut({ redirect: true, callbackUrl: "/auth/signin" });
-
-                                    // router.push("/auth/signin");p
-                                } catch (error) {
-                                    alert("Logout failed. Please try again.");
-                                }
-                            }}
-                            className="flex items-center justify-center w-full gap-3 px-3 py-2 mt-3 text-sm font-medium text-gray-700 rounded-lg group hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed "
-                        >
-                            <ArrowRightOnRectangleIcon className="w-6 h-6" />
-                            Sign out
-                        </button>
-                    </div>
-                )}
-            </div>
+            <button
+              type="button"
+              disabled={
+                !(userData?.id || session?.user?.id) ||
+                !(userData?.email || session?.user?.email)
+              }
+              onClick={async () => {
+                try {
+                  await signOut({ redirect: true, callbackUrl: "/auth/signin" });
+                } catch {
+                  alert("Logout failed. Please try again.");
+                }
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ArrowRightOnRectangleIcon className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 }

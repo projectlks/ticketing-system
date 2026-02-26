@@ -1,6 +1,4 @@
-// components/SearchBox/FilterTag.tsx
-
-import React from "react";
+﻿import React from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface FilterTagProps {
@@ -10,23 +8,28 @@ interface FilterTagProps {
   icon?: React.ReactNode;
 }
 
-const FilterTag: React.FC<FilterTagProps> = ({ label, options, onRemove, icon }) => (
-  <span className="bg-gray-100 text-gray-900 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+const FilterTag: React.FC<FilterTagProps> = ({
+  label,
+  options,
+  onRemove,
+  icon,
+}) => (
+  <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
     {icon && <span>{icon}</span>}
     <span className="font-semibold">{label}:</span>
 
-    {options.map((opt, idx) => (
-      <React.Fragment key={opt}>
-        <span>{opt}</span>
-        {idx < options.length - 1 && (
-          <span className="text-gray-500 italic font-bold"> or </span>
+    {options.map((option, index) => (
+      <React.Fragment key={option}>
+        <span>{option}</span>
+        {index < options.length - 1 && (
+          <span className="font-medium text-zinc-400">or</span>
         )}
       </React.Fragment>
     ))}
 
     <XMarkIcon
       onClick={onRemove}
-      className="w-4 h-4 cursor-pointer text-red-500 ml-2"
+      className="ml-1 h-3.5 w-3.5 cursor-pointer text-zinc-500"
     />
   </span>
 );

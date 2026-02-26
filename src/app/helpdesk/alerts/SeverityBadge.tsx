@@ -1,6 +1,7 @@
 import React from "react";
 
-// Map severity numbers to labels
+// Zabbix severity code ကို လူဖတ်ရလွယ်တဲ့ label ပြောင်းပေးထားလို့
+// table row ထဲမှာ raw number မမြင်ရပဲ meaning တန်းသိနိုင်ပါတယ်။
 export const severityLabel = (s: string) => {
   switch (s) {
     case "0": return "Information";
@@ -12,20 +13,27 @@ export const severityLabel = (s: string) => {
   }
 };
 
-// Map severity numbers to colors
+// Severity အလိုက် visual emphasis မတူအောင် class mapping သတ်မှတ်ထားပါတယ်။
 export const severityColor = (s: string) => {
   switch (s) {
-    case "0": return "bg-blue-100 text-blue-700";      // Info
-    case "1": return "bg-yellow-100 text-yellow-700";  // Warning
-    case "2": return "bg-orange-100 text-orange-700";  // Average
-    case "3": return "bg-red-200 text-red-800";        // High
-    case "4": return "bg-red-700 text-white";          // Disaster
-    default: return "bg-gray-100 text-gray-700";
+    case "0":
+      return "border-zinc-200 bg-zinc-50 text-zinc-600";
+    case "1":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "2":
+      return "border-orange-200 bg-orange-50 text-orange-700";
+    case "3":
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    case "4":
+      return "border-red-300 bg-red-600 text-white";
+    default:
+      return "border-zinc-200 bg-zinc-50 text-zinc-600";
   }
 };
 
 export const SeverityBadge: React.FC<{ value: string }> = ({ value }) => (
-  <span className={`px-2 py-1  text-xs font-semibold ${severityColor(value)}`}>
+  <span
+    className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium ${severityColor(value)}`}>
     {severityLabel(value)}
   </span>
 );

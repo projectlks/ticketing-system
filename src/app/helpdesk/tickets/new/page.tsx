@@ -2,7 +2,6 @@ import React from "react";
 import { getDepartmentNames } from "../../department/action";
 import { getCategoriesNames } from "../../category/action";
 import { getSingleTicket } from "../action"; // You need this for edit
-import TicketcreateForm from "./TicketcreateForm";
 import { getUserToAssign } from "../../user/action";
 import TicketForm from "../TicketForm";
 

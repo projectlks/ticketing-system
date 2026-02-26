@@ -52,6 +52,4 @@ export default async function RootLayout({
   );
 }
 
-
-
 // alda tifn zhak xqmy

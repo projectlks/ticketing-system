@@ -1,27 +1,27 @@
-// src/app/helpdesk/user/[id]/page.tsx
+import { notFound } from "next/navigation";
+
 import { getDepartmentNames } from "../../department/action";
 import { getUserById } from "../action";
 import EditUserForm from "./EditUserForm";
 
-export default async function EditUserPage({
-    params,
-}: {
-    params?: Promise<{ id: string }>;
-}) {
+type EditUserPageProps = {
+  params?: Promise<{ id: string }>;
+};
 
+export default async function EditUserPage({ params }: EditUserPageProps) {
+  const routeParams = await params;
+  const id = routeParams?.id;
 
-    const routeParams = await params;
-    const id = routeParams?.id;
-    if (!id) return null;
+  if (!id) {
+    notFound();
+  }
 
+  // Edit form render မတိုင်ခင် departments + user detail ကို parallel fetch ထားလို့
+  // route enter time ကိုလျော့ပြီး form initial data ပြည့်ပြည့်စုံစုံပြန်ရနိုင်ပါတယ်။
+  const [departments, user] = await Promise.all([
+    getDepartmentNames(),
+    getUserById(id),
+  ]);
 
-
-
-    const [departments, user] = await Promise.all([
-        getDepartmentNames(),
-        getUserById(id),
-        
-    ]);
-
-    return <EditUserForm user={user} departments={departments} />;
+  return <EditUserForm user={user} departments={departments} />;
 }

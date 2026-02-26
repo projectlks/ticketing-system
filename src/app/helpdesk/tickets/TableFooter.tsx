@@ -1,111 +1,73 @@
-"use client";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
+﻿"use client";
+
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
 interface TableFooterProps {
-    pageSize: number;
-    setPageSize: (size: number) => void;
-    currentPage: number;
-    setCurrentPage: (page: number | ((p: number) => number)) => void;
-    totalPages: number;
+  pageSize: number;
+  setPageSize: (size: number) => void;
+  currentPage: number;
+  setCurrentPage: (page: number | ((page: number) => number)) => void;
+  totalPages: number;
 }
 
 export default function TableFooter({
-    pageSize,
-    setPageSize,
-    currentPage,
-    setCurrentPage,
-    totalPages,
+  pageSize,
+  setPageSize,
+  currentPage,
+  setCurrentPage,
+  totalPages,
 }: TableFooterProps) {
-    const [open, setOpen] = useState(false);
-    const pageSizes = [5, 10, 15, 20, 25];
+  const safeTotalPages = Math.max(1, totalPages);
 
-    const handleSelect = (size: number) => {
-        setPageSize(size);
-        setCurrentPage(1);
-        setOpen(false);
-    };
-
-    return (
-        <div className="flex justify-end mt-4">
-            <div className="flex items-center space-x-2">
-                {/* Page Size Selector */}
-                <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-700">Show:</span>
-                    <div className="relative">
-                        <div
-                            className={`border flex items-center justify-between border-gray-300 rounded px-2 py-1 text-sm w-[60px] cursor-pointer ${open ? 'bg-gray-100 border-indigo-300 ' : ''}`}
-                            onClick={() => setOpen((prev) => !prev)}
-                        >
-                            <span>{pageSize}</span>
-                            <ChevronDownIcon className={`h-4 w-4 transition-all ${open ? 'rotate-180' : ''}`} />
-                        </div>
-
-                        {open && (
-                            <div className="absolute mt-1 w-full bg-white border border-gray-300 rounded shadow z-10">
-                                {pageSizes.map((size) => (
-                                    <div
-                                        key={size}
-                                        className="px-2 py-1 hover:bg-gray-100 cursor-pointer text-sm"
-                                        onClick={() => handleSelect(size)}
-                                    >
-                                        {size}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Pagination Controls */}
-                <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 19l-7-7 7-7"
-                            />
-                        </svg>
-                    </button>
-
-                    <span className="text-sm text-gray-700">
-                        Page {currentPage} of {totalPages}
-                    </span>
-
-                    <button
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 5l7 7-7 7"
-                            />
-                        </svg>
-                    </button>
-                </div>
-            </div>
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-sm text-zinc-600">
+          <span>Rows</span>
+          <select
+            value={pageSize}
+            onChange={(event) => {
+              const nextSize = Number(event.target.value);
+              setPageSize(nextSize);
+              setCurrentPage(1);
+            }}
+            className="h-8 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-700 outline-none focus:border-zinc-400"
+          >
+            {[5, 10, 15, 20, 25].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
         </div>
-    );
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={currentPage <= 1}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+          </button>
+
+          <p className="text-sm text-zinc-600">
+            Page <span className="font-semibold text-zinc-900">{currentPage}</span> of{" "}
+            <span className="font-semibold text-zinc-900">{safeTotalPages}</span>
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              setCurrentPage((page) => Math.min(safeTotalPages, page + 1))
+            }
+            disabled={currentPage >= safeTotalPages}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ChevronRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

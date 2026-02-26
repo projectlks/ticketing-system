@@ -7,8 +7,8 @@ type KpiGridProps = {
 };
 
 export default function KpiGrid({ kpi }: KpiGridProps) {
-  // KPI card စာရင်းကို ဒီမှာတစ်စုတစ်စည်းတည်းထားလို့
-  // layout ပြောင်းမယ်ဆိုရင် page file မထိဘဲ ဒီ component မှာတင်ပြင်နိုင်ပါတယ်။
+  // KPI card definition ကို data array တစ်ခုထဲထားလို့ order/label/value mapping ကိုကြည့်ရလွယ်ပြီး
+  // card အသစ်ထည့်ချင်ရင် item တစ်ကြောင်းသာတိုးရုံနဲ့ရပါတယ်။
   const items = [
     { label: "Total Tickets", value: kpi.totalTickets },
     { label: "Open Tickets", value: kpi.openTickets },
@@ -24,7 +24,9 @@ export default function KpiGrid({ kpi }: KpiGridProps) {
           className="rounded-2xl bg-white border border-black/5 p-6 hover:shadow-md transition-shadow duration-200"
         >
           <p className="text-sm text-black/50">{item.label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight">{item.value}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight">
+            {item.value}
+          </p>
         </div>
       ))}
     </div>

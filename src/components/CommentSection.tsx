@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Comment } from "../generated/prisma/client";
+
 import CommentInput from "./CommentInput";
 import CommentItem from "./CommentItem";
-import type { Comment } from "../generated/prisma/client";
 import { getSocket, joinTicket } from "@/libs/socket-client";
-import { Player } from "@lottiefiles/react-lottie-player";
 
-// Prisma `Comment` ကို UI မှာသုံးဖို့ relation (commenter / replies / likes) တွေနဲ့ ချဲ့ထားတဲ့ type
 export type CommentWithRelations = Comment & {
   commenter?: {
     id: string | null;
@@ -23,31 +22,57 @@ interface Props {
   comments: CommentWithRelations[];
 }
 
+function insertCommentIntoTree(
+  nodes: CommentWithRelations[],
+  incoming: CommentWithRelations,
+): CommentWithRelations[] {
+  if (nodes.some((node) => node.id === incoming.id)) return nodes;
+
+  if (!incoming.parentId) {
+    return [...nodes, incoming];
+  }
+
+  return nodes.map((node) => {
+    if (node.id === incoming.parentId) {
+      return {
+        ...node,
+        replies: [...(node.replies || []), incoming],
+      };
+    }
+
+    if (node.replies?.length) {
+      return {
+        ...node,
+        replies: insertCommentIntoTree(node.replies, incoming),
+      };
+    }
+
+    return node;
+  });
+}
+
 export default function CommentSection({
   ticketId,
   comments: initialComments,
 }: Props) {
-  // Socket ကနေ realtime update လုပ်ဖို့ comment list ကို local state ထဲမှာ ထိန်းထားပါတယ်
-  const [comments, setComments] = useState<CommentWithRelations[]>([]);
-  // တစ်ယောက်ယောက် typing လုပ်နေတယ်ဆိုတာ ပြသဖို့ (ticket အလိုက်) userName ကို ထိန်းထားပါတယ်
+  // Initial server comments ကို state initializer ထဲမှာတစ်ခါတည်းထည့်ထားပြီး
+  // realtime event တွေကိုပဲ state update လုပ်သွားတဲ့ pattern နဲ့ lint rule ကိုလည်းလိုက်နာထားပါတယ်။
+  const [comments, setComments] = useState<CommentWithRelations[]>(
+    () => initialComments || [],
+  );
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
 
-  // Comment list update ပြီးတဲ့အခါ အောက်ဆုံးကို scroll ဆင်းစေတဲ့ helper (smooth/auto)
   const scrollToBottom = (smooth = true) => {
     commentsEndRef.current?.scrollIntoView({
       behavior: smooth ? "smooth" : "auto",
     });
   };
 
-  // Typing indicator ကို timeout နဲ့ ထိန်း (event မလာတော့ရင် ခဏနေရင် hide လုပ်)
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isTypingRef = useRef(false);
-
   useEffect(() => {
     const socket = getSocket();
-
-    // Ticket room ထဲ join လုပ်ထားမှ ဒီ ticket ရဲ့ event တွေကိုသာ ရနိုင်မယ်
     joinTicket(ticketId);
 
     const handleTyping = (data: { ticketId: string; userName: string }) => {
@@ -63,7 +88,7 @@ export default function CommentSection({
       typingTimeoutRef.current = setTimeout(() => {
         isTypingRef.current = false;
         setTypingUser(null);
-      }, 5000); // နောက်ဆုံး typing event ပြီး 5s မလာတော့ရင် indicator ပျောက်
+      }, 5000);
     };
 
     socket.on("user-typing", handleTyping);
@@ -73,85 +98,64 @@ export default function CommentSection({
     };
   }, [ticketId]);
 
-  // Comment အသစ်တွေကို parent/reply structure အတိုင်း tree ထဲ insert လုပ်ဖို့ helper (recursive)
-
-  const insertCommentIntoTree = (
-    comments: CommentWithRelations[],
-    newComment: CommentWithRelations,
-  ): CommentWithRelations[] => {
-    // Socket event ပွားလာနိုင်လို့ id နဲ့ duplicate ကာကွယ်
-    if (comments.some((c) => c.id === newComment.id)) return comments;
-
-    // parentId မရှိရင် top-level comment
-    if (!newComment.parentId) {
-      return [...comments, newComment];
-    }
-
-    return comments.map((c) => {
-      if (c.id === newComment.parentId) {
-        return {
-          ...c,
-          replies: [...(c.replies || []), newComment],
-        };
-      }
-
-      if (c.replies?.length) {
-        return {
-          ...c,
-          replies: insertCommentIntoTree(c.replies, newComment),
-        };
-      }
-
-      return c;
-    });
-  };
-
   useEffect(() => {
     const socket = getSocket();
-
-    // Server ကနေပို့တဲ့ realtime comment update ရဖို့ ticket room join
     socket.emit("join-ticket", ticketId);
 
-    socket.on("new-comment", (comment: CommentWithRelations) => {
+    const handleNewComment = (comment: CommentWithRelations) => {
       if (comment.ticketId !== ticketId) return;
 
-      // setComments((prev) => insertCommentIntoTree(prev, comment));
+      setComments((previous) => {
+        const updated = insertCommentIntoTree(previous, comment);
 
-      setComments((prev) => {
-        const updated = insertCommentIntoTree(prev, comment);
-
-        // DOM update ပြီးမှ scroll (reply တင်တဲ့အခါ UX မပျက်အောင် top-level comment မှသာ auto-scroll)
         if (!comment.parentId) {
           setTimeout(() => scrollToBottom(true), 0);
         }
 
         return updated;
       });
-    });
+    };
+
+    socket.on("new-comment", handleNewComment);
 
     return () => {
-      socket.off("new-comment");
+      socket.off("new-comment", handleNewComment);
     };
   }, [ticketId]);
 
   useEffect(() => {
     setTimeout(() => {
-      // Props ကနေလာတဲ့ initial comments ကို local state ထဲသွင်း (socket update နဲ့ မရောအောင်)
-      setComments(initialComments || []);
-      // render ပြီးမှ scroll
-      setTimeout(() => {
-        scrollToBottom(false);
-      }, 1);
-    }, 1);
-  }, [initialComments]);
+      scrollToBottom(false);
+    }, 0);
+  }, []);
 
   return (
-    <div className="h-[calc(100vh-40px)] p-5  flex flex-col">
-      {/* COMMENTS – take remaining height */}
-      <div
-        id="commentsSection"
-        className="flex-1 hiddenscrollbar overflow-y-auto space-y-1 
-        ">
+    <section className="flex h-full min-h-[440px] flex-col">
+      <header className="mb-3 flex items-center justify-between border-b border-zinc-100 pb-3">
+        <div>
+          <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+            Comments
+          </h2>
+          <p className="text-xs text-zinc-500">
+            {comments.length} {comments.length === 1 ? "message" : "messages"}
+          </p>
+        </div>
+
+        {typingUser && (
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs text-zinc-600">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-500" />
+            {typingUser} is typing
+          </div>
+        )}
+      </header>
+
+      <div id="commentsSection" className="h-[42vh] overflow-y-auto pr-1 sm:h-[48vh]">
+        {comments.length === 0 && (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-5 text-center text-sm text-zinc-500">
+            No comments yet. Start the conversation.
+          </div>
+        )}
+
         {comments.map((comment) => (
           <CommentItem
             key={comment.id}
@@ -164,31 +168,9 @@ export default function CommentSection({
         <div ref={commentsEndRef} />
       </div>
 
-      {/* Footer / meta */}
-      <div className="my-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-medium text-gray-700">
-            {comments.length} {comments.length === 1 ? "comment" : "comments"}
-          </h2>
-
-          {typingUser && (
-            <div className="flex items-center gap-1.5">
-              <Player
-                autoplay
-                loop
-                src="/typing.json"
-                style={{ height: "20px", width: "20px" }}
-              />
-              <span className="text-xs text-gray-500">
-                {typingUser} is typing
-              </span>
-            </div>
-          )}
-        </div>
+      <div className="mt-3 border-t border-zinc-100 pt-3">
+        <CommentInput ticketId={ticketId} />
       </div>
-
-      {/* Input – always at bottom */}
-      <CommentInput ticketId={ticketId} />
-    </div>
+    </section>
   );
 }

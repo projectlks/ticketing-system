@@ -1,142 +1,20 @@
-// "use client";
-
-// import { ToastContainer } from "react-toastify";
-// import { TicketFormProps } from "./ticket.types";
-// import { useTicketForm } from "./useTicketForm";
-
-// import Header from "@/components/ticket/Header";
-// import TitleInput from "@/components/ticket/TitleInput";
-// import PrioritySection from "@/components/ticket/PrioritySection";
-// import AssignmentSection from "@/components/ticket/AssignmentSection";
-// import RemarkInput from "@/components/ticket/RemarkInput";
-// import DescriptionInput from "@/components/ticket/DescriptionInput";
-// // import ImageInput from "../ImageInput";
-// import SubmitSection from "@/components/ticket/SubmitSection";
-// import AuditPanel from "@/components/ticket/AuditPanel";
-// import ImageInput from "./ImageInput";
-// import CommentBox from "@/components/CommentBox";
-
-// export default function TicketForm(props: TicketFormProps) {
-//   const {
-//     form,
-//     setForm,
-//     errors,
-//     submitting,
-//     remark,
-//     setRemark,
-//     remarkError,
-//     priorityChanged,
-//     auditLogs,
-//     handleSubmit,
-//     images,
-//     setImages,
-//     existingImages,
-//     setExistingImages,
-//     ticketId,
-//   } = useTicketForm(props);
-
-//   return (
-//     <div className="bg-gray-100">
-//       <ToastContainer />
-
-//       <section className="flex gap-5 bg-gray-100 overflow-y-auto min-h-screen  container mx-auto p-5">
-//         <form
-//           onSubmit={handleSubmit}
-//           className="w-2/3 bg-white sticky top-5 h-fit p-8 shadow-md">
-//           <Header
-//             ticketId={form.ticketId ?? "NEW"}
-//             mode={props.mode}
-//             status={form.status!}
-//             onStatusChange={(status) => setForm((p) => ({ ...p, status }))}
-//           />
-
-//           <TitleInput
-//             value={form.title}
-//             error={errors.title}
-//             onChange={(title) => setForm((p) => ({ ...p, title }))}
-//           />
-
-//           <PrioritySection
-//             value={form.priority}
-//             mode={props.mode}
-//             onChange={(priority) => setForm((p) => ({ ...p, priority }))}
-//           />
-
-//           {/* <AssignmentSection {...props} /> */}
-//           <AssignmentSection
-//             departmentId={form.departmentId}
-//             categoryId={form.categoryId}
-//             assignedToId={form.assignedToId ?? ""}
-//             depts={props.depts}
-//             cats={props.cats}
-//             users={props.users}
-//             errors={errors}
-//             onChange={(name, value) =>
-//               setForm((prev) => ({
-//                 ...prev,
-//                 [name]: value,
-//                 ...(name === "departmentId"
-//                   ? { categoryId: "", assignedToId: "" }
-//                   : {}),
-//               }))
-//             }
-//           />
-
-//           <RemarkInput
-//             value={remark}
-//             error={remarkError}
-//             visible={priorityChanged}
-//             onChange={setRemark}
-//           />
-
-//           <DescriptionInput
-//             value={form.description}
-//             error={errors.description}
-//             onChange={(description) => setForm((p) => ({ ...p, description }))}
-//           />
-
-//           <ImageInput
-//             images={images}
-//             setImages={setImages}
-//             existingImages={existingImages}
-//             setExistingImages={setExistingImages}
-//           />
-
-//           <SubmitSection submitting={submitting} mode={props.mode} />
-
-//           {ticketId ? (
-//             <CommentBox
-//               ticketId={ticketId}
-//               comments={props.comment ? props.comment : []}
-//             />
-//           ) : (
-//             <></>
-//           )}
-//         </form>
-
-//         <AuditPanel logs={auditLogs} />
-//       </section>
-//     </div>
-//   );
-// }
-
 "use client";
 
 import { ToastContainer } from "react-toastify";
+
+import CommentSection from "@/components/CommentSection";
+import AssignmentSection from "@/components/ticket/AssignmentSection";
+import AuditPanel from "@/components/ticket/AuditPanel";
+import DescriptionInput from "@/components/ticket/DescriptionInput";
+import Header from "@/components/ticket/Header";
+import PrioritySection from "@/components/ticket/PrioritySection";
+import RemarkInput from "@/components/ticket/RemarkInput";
+import SubmitSection from "@/components/ticket/SubmitSection";
+import TitleInput from "@/components/ticket/TitleInput";
+
+import ImageInput from "./ImageInput";
 import { TicketFormProps } from "./ticket.types";
 import { useTicketForm } from "./useTicketForm";
-
-import Header from "@/components/ticket/Header";
-import TitleInput from "@/components/ticket/TitleInput";
-import PrioritySection from "@/components/ticket/PrioritySection";
-import AssignmentSection from "@/components/ticket/AssignmentSection";
-import RemarkInput from "@/components/ticket/RemarkInput";
-import DescriptionInput from "@/components/ticket/DescriptionInput";
-// import ImageInput from "../ImageInput";
-import SubmitSection from "@/components/ticket/SubmitSection";
-import ImageInput from "./ImageInput";
-import CommentSection from "@/components/CommentSection";
-import AuditPanel from "@/components/ticket/AuditPanel";
 
 export default function TicketForm(props: TicketFormProps) {
   const {
@@ -158,89 +36,92 @@ export default function TicketForm(props: TicketFormProps) {
   } = useTicketForm(props);
 
   return (
-    <div className="bg-gray-100">
+    <div className="min-h-screen bg-zinc-50">
       <ToastContainer />
 
-      <section className="flex gap-5 relative bg-gray-100  min-h-screen container mx-auto p-5">
-        <div className="w-3/5  sticky  top-5 h-fit">
-          <form
-            onSubmit={handleSubmit}
-            className="w-full bg-white   h-fit p-8 shadow-md">
-            <Header
-              ticketId={form.ticketId ?? "NEW"}
-              mode={props.mode}
-              status={form.status!}
-              onStatusChange={(status) => setForm((p) => ({ ...p, status }))}
-            />
+      <section className="mx-auto w-full max-w-[1480px] px-4 py-5 sm:px-6 sm:py-6">
+        {/* Edit mode မှာ comment + audit sidebar ထည့်ပြီး create mode မှာ form ကိုပဲ focus လုပ်ဖို့ layout ခွဲထားပါတယ်။ */}
+        <div
+          className={`grid items-start gap-5 ${
+            ticketId ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "max-w-5xl"
+          }`}>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs sm:p-7">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Header
+                ticketId={form.ticketId ?? "NEW"}
+                mode={props.mode}
+                resolutionDue={form.resolutionDue}
+                status={form.status!}
+                onStatusChange={(status) => setForm((prev) => ({ ...prev, status }))}
+              />
 
-            <TitleInput
-              value={form.title}
-              error={errors.title}
-              onChange={(title) => setForm((p) => ({ ...p, title }))}
-            />
+              <TitleInput
+                value={form.title}
+                error={errors.title}
+                onChange={(title) => setForm((prev) => ({ ...prev, title }))}
+              />
 
-            <PrioritySection
-              value={form.priority}
-              mode={props.mode}
-              onChange={(priority) => setForm((p) => ({ ...p, priority }))}
-            />
+              <PrioritySection
+                value={form.priority}
+                mode={props.mode}
+                onChange={(priority) => setForm((prev) => ({ ...prev, priority }))}
+              />
 
-            {/* <AssignmentSection {...props} /> */}
-            <AssignmentSection
-              departmentId={form.departmentId}
-              categoryId={form.categoryId}
-              assignedToId={form.assignedToId ?? ""}
-              depts={props.depts}
-              cats={props.cats}
-              users={props.users}
-              errors={errors}
-              onChange={(name, value) =>
-                setForm((prev) => ({
-                  ...prev,
-                  [name]: value,
-                  ...(name === "departmentId"
-                    ? { categoryId: "", assignedToId: "" }
-                    : {}),
-                }))
-              }
-            />
+              <AssignmentSection
+                departmentId={form.departmentId}
+                categoryId={form.categoryId}
+                assignedToId={form.assignedToId ?? ""}
+                depts={props.depts}
+                cats={props.cats}
+                users={props.users}
+                errors={errors}
+                onChange={(name, value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    [name]: value,
+                    ...(name === "departmentId"
+                      ? { categoryId: "", assignedToId: "" }
+                      : {}),
+                  }))
+                }
+              />
 
-            <RemarkInput
-              value={remark}
-              error={remarkError}
-              visible={priorityChanged}
-              onChange={setRemark}
-            />
+              <RemarkInput
+                value={remark}
+                error={remarkError}
+                visible={priorityChanged}
+                onChange={setRemark}
+              />
 
-            <DescriptionInput
-              value={form.description}
-              error={errors.description}
-              onChange={(description) =>
-                setForm((p) => ({ ...p, description }))
-              }
-            />
+              <DescriptionInput
+                value={form.description}
+                error={errors.description}
+                onChange={(description) =>
+                  setForm((prev) => ({ ...prev, description }))
+                }
+              />
 
-            <ImageInput
-              images={images}
-              setImages={setImages}
-              existingImages={existingImages}
-              setExistingImages={setExistingImages}
-            />
+              <ImageInput
+                images={images}
+                setImages={setImages}
+                existingImages={existingImages}
+                setExistingImages={setExistingImages}
+              />
 
-            <SubmitSection submitting={submitting} mode={props.mode} />
-          </form>
-          <div className="mt-5">
-            <AuditPanel logs={auditLogs} />
+              <SubmitSection submitting={submitting} mode={props.mode} />
+            </form>
           </div>
+
+          {ticketId && (
+            <aside className="space-y-5 xl:sticky xl:top-5">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs sm:p-5">
+                <CommentSection ticketId={ticketId} comments={props.comment ?? []} />
+              </div>
+
+              <AuditPanel logs={auditLogs} />
+            </aside>
+          )}
         </div>
-        {ticketId ? (
-          <div className="w-2/5 bg-white sticky top-5 h-fit">
-            <CommentSection
-              ticketId={ticketId}
-              comments={props.comment ? props.comment : []}
-            />
-          </div>
-        ) : null}
       </section>
     </div>
   );

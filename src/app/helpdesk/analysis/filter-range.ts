@@ -1,4 +1,10 @@
-export type QuickRange = "all" | "today" | "last7" | "last30" | "month" | "custom";
+export type QuickRange =
+  | "all"
+  | "today"
+  | "last7"
+  | "last30"
+  | "month"
+  | "custom";
 
 export const quickRangeOptions: Array<{
   key: Exclude<QuickRange, "custom">;
@@ -11,15 +17,50 @@ export const quickRangeOptions: Array<{
   { key: "month", label: "This Month" },
 ];
 
-// Date input[type=date] format (YYYY-MM-DD) ကို local timezone ဖြင့်ပြန်ထုတ်ပေးပါတယ်။
-const toInputDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+// Client-side quick range တွင်သုံးဖို့ analysis timezone ကို သီးခြား constant အဖြစ်ထားပါတယ်။
+// (date-filter.ts ကို import မလုပ်ရသလို client bundle ထဲ Prisma dependency မဝင်စေဖို့)
+const ANALYSIS_TIME_ZONE = "Asia/Yangon";
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const ANALYSIS_DATE_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: ANALYSIS_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+type DateParts = {
+  year: string;
+  month: string;
+  day: string;
 };
 
-// Quick range key ကို fromDate/toDate value pair အဖြစ်ပြောင်းပေးတဲ့ helper ဖြစ်ပါတယ်။
+// Intl.formatToParts မှာရလာတဲ့ year/month/day ကို type-safe object အဖြစ်ပြန်တည်ဆောက်ပေးပါတယ်။
+const getAnalysisDateParts = (date: Date): DateParts => {
+  const parts = ANALYSIS_DATE_FORMATTER.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+
+  return { year, month, day };
+};
+
+// input[type=date] တွင်လိုအပ်တဲ့ YYYY-MM-DD ကို analysis timezone အတိုင်းပြန်ထုတ်ပေးပါတယ်။
+const toInputDateInAnalysisTimeZone = (date: Date): string => {
+  const parts = getAnalysisDateParts(date);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+
+const shiftByDays = (date: Date, days: number): Date =>
+  new Date(date.getTime() + days * DAY_IN_MS);
+
+// ဒီလအစ (YYYY-MM-01) ကို analysis timezone calendar အတိုင်းထုတ်ပေးပါတယ်။
+const getMonthStartInput = (date: Date): string => {
+  const parts = getAnalysisDateParts(date);
+  return `${parts.year}-${parts.month}-01`;
+};
+
+// Quick range key ကို server action/filter API တွင်သုံးမယ့် fromDate/toDate pair အဖြစ်ပြောင်းပေးပါတယ်။
 export const getQuickRangeValues = (
   range: Exclude<QuickRange, "custom">,
 ): { fromDate: string; toDate: string } => {
@@ -29,20 +70,21 @@ export const getQuickRangeValues = (
     return { fromDate: "", toDate: "" };
   }
 
-  const toDate = toInputDate(now);
+  const toDate = toInputDateInAnalysisTimeZone(now);
 
   if (range === "today") {
     return { fromDate: toDate, toDate };
   }
 
   if (range === "month") {
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    return { fromDate: toInputDate(monthStart), toDate };
+    return { fromDate: getMonthStartInput(now), toDate };
   }
 
-  const from = new Date(now);
   const backDays = range === "last7" ? 6 : 29;
-  from.setDate(now.getDate() - backDays);
+  const from = shiftByDays(now, -backDays);
 
-  return { fromDate: toInputDate(from), toDate };
+  return {
+    fromDate: toInputDateInAnalysisTimeZone(from),
+    toDate,
+  };
 };
