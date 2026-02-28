@@ -88,9 +88,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               href={{ pathname: "/helpdesk" }}
               onClick={() => setMobileNavOpen(false)}
               className="inline-flex shrink-0 items-center gap-2 rounded-lg px-1 py-1">
-              <span className="inline-flex h-7 items-center rounded-md border border-zinc-300 bg-white px-2 text-[11px] font-medium uppercase tracking-widest text-zinc-500">
+              {/* <span className="inline-flex h-7 items-center rounded-md border border-zinc-300 bg-white px-2 text-[11px] font-medium uppercase tracking-widest text-zinc-500">
                 HD
-              </span>
+              </span> */}
               <div className="min-w-0">
                 <p className="text-sm font-semibold tracking-tight text-zinc-900">
                   Helpdesk

@@ -8,17 +8,17 @@ interface AvatarProps {
     profileUrl?: string | null; // optional profile image URL
 }
 
-const stringToColor = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return `hsl(${hash % 360}, 60%, 50%)`;
-};
+// const stringToColor = (str: string) => {
+//     let hash = 0;
+//     for (let i = 0; i < str.length; i++) {
+//         hash = str.charCodeAt(i) + ((hash << 5) - hash);
+//     }
+//     return `hsl(${hash % 360}, 60%, 50%)`;
+// };
 
 const Avatar: React.FC<AvatarProps> = ({ name, size = 40, className = "", profileUrl }) => {
     const char = name?.charAt(0).toUpperCase() ?? "?";
-    const bgColor = name ? stringToColor(char) : "#e0e7ff";; 
+    // const bgColor = name ? stringToColor(char) : "#e0e7ff";; 
 
     if (profileUrl) {
         return (
@@ -38,9 +38,9 @@ const Avatar: React.FC<AvatarProps> = ({ name, size = 40, className = "", profil
 
     return (
         <span
-            className={`flex items-center justify-center text-white font-bold select-none ${className}`}
+            className={`flex items-center justify-center bg-[#18181B] text-white font-bold select-none ${className}`}
             style={{
-                backgroundColor: bgColor,
+                // backgroundColor: bgColor,
                 width: size,
                 height: size,
                 borderRadius: "50%",

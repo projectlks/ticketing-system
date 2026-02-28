@@ -40,3 +40,50 @@ body {
   display: none;
   /* Chrome, Safari */
 }
+
+
+/* test */
+
+
+.grid-overlay {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, #000 52%, transparent 96%);
+}
+
+.auth-input {
+  width: 100%;
+  border: 1px solid #d4d4d8;
+  border-radius: 0.75rem;
+  background-color: #ffffff;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #18181b;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-input::placeholder {
+  color: #71717a;
+}
+
+.auth-input:focus,
+.auth-input:focus-visible {
+  border-color: #18181b;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.12);
+  outline: none;
+}
+
+
+.btn-primary {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #5f84d8 0%, #1d4ed8 100%);
+  color: #fff;
+  box-shadow: 0 10px 22px -14px rgba(37, 99, 235, 0.55);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #4f73c7 0%, #1e40af 100%);
+  box-shadow: 0 12px 24px -14px rgba(37, 99, 235, 0.7);
+}
