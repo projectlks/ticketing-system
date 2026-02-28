@@ -40,7 +40,7 @@ export default function Countdown({ targetTime }: CountdownProps) {
   }, [targetTime]);
 
   return (
-    <span className={`block ${isCritical ? "text-red-500 font-bold animate-pulse " : "text-gray-500 "}`}>
+    <span className={`block whitespace-nowrap text-sm ${isCritical ? "text-red-500 font-bold animate-pulse " : "text-gray-500 "}`}>
       {timeLeft}
     </span>
   );

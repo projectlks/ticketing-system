@@ -56,10 +56,9 @@ enum Severity {
 
 // prisma/schema.prisma
 
-
 model ZabbixTicket {
   id      Int      @id @default(autoincrement())
-  eventid String   @unique
+  eventid String
   name    String
   status  String
   clock   DateTime
@@ -83,10 +82,12 @@ model ZabbixTicket {
 
   // emailSent Boolean @default(false)
 
-  acknowledgedAt DateTime?
-  acknowledgedBy String?
+  // ✅ OTRS Ticket ID column added
+  otrsTicketId String? @unique
 
   createdAt DateTime @default(now())
+
+  @@unique([triggerId, hostName]) // ⬅️ combination unique key
 }
 
 // ======================
@@ -301,7 +302,6 @@ enum AuditAction {
   UPDATE
   DELETE
 }
-
 
 model Audit {
   id        String   @id @default(cuid())

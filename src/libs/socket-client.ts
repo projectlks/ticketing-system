@@ -1,4 +1,7 @@
 // /libs/socket-client.ts
+
+"use client";
+
 import { io, Socket } from "socket.io-client";
 import type { CommentWithRelations } from "@/components/CommentSection";
 import { Audit } from "@/generated/prisma/client";

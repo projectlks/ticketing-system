@@ -140,6 +140,8 @@ export async function getBasicUserData(): Promise<BasicUserData> {
 export async function getCurrentUserData() {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("No logged-in user found");
+  if (!userId) return null; // ဒါထည့်ပါ
+
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

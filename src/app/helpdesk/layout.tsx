@@ -60,7 +60,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     ] as const;
 
     void Promise.all(
-      targetRoutes.map((route) => prefetchHelpdeskRouteData(queryClient, route)),
+      targetRoutes.map((route) =>
+        prefetchHelpdeskRouteData(queryClient, route),
+      ),
     );
   }, [queryClient]);
 
@@ -118,7 +120,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         />
       </header>
 
-      <main className="w-full overflow-x-hidden">{children}</main>
+      <main className="w-full relative">{children}</main>
     </section>
   );
 }

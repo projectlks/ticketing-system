@@ -45,7 +45,7 @@ export default function UserMenu() {
         aria-expanded={dropdownOpen}
       >
         <span className="relative h-8 w-8 overflow-hidden rounded-full border border-zinc-200">
-          <Avatar name={displayName} profileUrl={displayProfileUrl} />
+          <Avatar name={displayName} profileUrl={displayProfileUrl} size={32} />
         </span>
         <span className="hidden text-sm font-medium sm:inline-block">{displayName}</span>
         <ChevronDownIcon className="hidden h-4 w-4 text-zinc-400 sm:inline-block" />
@@ -59,14 +59,14 @@ export default function UserMenu() {
           </div>
 
           <div className="mt-3 space-y-1">
-            <button
+            {/* <button
               type="button"
               onClick={() => setDropdownOpen(false)}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
             >
               <PencilSquareIcon className="h-4 w-4" />
               Edit profile
-            </button>
+            </button> */}
 
             <button
               type="button"

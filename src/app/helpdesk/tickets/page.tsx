@@ -40,7 +40,7 @@ const columns = [
   { key: "department", label: "Department" },
   { key: "priority", label: "Priority" },
   { key: "createdAt", label: "Created At" },
-  { key: "responseDue", label: "Response Due" },
+  // { key: "responseDue", label: "Response Due" },
   { key: "resolutionDue", label: "Resolution Due" },
   { key: "requester", label: "Requester" },
   { key: "assignedTo", label: "Assigned To" },

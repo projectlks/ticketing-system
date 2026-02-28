@@ -5,7 +5,7 @@ import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import { PaperClipIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 
-import Loading from "@/components/Loading";
+// import Loading from "@/components/Loading";
 import { uploadComment } from "@/libs/action";
 import { getSocket } from "@/libs/socket-client";
 
@@ -38,7 +38,7 @@ export default function CommentInput({
   const [commentText, setCommentText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
 
   const { data: session } = useSession();
 
@@ -86,7 +86,7 @@ export default function CommentInput({
 
   const handlePostComment = async () => {
     if (!commentText.trim() && !imageFile) return;
-    setLoading(true);
+    // setLoading(true);
 
     const socket = socketRef.current;
 
@@ -125,7 +125,7 @@ export default function CommentInput({
     } catch (error) {
       console.error("Comment upload failed:", error);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -145,7 +145,7 @@ export default function CommentInput({
 
   return (
     <>
-      {loading && <Loading />}
+      {/* {loading && <Loading />} */}
 
       {imagePreview && (
         <button

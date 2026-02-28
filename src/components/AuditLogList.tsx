@@ -69,7 +69,9 @@ export function AuditLogList({
   }
 
   return (
-    <ul className={`relative space-y-4 pl-2 ${className}`} aria-label="Audit log">
+    <ul
+      className={`relative space-y-4 pl-2 ${className}`}
+      aria-label="Audit log">
       <div
         aria-hidden="true"
         className="absolute left-3.5 top-0 h-full border-l border-zinc-200"
@@ -108,7 +110,9 @@ export function AuditLogList({
                     <p className="text-sm font-medium text-zinc-800">
                       {item.user?.name ?? "Unknown"}
                     </p>
-                    <p className="text-xs text-zinc-500">{item.user?.email ?? "-"}</p>
+                    <p className="text-xs text-zinc-500">
+                      {item.user?.email ?? "-"}
+                    </p>
                   </div>
                 </div>
 
@@ -120,18 +124,20 @@ export function AuditLogList({
               {item.action === "CREATE" ? (
                 <p className="mt-2 text-sm text-zinc-700">Ticket created</p>
               ) : (
-                <div className="mt-2 space-y-2 text-sm">
+                <div className="mt-2 space-y-2  overflow-hidden text-sm">
                   {changes.map((change, changeIndex) => (
-                    <div key={`change-${changeIndex}`} className="flex items-start gap-3">
+                    <div
+                      key={`change-${changeIndex}`}
+                      className="flex items-start gap-3">
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
 
                       <span className="flex flex-wrap items-center gap-2 text-zinc-700">
-                        <i className="text-zinc-500">
+                        <i className="text-zinc-500 ">
                           {change.oldValue ? change.oldValue : "NONE"}
                         </i>
                         <ArrowLongRightIcon className="size-4 text-zinc-500" />
-                        <i className="text-zinc-900">{change.newValue}</i>
-                        <p className="italic text-zinc-500">
+                        <i className="text-zinc-900 ">{change.newValue}</i>
+                        <p className="italic text-zinc-500 ">
                           (
                           {change.field.endsWith("Id")
                             ? change.field.slice(0, -2)

@@ -3,9 +3,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- IMPORTANT ---
-// ❌ remove "export const config"
-// ------------------
 
 // generate unique file name
 function generateUniqueFileName(originalName: string) {

@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import Providers from "@/components/Provider";
 import Script from "next/script";
+import ChatwootLoader from "./ChatwootLoader";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -28,11 +29,11 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions);
   return (
     <html lang="en" className={roboto.variable}>
-      <body>
+      <body suppressHydrationWarning>
         <Providers session={session}>
           <UserDataProvider>{children}</UserDataProvider>
         </Providers>
-        <Script id="testing">
+        {/* <Script id="testing">
           {` (function(d,t) {
     var BASE_URL="http://192.168.100.110:3000";
     var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
@@ -46,7 +47,9 @@ export default async function RootLayout({
       })
     }
   })(document,"script");`}
-        </Script>
+        </Script> */}
+
+        <ChatwootLoader />
       </body>
     </html>
   );

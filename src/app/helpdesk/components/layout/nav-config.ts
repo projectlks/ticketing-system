@@ -43,10 +43,15 @@ export const navSections: NavSection[] = [
     key: "alerts",
     label: "Alerts",
     items: [
-      { key: "current-alerts", label: "Current Alerts", href: { pathname: "/helpdesk/alerts" } },
+      // { key: "current-alerts", label: "Current Alerts", href: { pathname: "/helpdesk/alerts" } },
+      // {
+      //   key: "all-alerts",
+      //   label: "All Alerts",
+      //   href: { pathname: "/helpdesk/alerts", query: { filter: "All Alerts" } },
+      // },
       {
-        key: "all-alerts",
-        label: "All Alerts",
+        key: "Alerts",
+        label: "Alerts",
         href: { pathname: "/helpdesk/alerts", query: { filter: "All Alerts" } },
       },
     ],

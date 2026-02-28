@@ -166,7 +166,7 @@ cron.schedule(
 
 
 
-dotenv.config(); // <-- load .env
+
 
 const BASE_URL = process.env.BASE_URL;
 

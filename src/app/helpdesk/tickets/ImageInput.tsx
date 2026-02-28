@@ -3,7 +3,11 @@
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { ArrowUpTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowUpTrayIcon,
+  TrashIcon,
+  ArrowDownTrayIcon,
+} from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
 
 interface ImageUploaderProps {
@@ -98,7 +102,7 @@ export default function ImageUploader({
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {/* Existing image / new preview နှစ်မျိုးလုံးကိုတူညီတဲ့ tile UI နဲ့ပြထားလို့ action consistency ကောင်းပါတယ်။ */}
-            {existingImages.map((image) => (
+            {/* {existingImages.map((image) => (
               <button
                 key={image.id}
                 type="button"
@@ -120,9 +124,46 @@ export default function ImageUploader({
                   <TrashIcon className="h-5 w-5 text-white" />
                 </span>
               </button>
-            ))}
+            ))} */}
+            {existingImages.map((image) => (
+              <div
+                key={image.id}
+                className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                <Image
+                  src={image.url}
+                  alt="existing ticket attachment"
+                  width={420}
+                  height={280}
+                  className="aspect-square w-full object-cover"
+                />
 
-            {previews.map(({ file, url }) => (
+                {/* Overlay */}
+                <div className="absolute inset-0 hidden items-center justify-center gap-3 bg-black/40 group-hover:flex">
+                  {/* Download */}
+                  <a
+                    href={image.url}
+                    download
+                    onClick={(event) => event.stopPropagation()}
+                    className="rounded-full bg-white p-2 transition hover:bg-zinc-200">
+                    <ArrowDownTrayIcon className="h-4 w-4 text-zinc-700" />
+                  </a>
+
+                  {/* Delete */}
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setExistingImages((previous) =>
+                        previous.filter((item) => item.id !== image.id),
+                      );
+                    }}
+                    className="rounded-full bg-white p-2 transition hover:bg-zinc-200">
+                    <TrashIcon className="h-4 w-4 text-zinc-700" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {/* {previews.map(({ file, url }) => (
               <button
                 key={url}
                 type="button"
@@ -148,6 +189,48 @@ export default function ImageUploader({
                   <TrashIcon className="h-5 w-5 text-white" />
                 </span>
               </button>
+            ))} */}
+
+            {previews.map(({ file, url }) => (
+              <div
+                key={url}
+                className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                <Image
+                  src={url}
+                  alt="new ticket attachment preview"
+                  width={420}
+                  height={280}
+                  className="aspect-square w-full object-cover"
+                />
+
+                <div className="absolute inset-0 hidden items-center justify-center gap-3 bg-black/40 group-hover:flex">
+                  {/* Download */}
+                  <a
+                    href={url}
+                    download={file.name}
+                    onClick={(event) => event.stopPropagation()}
+                    className="rounded-full bg-white p-2 transition hover:bg-zinc-200">
+                    <ArrowDownTrayIcon className="h-4 w-4 text-zinc-700" />
+                  </a>
+
+                  {/* Delete */}
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setPreviews((previous) =>
+                        previous.filter((preview) => preview.url !== url),
+                      );
+                      setImages((previous) =>
+                        previous.filter((item) => item.name !== file.name),
+                      );
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="rounded-full bg-white p-2 transition hover:bg-zinc-200">
+                    <TrashIcon className="h-4 w-4 text-zinc-700" />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
