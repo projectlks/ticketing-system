@@ -186,7 +186,7 @@ export default function CategoryPage() {
     createCategoryMutation.isPending || updateCategoryMutation.isPending;
 
   return (
-    <section className="min-h-screen bg-zinc-50 text-zinc-900">
+    <section className="min-h-screen bg-[#F8FAFC] text-zinc-900">
       <ToastContainer position="top-right" autoClose={2500} />
 
       <CategoryToolbar
@@ -240,8 +240,8 @@ export default function CategoryPage() {
                 Notes
               </h3>
               <p className="mt-2 text-sm text-zinc-600">
-                Category names are unique per department. Selecting an item on the
-                left switches form to edit mode automatically.
+                Category names are unique per department. Selecting an item on
+                the left switches form to edit mode automatically.
               </p>
             </article>
           </div>

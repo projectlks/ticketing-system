@@ -34,8 +34,7 @@ export const renderCell = (
             className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusColor(
               ticket.status,
               "borderAndText",
-            )}`}
-          >
+            )}`}>
             <span
               className={`h-1.5 w-1.5 rounded-full ${getStatusColor(ticket.status)}`}
             />
@@ -51,8 +50,7 @@ export const renderCell = (
             className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium ${getPriorityColor(
               ticket.priority || "",
               "borderAndText",
-            )}`}
-          >
+            )}`}>
             <span
               className={`h-1.5 w-1.5 rounded-full ${getPriorityColor(
                 ticket.priority || "",
@@ -71,7 +69,9 @@ export const renderCell = (
     case "requester":
       return (
         <td className="px-4 py-3">
-          <p className="truncate text-sm text-zinc-700">{ticket.requester?.name || "-"}</p>
+          <p className="truncate text-sm text-zinc-700">
+            {ticket.requester?.name || "-"}
+          </p>
           <p className="truncate text-xs text-zinc-500">
             {ticket.requester?.email || "-"}
           </p>
@@ -81,7 +81,9 @@ export const renderCell = (
     case "assignedTo":
       return (
         <td className="px-4 py-3">
-          <p className="truncate text-sm text-zinc-700">{ticket.assignedTo?.name || "-"}</p>
+          <p className="truncate text-sm text-zinc-700">
+            {ticket.assignedTo?.name || "-"}
+          </p>
           <p className="truncate text-xs text-zinc-500">
             {ticket.assignedTo?.email || "-"}
           </p>
@@ -91,23 +93,35 @@ export const renderCell = (
     case "isSlaViolated":
       return ticket.isSlaViolated ? "Yes" : "No";
 
-    case "responseDue":
-      return ticket.responseDue ? (
-        <td className="px-4 py-3">
-          <Countdown targetTime={ticket.responseDue.toString()} />
-        </td>
-      ) : (
-        "-"
-      );
+    // case "responseDue":
+    //   return ticket.responseDue ? (
+    //     <td className="px-4 py-3">
+    //       <Countdown targetTime={ticket.responseDue.toString()} />
+    //     </td>
+    //   ) : (
+    //     "-"
+    //   );
 
-    case "resolutionDue":
-      return ticket.resolutionDue ? (
+    // case "resolutionDue":
+    //   return ticket.resolutionDue ? (
+    //     <td className="px-4 py-3">
+    //       <Countdown targetTime={ticket.resolutionDue.toString()} />
+    //     </td>
+    //   ) : (
+    //     "-"
+    //   );
+
+    case "resolutionDue": {
+      const isClosed = ticket.status.toLowerCase() === "closed";
+
+      if (!ticket.resolutionDue || isClosed) return "-";
+
+      return (
         <td className="px-4 py-3">
           <Countdown targetTime={ticket.resolutionDue.toString()} />
         </td>
-      ) : (
-        "-"
       );
+    }
 
     default:
       return "-";

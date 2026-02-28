@@ -1,0 +1,114 @@
+[33mcommit a3fc3beca5f6281daaba9ceb63b45718b28b52d6[m
+Author: LinKar <mglinkar08@gmail.com>
+Date:   Wed Dec 31 15:19:58 2025 +0630
+
+    add middleware for admin and super admin
+
+[1mdiff --git a/src/app/helpdesk/layout.tsx b/src/app/helpdesk/layout.tsx[m
+[1mindex 08f5e53..9202b0f 100644[m
+[1m--- a/src/app/helpdesk/layout.tsx[m
+[1m+++ b/src/app/helpdesk/layout.tsx[m
+[36m@@ -4,6 +4,7 @@[m [mimport React from "react";[m
+ import Image from "next/image";[m
+ import Link from "next/link";[m
+ import UserProfile from "@/components/UserProfile";[m
+[32m+[m[32mimport { useSession } from "next-auth/react";[m
+ [m
+ type DropdownItem = {[m
+   label: string;[m
+[36m@@ -44,6 +45,11 @@[m [mconst menuItems: MenuItem[] = [[m
+ ];[m
+ [m
+ export default function Layout({ children }: { children: React.ReactNode }) {[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32m  const { data } = useSession();[m
+[32m+[m
+   return ([m
+     <section className="w-full h-screen bg-[#f5f5f5]">[m
+       {/* Top Bar */}[m
+[36m@@ -60,10 +66,19 @@[m [mexport default function Layout({ children }: { children: React.ReactNode }) {[m
+         {/* Menu */}[m
+         <ul className="flex items-center space-x-1 text-xs">[m
+           {menuItems.map((item) =>[m
+[32m+[m
+[32m+[m
+[32m+[m
+             item.dropdown ? ([m
+               <li key={item.label} className="relative group cursor-pointer px-2 py-1 rounded hover:bg-gray-300">[m
+[31m-                <span>{item.label}</span>[m
+[31m-[m
+[32m+[m[32m                {/* <span>{data?.user.role === "superadmin" ? item.label : ""}</span> */}[m
+[32m+[m[32m                <span>[m
+[32m+[m[32m                  {item.label === "Configuration"[m
+[32m+[m[32m                    ? data?.user.role === "SUPER_ADMIN" || data?.user.role === "ADMIN"[m
+[32m+[m[32m                      ? item.label[m
+[32m+[m[32m                      : ""[m
+[32m+[m[32m                    : item.label}[m
+[32m+[m[32m                </span>[m
+                 {/* Dropdown */}[m
+                 <div className="absolute left-0 top-[calc(100%+5px)] z-50 w-[140px] rounded border border-gray-300 bg-white p-1 text-[10px] opacity-0 invisible transition-all duration-200 group-hover:visible group-hover:opacity-100">[m
+                   {item.dropdown.map((drop, index) => ([m
+[36m@@ -78,6 +93,9 @@[m [mexport default function Layout({ children }: { children: React.ReactNode }) {[m
+                 <Link href={item.href!}>{item.label}</Link>[m
+               </li>[m
+             )[m
+[32m+[m
+[32m+[m
+[32m+[m
+           )}[m
+         </ul>[m
+ [m
+[1mdiff --git a/src/middleware.ts b/src/middleware.ts[m
+[1mindex 5be8062..182593e 100644[m
+[1m--- a/src/middleware.ts[m
+[1m+++ b/src/middleware.ts[m
+[36m@@ -3,23 +3,39 @@[m [mimport { NextResponse, NextRequest } from "next/server";[m
+ [m
+ const SECRET = process.env.AUTH_SECRET;[m
+ [m
+[32m+[m[32mconst ADMIN_ONLY_ROUTES = [[m
+[32m+[m[32m    "/helpdesk/department",[m
+[32m+[m[32m    "/helpdesk/category",[m
+[32m+[m[32m    "/helpdesk/user",[m
+[32m+[m[32m];[m
+[32m+[m
+ export async function middleware(req: NextRequest) {[m
+[32m+[m[32m    const { pathname } = req.nextUrl;[m
+ [m
+[31m-    // Get token from next-auth[m
+     const token = await getToken({ req, secret: SECRET });[m
+ [m
+[31m-[m
+[32m+[m[32m    // 🔐 Not logged in[m
+     if (!token) {[m
+[31m-        return NextResponse.redirect(new URL(`/auth/signin`, req.url));[m
+[32m+[m[32m        return NextResponse.redirect(new URL("/auth/signin", req.url));[m
+     }[m
+ [m
+[32m+[m[32m    // 🔒 Restrict only these routes[m
+[32m+[m[32m    const isAdminRoute = ADMIN_ONLY_ROUTES.some((route) =>[m
+[32m+[m[32m        pathname.startsWith(route)[m
+[32m+[m[32m    );[m
+ [m
+[31m-    return NextResponse.next();[m
+[31m-}[m
+[32m+[m[32m    const isAdmin =[m
+[32m+[m[32m        token.role === "ADMIN" || token.role === "SUPER_ADMIN";[m
+ [m
+[32m+[m[32m    if (isAdminRoute && !isAdmin) {[m
+[32m+[m[32m        return NextResponse.redirect([m
+[32m+[m[32m            new URL("/helpdesk", req.url)[m
+[32m+[m[32m        );[m
+[32m+[m[32m    }[m
+ [m
+[32m+[m[32m    return NextResponse.next();[m
+[32m+[m[32m}[m
+ [m
+[31m-// Match all locale-based /lang/*/main/* routes[m
+ export const config = {[m
+     matcher: ["/helpdesk/:path*"],[m
+[31m-};[m
+\ No newline at end of file[m
+[32m+[m[32m};[m

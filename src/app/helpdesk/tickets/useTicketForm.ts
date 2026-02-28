@@ -181,6 +181,7 @@
 //         handleSubmit,
 //     };
 // }
+// http://localhost:3000/helpdesk/tickets/cmm61c5sx000cpswd31hd30gw
 
 
 "use client";
@@ -288,6 +289,20 @@ export function useTicketForm({
         };
     }, [ticket?.id]);
 
+
+    const uploadImages = async (files: File[]) => {
+        if (!files.length) return [];
+        const fd = new FormData();
+        files.forEach((f) => fd.append("file", f));
+        const res = await fetch("/api/uploads", {
+            method: "POST",
+            body: fd,
+        });
+        const data = await res.json();
+        return data.urls as string[];
+    };
+
+
     /* ---------------- Submit ---------------- */
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -323,6 +338,8 @@ export function useTicketForm({
         }
 
         try {
+
+            const uploaded = await uploadImages(images);
             setSubmitting(true);
 
             const fd = new FormData();
@@ -338,11 +355,33 @@ export function useTicketForm({
 
             // Send request
             if (mode === "create") {
+                fd.append("images", JSON.stringify(uploaded));
                 const { id } = await createTicket(fd);
                 toast.success("Ticket created successfully");
                 router.push(`/helpdesk/tickets/${id}`);
             } else if (ticket?.id) {
-                await updateTicket(ticket.id, fd);
+
+                // fd.append("newImages", JSON.stringify(uploaded));
+
+                fd.append("newImages", JSON.stringify(uploaded));
+                fd.append(
+                    "existingImageIds",
+                    JSON.stringify(existingImages.map((i) => i.id)),
+                );
+
+                const { urlsToDelete } = await updateTicket(ticket.id, fd);
+
+                console.log("URLs to delete:", urlsToDelete);
+
+                await Promise.all(
+                    urlsToDelete.map((url) => {
+                        // Extract filename from URL
+                        const parts = url.split("/");
+                        const filename = parts[parts.length - 1];
+
+                        return fetch(`/api/uploads/${filename}`, { method: "DELETE" });
+                    })
+                );
 
 
                 const audits = await getTicketAuditLogs(ticket.id);

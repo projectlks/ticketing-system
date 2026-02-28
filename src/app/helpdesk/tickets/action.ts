@@ -201,12 +201,17 @@ export async function createTicket(formData: FormData) {
 
     // Insert ticket images
     if (images.length) {
+console.log("Creating ticket images for URLs:", images);
+
         await prisma.ticketImage.createMany({
             data: images.map((url) => ({
                 ticketId: ticket.id,
                 url,
             })),
         });
+    }
+    else {
+        console.log("No images to create for this ticket.");
     }
 
 
@@ -312,6 +317,8 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     // formData.get("existingImageIds") မှာ ကျန်ရှိနေတဲ့ image တွေရဲ့ id တွေ JSON string အဖြစ် ရှိတယ်လို့ယူထားတယ်
     const existingImageIds = JSON.parse(formData.get("existingImageIds") as string || "[]") as string[];
 
+
+    
     // formData.get("newImages") မှာ အသစ် upload လုပ်ထားတဲ့ images URL တွေ JSON string အဖြစ် ရှိတယ်လို့ယူထားတယ်
     const newImageUrls = JSON.parse(formData.get("newImages") as string || "[]") as string[];
 
@@ -320,12 +327,14 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     // 5. DB ထဲက ticketImage table မှာ အခု ticket နဲ့ ဆက်နွယ်ပြီး ကျန်ရှိတဲ့ image id တွေကို ရှာထုတ်မယ်
     const imagesInDb = await prisma.ticketImage.findMany({
         where: { ticketId },
-        select: { id: true },
+        select: { id: true, url: true },
     });
     const imagesInDbIds = imagesInDb.map(img => img.id);
+    const imagesInDbUrls = imagesInDb.map(img => img.url);
 
     // 6. existingImageIds ထဲ မပါတဲ့ DB ရဲ့ image ids ကို filter လုပ်ပြီး ဖျက်ရန် id များကို ရှာမယ်
     const idsToDelete = imagesInDbIds.filter(dbId => !existingImageIds.includes(dbId));
+    const urlsToDelete = imagesInDbUrls.filter(dbUrl => !newImageUrls.includes(dbUrl));
 
     if (idsToDelete.length > 0) {
         await prisma.ticketImage.deleteMany({
@@ -337,6 +346,9 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
     // 7. အသစ် upload လုပ်ထားတဲ့ images URL တွေကို ticketImage table ထဲသို့ထည့်မယ်
     if (newImageUrls.length) {
+
+
+        console.log("Adding new ticket images for URLs:", newImageUrls);
         const newImagesData = newImageUrls.map(url => ({ ticketId, url }));
         await prisma.ticketImage.createMany({ data: newImagesData });
     }
@@ -446,7 +458,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     ]);
 
 
-    return updated;
+    return { updated, urlsToDelete };
 }
 
 // ======================

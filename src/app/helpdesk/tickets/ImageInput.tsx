@@ -74,6 +74,9 @@ export default function ImageUploader({
 
   const showEmptyState = previews.length === 0 && existingImages.length === 0;
 
+
+  console.log("existingImages.length:", existingImages.length);
+
   return (
     <section className="space-y-2">
       <p className="text-sm font-medium text-zinc-700">Attachments</p>
@@ -88,7 +91,7 @@ export default function ImageUploader({
         <input {...getInputProps()} />
 
         {showEmptyState ? (
-          <div className="space-y-2">
+          <div className="space-y-2 h-70 flex flex-col justify-center">
             <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300 bg-white">
               <ArrowUpTrayIcon className="h-5 w-5 text-zinc-500" />
             </span>

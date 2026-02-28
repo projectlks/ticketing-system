@@ -71,7 +71,7 @@ export default function UserPage() {
     : "";
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="min-h-screen bg-[#F8FAFC] text-zinc-900">
       <UserToolbar
         searchQuery={searchQuery}
         shownCount={filteredUsers.length}

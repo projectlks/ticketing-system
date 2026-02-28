@@ -119,7 +119,7 @@ export default function ZabbixProblemsTable() {
       : "Showing live alerts fetched from Zabbix API.";
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 py-5 sm:px-6 sm:py-6">
+    <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

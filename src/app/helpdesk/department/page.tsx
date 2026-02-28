@@ -56,7 +56,7 @@ export default function DepartmentPage() {
     : "";
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 py-5 sm:px-6 sm:py-6">
+    <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">
       <div className="mx-auto w-full max-w-[1480px]">
         <header className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

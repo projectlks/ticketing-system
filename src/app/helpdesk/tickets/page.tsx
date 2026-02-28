@@ -318,7 +318,7 @@ export default function Page() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 py-5 sm:px-6 sm:py-6">
+    <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         <TableTopBar
           title="Tickets"
