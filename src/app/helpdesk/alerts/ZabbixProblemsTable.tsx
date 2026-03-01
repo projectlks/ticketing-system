@@ -139,7 +139,7 @@ export default function ZabbixProblemsTable() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+              {/* <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
                 {(["Zabbix", "All Alerts"] as const).map((item) => (
                   <button
                     key={item}
@@ -153,7 +153,7 @@ export default function ZabbixProblemsTable() {
                     {item === "Zabbix" ? "Current Alerts" : item}
                   </button>
                 ))}
-              </div>
+              </div> */}
 
               <ColumnPicker
                 columns={columns}
