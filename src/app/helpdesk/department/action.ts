@@ -16,10 +16,22 @@ import {
 import type { DepartmentTicketStats } from "./page";
 
 const DepartmentFormSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  email: z.string().email(),
-  contact: z.string().optional(),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Department name must be at least 2 characters")
+    .max(80, "Department name must be at most 80 characters"),
+  description: z
+    .string()
+    .trim()
+    .max(300, "Description must be at most 300 characters")
+    .optional(),
+  email: z.string().trim().email("Invalid email address"),
+  contact: z
+    .string()
+    .trim()
+    .max(60, "Contact must be at most 60 characters")
+    .optional(),
 });
 
 export async function createDepartment(formData: FormData): Promise<void> {
@@ -31,9 +43,13 @@ export async function createDepartment(formData: FormData): Promise<void> {
   };
 
   const parsed = DepartmentFormSchema.parse(raw);
+  const normalizedName = parsed.name.trim();
+  const normalizedDescription = parsed.description?.trim() || null;
+  const normalizedContact = parsed.contact?.trim() || null;
+  const normalizedEmail = parsed.email.trim();
 
-  const existing = await prisma.department.findUnique({
-    where: { name: parsed.name },
+  const existing = await prisma.department.findFirst({
+    where: { name: { equals: normalizedName, mode: "insensitive" } },
   });
   if (existing) throw new Error("Department Name already exists");
 
@@ -44,10 +60,10 @@ export async function createDepartment(formData: FormData): Promise<void> {
 
   const department = await prisma.department.create({
     data: {
-      name: parsed.name,
-      description: parsed.description,
-      contact: parsed.contact,
-      email: parsed.email,
+      name: normalizedName,
+      description: normalizedDescription,
+      contact: normalizedContact,
+      email: normalizedEmail,
       creatorId: userId,
     },
   });

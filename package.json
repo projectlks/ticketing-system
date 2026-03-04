@@ -10,6 +10,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:pm2": "pm2-runtime start pm2-server.mjs --name ${PM2_APP_NAME:-ticketing-app} -i ${PM2_INSTANCES:-2}",
+    "start:socket": "tsx src/libs/socket-server.ts",
     "lint": "eslint",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",

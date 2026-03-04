@@ -5,10 +5,10 @@ import bcrypt from "bcrypt";
 async function main() {
   // ===== Create default Department =====
   const department = await prisma.department.upsert({
-    where: { name: "IT" },
+    where: { name: "EWM" },
     update: {},
     create: {
-      name: "IT",
+      name: "EWM",
     },
   });
 

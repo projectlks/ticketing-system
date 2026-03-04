@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import type { Route } from "next";
+import { useSearchParams } from "next/navigation";
 
 import TableHead from "@/components/TableHead";
 import { useFetchZabbix } from "@/hooks/useFetchZabbix";
@@ -63,7 +62,6 @@ const formatUnixTimestamp = (timestamp: string) => {
 };
 
 export default function ZabbixProblemsTable() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const filter = getFilterFromQuery(searchParams.get("filter"));
@@ -80,7 +78,8 @@ export default function ZabbixProblemsTable() {
     isFetching,
   } = useFetchZabbix(filter, currentPage, pageSize);
 
-  const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+  const totalPages =
+    pageSize === 0 ? 1 : Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
   const displayCurrentPage = Math.min(currentPage, totalPages);
 
   const visibleColumnKeys = useMemo(
@@ -90,27 +89,6 @@ export default function ZabbixProblemsTable() {
 
   const toggleColumn = (key: ColumnKey) => {
     setVisibleColumns((previous) => ({ ...previous, [key]: !previous[key] }));
-  };
-
-  const applyFilter = (nextFilter: AlertFilter) => {
-    // Source filter ပြောင်းတဲ့ action က user intent သေချာတဲ့ event မို့ page reset ကို
-    // event handler ထဲမှာတိုက်ရိုက်လုပ်ပြီး react-hooks effect warning ကိုရှောင်ထားပါတယ်။
-    setCurrentPageState(1);
-
-    const nextParams = new URLSearchParams(searchParams.toString());
-
-    if (nextFilter === "All Alerts") {
-      nextParams.set("filter", "All Alerts");
-    } else {
-      nextParams.delete("filter");
-    }
-
-    const queryString = nextParams.toString();
-    const targetHref = queryString
-      ? (`/helpdesk/alerts?${queryString}` as Route)
-      : ("/helpdesk/alerts" as Route);
-
-    router.replace(targetHref);
   };
 
   const dataSourceDescription =
@@ -139,7 +117,7 @@ export default function ZabbixProblemsTable() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+              {/* <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
                 {(["Zabbix", "All Alerts"] as const).map((item) => (
                   <button
                     key={item}
@@ -153,7 +131,7 @@ export default function ZabbixProblemsTable() {
                     {item === "Zabbix" ? "Current Alerts" : item}
                   </button>
                 ))}
-              </div>
+              </div> */}
 
               <ColumnPicker
                 columns={columns}

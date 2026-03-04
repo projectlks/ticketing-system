@@ -1,8 +1,28 @@
 import { createHash } from "crypto";
 
-import redis from "./redis";
+import redis, { REDIS_TIMEOUTS_MS } from "./redis";
 
 type CacheLoader<T> = () => Promise<T>;
+
+const withTimeout = async <T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> => {
+  let timer: NodeJS.Timeout | null = null;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Redis operation timed out (${timeoutMs}ms): ${label}`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation, timeoutPromise]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
 
 const safeJsonParse = <T>(value: string): T | null => {
   try {
@@ -42,7 +62,11 @@ export async function getOrSetCache<T>(
   loader: CacheLoader<T>,
 ): Promise<T> {
   try {
-    const cached = await redis.get(key);
+    const cached = await withTimeout(
+      redis.get(key),
+      REDIS_TIMEOUTS_MS.operation,
+      `GET ${key}`,
+    );
     if (cached) {
       const parsed = safeJsonParse<T>(cached);
       if (parsed !== null) {
@@ -56,7 +80,11 @@ export async function getOrSetCache<T>(
   const fresh = await loader();
 
   try {
-    await redis.set(key, JSON.stringify(fresh), "EX", ttlSeconds);
+    await withTimeout(
+      redis.set(key, JSON.stringify(fresh), "EX", ttlSeconds),
+      REDIS_TIMEOUTS_MS.operation,
+      `SET ${key}`,
+    );
   } catch (error) {
     console.warn(`Redis write failed for key "${key}"`, error);
   }
@@ -69,17 +97,19 @@ export async function invalidateCacheByPrefix(prefix: string): Promise<void> {
     let cursor = "0";
 
     do {
-      const [nextCursor, keys] = await redis.scan(
-        cursor,
-        "MATCH",
-        `${prefix}*`,
-        "COUNT",
-        200,
+      const [nextCursor, keys] = await withTimeout(
+        redis.scan(cursor, "MATCH", `${prefix}*`, "COUNT", 200),
+        REDIS_TIMEOUTS_MS.operation,
+        `SCAN ${prefix}*`,
       );
 
       cursor = nextCursor;
       if (keys.length > 0) {
-        await redis.del(keys);
+        await withTimeout(
+          redis.del(keys),
+          REDIS_TIMEOUTS_MS.operation,
+          `DEL ${prefix}* (${keys.length} keys)`,
+        );
       }
     } while (cursor !== "0");
   } catch (error) {
