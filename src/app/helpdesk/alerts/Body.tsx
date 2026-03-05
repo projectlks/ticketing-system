@@ -6,16 +6,26 @@ import { StatusBadge } from "./StatusBadge";
 import { Tags } from "./Tags";
 
 type ColumnKey =
-    | "eventid" | "name" | "severity" | "status" | "clock" | "tags"
-    | "opdata" | "r_clock" | "hosts" | "source" | "object"
-    | "objectid" | "suppressed" | "suppression_data";
+  | "eventid"
+  | "name"
+  | "severity"
+  | "status"
+  | "clock"
+  | "tags"
+  | "opdata"
+  | "r_clock"
+  | "hosts"
+  | "source"
+  | "object"
+  | "objectid"
+  | "suppressed"
+  | "suppression_data";
 
 interface BodyProps {
-    problems: ZabbixProblem[] | undefined;
-    columns: { key: ColumnKey; label: string }[];
-    visibleColumns: Record<ColumnKey, boolean>;
-    formatDate: (timestamp: string) => string;
-
+  problems: ZabbixProblem[] | undefined;
+  columns: { key: ColumnKey; label: string }[];
+  visibleColumns: Record<ColumnKey, boolean>;
+  formatDate: (timestamp: string) => string;
 }
 
 export default function Body({

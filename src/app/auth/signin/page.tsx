@@ -1,21 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import Input from "@/components/Input";
-import Image from "next/image";
-import Link from "next/link";
+
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 
-// import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+// Terms modal ထဲမှာ အဓိကပြမယ့် စည်းကမ်းချက်များ
+const TERMS_ITEMS = [
+  "This ticketing system, including all source code, UI designs, workflows, settings, and documents, is confidential and the exclusive property of East Wind Myanmar Co., Ltd.",
+  "Access is permitted only for authorized internal business operations.",
+  "No user is allowed to copy, download, screenshot, reproduce, publish, transfer, or reuse any code, UI, data, or document from this system without prior written approval.",
+  "Any unauthorized disclosure, duplication, reverse engineering, or misuse of company intellectual property is strictly prohibited.",
+  "Violations may result in account suspension, disciplinary action, termination, and legal action under applicable laws and company policy.",
+];
+
+// Terms modal ထဲမှာ အထူးတားမြစ်ထားတဲ့ လုပ်ဆောင်ချက်များ
+const PROHIBITED_ACTIONS = [
+  "Copying source code or logic",
+  "Copying or recreating UI screens/components",
+  "Screenshotting internal pages for external use",
+  "Sharing credentials or internal information",
+  "Publishing company materials to third parties",
+];
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Terms popup ဖွင့်/ပိတ် နှင့် popup ထဲက agreement checkbox state
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [modalAgreementChecked, setModalAgreementChecked] = useState(false);
+
+  // Sign in page ပေါ်က main agreement state (submit enable/disable အတွက်သုံး)
+  const [hasAgreed, setHasAgreed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("ticketing_terms_agreed") === "true";
+  });
   const router = useRouter();
 
+  // Login form input state
   const [data, setData] = useState<{
     email: string;
     password: string;
@@ -24,16 +48,20 @@ export default function SignInPage() {
     password: "",
   });
 
+  // Form validation နှင့် server response error state
   const [errors, setErrors] = useState<{
     email: string;
     password: string;
+    agreement: string;
     response: string | null;
   }>({
     email: "",
     password: "",
+    agreement: "",
     response: null,
   });
 
+  // Email/Password input ပြောင်းလဲမှုကို update လုပ်ပြီး အမှားစာ reset လုပ်ပေးသည်
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
@@ -45,15 +73,66 @@ export default function SignInPage() {
     setErrors((prev) => ({
       ...prev,
       [name]: "",
-      response: null, // reset correctly
+      response: null,
     }));
   };
 
+  // Terms link/checkbox click လုပ်ချိန် popup ဖွင့်
+  const openTermsModal = () => {
+    setModalAgreementChecked(hasAgreed);
+    setShowTermsModal(true);
+  };
+
+  // Main checkbox ကို tick/un-tick လုပ်ချိန် behavior
+  // tick = modal ဖွင့်, untick = agreement remove
+  const handleMainAgreementToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.target.checked;
+
+    if (!isChecked) {
+      setHasAgreed(false);
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("ticketing_terms_agreed");
+      }
+      setErrors((prev) => ({
+        ...prev,
+        agreement: "",
+      }));
+      return;
+    }
+
+    openTermsModal();
+  };
+
+  // Popup ထဲက "I Agree and Continue" နှိပ်ချိန် main agreement ကို confirm လုပ်
+  const handleAgreeAndContinue = () => {
+    if (!modalAgreementChecked) return;
+
+    setHasAgreed(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("ticketing_terms_agreed", "true");
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      agreement: "",
+      response: null,
+    }));
+
+    setShowTermsModal(false);
+  };
+
+  // Sign in submit flow + validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
 
-    const validationErrors = { email: "", password: "", response: "" };
+    const validationErrors = {
+      email: "",
+      password: "",
+      agreement: "",
+      response: "",
+    };
+
     let isValid = true;
 
     if (!data.email.trim()) {
@@ -69,6 +148,12 @@ export default function SignInPage() {
       isValid = false;
     } else if (data.password.length < 8) {
       validationErrors.password = "Password must be at least 8 characters.";
+      isValid = false;
+    }
+
+    if (!hasAgreed) {
+      validationErrors.agreement =
+        "You must agree to the Terms and Conditions before signing in.";
       isValid = false;
     }
 
@@ -92,9 +177,6 @@ export default function SignInPage() {
         response: res.error,
       }));
     } else if (res?.ok) {
-      // localStorage မှာ saved language ရှိရင်ယူမယ်, မရှိရင် default "en"
-
-      // redirect with saved/default language
       router.push(`/helpdesk`);
     }
   };
@@ -103,7 +185,7 @@ export default function SignInPage() {
     <>
       {loading && <Loading />}
 
-      <main className="bnv-app-bg  bg-[#f3f6fd] relative isolate min-h-screen overflow-hidden text-zinc-900">
+      <main className="bnv-app-bg bg-[#f3f6fd] relative isolate min-h-screen overflow-hidden text-zinc-900">
         <div className="grid-overlay pointer-events-none absolute inset-0 opacity-60" />
 
         <section className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
@@ -131,11 +213,11 @@ export default function SignInPage() {
 
               <p className="mt-2 text-sm text-zinc-600">
                 Access the internal ticketing system using your authorized
-                credentials.{" "}
+                credentials.
               </p>
 
               <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-                {/* Email */}
+                {/* Email input UI */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-800">
                     Email
@@ -156,7 +238,7 @@ export default function SignInPage() {
                   )}
                 </div>
 
-                {/* Password */}
+                {/* Password input UI */}
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <label className="block text-sm font-medium text-zinc-800">
@@ -166,7 +248,8 @@ export default function SignInPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-xs font-semibold tracking-wide text-zinc-600 hover:text-blue-600">
+                      className="text-xs font-semibold tracking-wide text-zinc-600 hover:text-blue-600"
+                    >
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
@@ -182,28 +265,48 @@ export default function SignInPage() {
                   />
 
                   {errors.password && (
-                    <p className="mt-1 text-xs text-red-500">
-                      {errors.password}
-                    </p>
+                    <p className="mt-1 text-xs text-red-500">{errors.password}</p>
                   )}
                 </div>
 
-                {/* Server Error */}
+                {/* Agreement checkbox row + terms modal trigger */}
+                <div>
+                  <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-700">
+                    <input
+                      type="checkbox"
+                      checked={hasAgreed}
+                      onChange={handleMainAgreementToggle}
+                      disabled={loading}
+                      className="mt-0.5 accent-zinc-900"
+                    />
+                    <span>
+                      I agree to the{" "}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openTermsModal();
+                        }}
+                        className="font-semibold underline underline-offset-2 hover:text-blue-700"
+                      >
+                        Terms and Conditions
+                      </button>
+                    </span>
+                  </label>
+                  {errors.agreement && (
+                    <p className="mt-1 text-xs text-red-500">{errors.agreement}</p>
+                  )}
+                </div>
+
                 {errors.response && (
-                  <p className="text-sm text-red-600 text-center">
-                    {errors.response}
-                  </p>
+                  <p className="text-sm text-red-600 text-center">{errors.response}</p>
                 )}
 
-                {/* <button
-                  type="submit"
-                  disabled={loading}
-                  className="  bg-[#18181B] text-white mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-80">
-                  {loading ? "Signing in..." : "Sign In"}
-                </button> */}
+                {/* Sign in button (agreement မလုပ်ရသေးရင် disable) */}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !hasAgreed}
                   className="
     mt-2 inline-flex w-full items-center justify-center gap-2
     rounded-xl px-4 py-3 text-sm font-bold text-white
@@ -211,281 +314,111 @@ export default function SignInPage() {
     transition-all duration-300
     hover:from-zinc-900 hover:to-black
     disabled:cursor-not-allowed disabled:opacity-80
-  ">
+  "
+                >
                   {loading ? "Signing in..." : "Sign In"}
                 </button>
               </form>
             </section>
           </div>
 
-          {/* <footer className="mt-8 text-center text-xs tracking-[0.2em] text-zinc-500 uppercase">
-            Copyright (c) 2026 <br /> East Wind Myanmar Co., Ltd.  <br />All rights reserved.
-          </footer> */}
-
           <footer className="mt-10 text-center text-xs text-zinc-500">
             <p>
-              {" "}
-              Copyright © {new Date().getFullYear()} East Wind Myanmar Co., Ltd.
+              Copyright (c) {new Date().getFullYear()} East Wind Myanmar Co., Ltd.
               All rights reserved.
             </p>
-            {/* <p className="mt-1">All rights reserved.</p> */}
           </footer>
         </section>
       </main>
+
+      {showTermsModal && (
+        // Terms popup overlay + background blur
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/45 p-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="terms-modal-title"
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.6)]"
+          >
+            <header className="flex items-start justify-between gap-3 border-b border-zinc-200 px-6 py-4">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
+                  Agreement Required
+                </p>
+                <h3
+                  id="terms-modal-title"
+                  className="mt-1 text-lg font-semibold text-zinc-900"
+                >
+                  Terms and Conditions
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100"
+              >
+                Close
+              </button>
+            </header>
+
+            {/* Terms content area (scrollable) */}
+            <div className="max-h-[62vh] space-y-4 overflow-y-auto px-6 py-5">
+              <p className="text-sm leading-6 text-zinc-700">
+                Please review the following legal and confidentiality terms carefully.
+                You must accept these terms before accessing the system.
+              </p>
+
+              <ol className="list-decimal space-y-3 pl-5 text-sm leading-6 text-zinc-700">
+                {TERMS_ITEMS.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ol>
+
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5">
+                <p className="text-xs font-semibold tracking-[0.08em] text-zinc-700 uppercase">
+                  Strictly Prohibited
+                </p>
+                <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs leading-5 text-zinc-600">
+                  {PROHIBITED_ACTIONS.map((action) => (
+                    <li key={action}>{action}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Modal footer: agreement checkbox + action buttons */}
+            <footer className="border-t border-zinc-200 px-6 py-4">
+              <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={modalAgreementChecked}
+                  onChange={(e) => setModalAgreementChecked(e.target.checked)}
+                  className="mt-0.5 accent-zinc-900"
+                />
+                <span>I have read and agree to all Terms and Conditions above.</span>
+              </label>
+
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(false)}
+                  className="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-3.5 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAgreeAndContinue}
+                  disabled={!modalAgreementChecked}
+                  className="inline-flex items-center justify-center rounded-lg bg-linear-to-r from-zinc-800 to-[#18181B] px-3.5 py-2 text-sm font-semibold text-white transition hover:from-zinc-900 hover:to-black disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  I Agree and Continue
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      )}
     </>
   );
-  // return (
-  //   <>
-  //     {loading && <Loading />}
-  //     <div className="relative min-h-screen flex items-center justify-center p-6 sm:p-0">
-  //       <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row sm:p-0 mx-auto">
-  //         {/* Left: Form Section */}
-  //         <div className="flex flex-col flex-1 w-full bg-white  lg:w-1/2 p-6">
-  //           <div className="flex flex-col justify-center w-full max-w-md mx-auto flex-1">
-  //             <div className="mb-8">
-  //               <h1 className="text-4xl font-semibold text-gray-800  mb-2">
-  //                 Sign In
-  //               </h1>
-  //               <p className="text-sm text-gray-500 ">
-  //                 Please sign in to access your tickets and support.
-  //               </p>
-  //             </div>
-
-  //             <form onSubmit={handleSubmit}>
-  //               <div className="space-y-5">
-  //                 {/* Email Input */}
-  //                 <Input
-  //                   type="email"
-  //                   id="email"
-  //                   name="email"
-  //                   placeholder="info@gmail.com"
-  //                   value={data.email}
-  //                   onChange={handleChange}
-  //                   error={!!errors.email}
-  //                   label="Email"
-  //                   require={true}
-  //                   errorMessage={errors.email}
-  //                   disable={loading}
-  //                 />
-
-  //                 {/* Password Input */}
-  //                 <div className="relative">
-  //                   <Input
-  //                     type={showPassword ? "text" : "password"}
-  //                     id="password"
-  //                     name="password"
-  //                     placeholder="Enter your password"
-  //                     value={data.password}
-  //                     onChange={handleChange}
-  //                     error={!!errors.password}
-  //                     label="Password"
-  //                     require={true}
-  //                     errorMessage={errors.password}
-  //                     disable={loading}
-  //                   />
-  //                 </div>
-
-  //                 {/* General Response Error */}
-  //                 {errors.response && (
-  //                   <p className="mt-1 text-xs text-red-500 ">
-  //                     {errors.response}
-  //                   </p>
-  //                 )}
-
-  //                 {/* Submit Button */}
-  //                 <button
-  //                   type="submit"
-  //                   disabled={loading}
-  //                   className={`mt-6 flex w-full items-center justify-center px-4 py-3 text-sm font-medium rounded-lg shadow-md transition
-  //               ${
-  //                 loading
-  //                   ? "bg-indigo-300 cursor-not-allowed "
-  //                   : "bg-indigo-500 hover:bg-indigo-600 "
-  //               } text-white`}>
-  //                   {loading ? "Signing In..." : "Sign In"}
-  //                 </button>
-  //               </div>
-  //             </form>
-  //           </div>
-  //         </div>
-  //         {/* Right: Visual Section */}{" "}
-  //         <div className="hidden lg:flex relative items-center justify-center w-1/2 bg-[#161950] p-10">
-  //           {/* Top Grid Image */}{" "}
-  //           <div className="absolute top-0 right-0 z-0 w-full max-w-[250px] xl:max-w-[450px]">
-  //             {" "}
-  //             <Image
-  //               src="/grid-01.svg"
-  //               alt="grid"
-  //               width={450}
-  //               height={254}
-  //             />{" "}
-  //           </div>
-  //           {/* Bottom Grid Image */}
-  //           <div className="absolute bottom-0 left-0 z-0 w-full max-w-[250px] rotate-180 xl:max-w-[450px]">
-  //             {" "}
-  //             <Image
-  //               src="/grid-01.svg"
-  //               alt="grid"
-  //               width={450}
-  //               height={254}
-  //             />{" "}
-  //           </div>{" "}
-  //           {/* Logo and Description */}{" "}
-  //           <div className="flex flex-col items-center w-[80%] z-10">
-  //             {" "}
-  //             <Link href="/">
-  //               <Image
-  //                 src="/logo.png"
-  //                 alt="Logo"
-  //                 width={96}
-  //                 height={96}
-  //                 className="h-24 w-24"
-  //               />{" "}
-  //             </Link>
-  //             {/* <h3 className="mb-4 text-4xl font-semibold text-center text-white"> East Wind Myanmar Company Limited </h3> */}
-  //             <h3 className="mb-4 text-4xl font-semibold text-center text-white">
-  //               {" "}
-  //               Internal Revenue Department{" "}
-  //             </h3>
-  //             {/* <p className="text-center text-gray-400 font-semibold"> To be Premier and Preferred Technology Solutions Provider in ICT industry. We create technologies for more efficient business and more comfortable life. </p> */}
-  //           </div>{" "}
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     <Script id="chatwoot">
-  //       {`
-  //   (function(d,t) {
-  //     var BASE_URL="http://192.168.100.27:3000";
-  //     var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-  //     g.src=BASE_URL+"/packs/js/sdk.js";
-  //     g.async = true;
-  //     s.parentNode.insertBefore(g,s);
-  //     g.onload=function(){
-  //       window.chatwootSDK.run({
-  //         websiteToken: '23UsVfLSL7vpy2NSdVaLjSd4',
-  //         baseUrl: BASE_URL
-  //       })
-  //     }
-  //   })(document,"script");
-  // `}
-  //     </Script>
-
-  //     {/* test */}
-
-  //     <main className="bnv-app-bg relative isolate min-h-screen overflow-hidden text-zinc-900">
-  //       <div className="grid-overlay pointer-events-none absolute inset-0 opacity-60" />
-
-  //       <section className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
-      
-  //         <header className="mx-auto mb-8 w-full max-w-md text-center">
-  //           <p className="text-[11px] font-semibold tracking-[0.24em] text-zinc-500 uppercase">
-  //             East Wind Myanmar Co., Ltd
-  //           </p>
-  //           <h1 className="mt-3 text-3xl font-semibold text-zinc-950 sm:text-4xl">
-  //             Welcome Back
-  //           </h1>
-  //           <p className="mt-3 text-sm leading-6 text-zinc-600 sm:text-base">
-  //             Every Concern Tracked, Owned, and Resolved.{" "}
-  //           </p>
-  //         </header>
-
-  //         <div className="mx-auto w-full max-w-md">
-  //           {/* card */}
-  //           <section className="bnv-surface rounded-3xl border border-zinc-200 bg-white p-8 shadow-[0_30px_70px_-45px_rgba(15,23,42,0.35)] sm:p-10">
-  //             <p className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-  //               Admin Access
-  //             </p>
-  //             <h2 className="mt-3 text-2xl font-semibold text-zinc-950">
-  //               Sign in to your control panel
-  //             </h2>
-  //             <p className="mt-2 text-sm text-zinc-600">
-  //               Use your authorized credentials to access customer records.
-  //             </p>
-
-  //             <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-  //               <div>
-  //                 <label
-  //                   htmlFor="user-id"
-  //                   className="mb-2 block text-sm font-medium text-zinc-800">
-  //                   Email{" "}
-  //                 </label>
-  //                 <input
-  //                   id="user-id"
-  //                   name="userId"
-  //                   type="text"
-  //                   autoComplete="username"
-  //                   required
-  //                   // value={credentials.userId}
-  //                   // onChange={(event) =>
-  //                   //   updateField("userId", event.target.value)
-  //                   // }
-  //                   placeholder="admin@bnv.com"
-  //                   className="auth-input"
-  //                 />
-  //               </div>
-
-  //               <div>
-  //                 <div className="mb-2 flex items-center justify-between">
-  //                   <label
-  //                     htmlFor="password"
-  //                     className="block text-sm font-medium text-zinc-800">
-  //                     Password
-  //                   </label>
-  //                   <button
-  //                     type="button"
-  //                     // onClick={togglePasswordVisibility}
-  //                     className="text-xs font-semibold tracking-wide text-zinc-600 transition hover:text-blue-600">
-  //                     {showPassword ? "Hide" : "Show"}
-  //                   </button>
-  //                 </div>
-  //                 <input
-  //                   id="password"
-  //                   name="password"
-  //                   type={showPassword ? "text" : "password"}
-  //                   autoComplete="current-password"
-  //                   required
-  //                   // value={credentials.password}
-  //                   // onChange={(event) =>
-  //                   //   updateField("password", event.target.value)
-  //                   // }
-  //                   placeholder="Enter your password"
-  //                   className="auth-input"
-  //                 />
-  //               </div>
-
-  //               <button
-  //                 type="submit"
-  //                 // disabled={isSubmitting}
-  //                 className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-80">
-  //                 {/* {isSubmitting ? (
-  //                   <>
-  //                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-  //                     "Signing in..."
-  //                   </>
-  //                 ) : (
-  //                   t("Sign In")
-  //                 )} */}
-  //                 Sign In
-  //               </button>
-
-  //               {/* {statusMessage ? (
-  //                 <p className="text-center text-sm text-emerald-700">
-  //                   {t(statusMessage)}
-  //                 </p>
-  //               ) : null} */}
-  //             </form>
-  //           </section>
-  //         </div>
-
-  //         <footer className="mt-8 text-center text-xs tracking-[0.2em] text-zinc-500 uppercase">
-  //           {/* {t("Copyright (c) {{year}} BnV. All rights reserved.", {
-  //         year: currentYear,
-  //       })} */}
-  //           Copyright (c) 2026 EWM Co., Ltd. All rights reserved.
-  //         </footer>
-  //       </section>
-  //     </main>
-  //   </>
-  // );
 }
