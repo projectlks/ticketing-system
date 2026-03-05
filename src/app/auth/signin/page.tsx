@@ -190,9 +190,9 @@ export default function SignInPage() {
 
         <section className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
           <header className="mx-auto mb-8 w-full max-w-md text-center">
-            <p className="text-[11px] font-semibold tracking-[0.24em] text-zinc-500 uppercase">
+            {/* <p className="text-[11px] font-semibold tracking-[0.24em] text-zinc-500 uppercase">
               East Wind Myanmar Co., Ltd
-            </p>
+            </p> */}
             <h1 className="mt-3 text-3xl font-semibold text-zinc-950 sm:text-4xl">
               Welcome Back
             </h1>

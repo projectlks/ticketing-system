@@ -31,9 +31,9 @@ type FormType = z.infer<typeof UserSchema>;
 type FormErrors = Partial<Record<keyof FormType, string>>;
 
 const BASE_ROLE_OPTIONS: Array<{ value: FormType["role"]; label: string }> = [
-  { value: "LEVEL_1", label: "LEVEL 1 (Requester)" },
-  { value: "LEVEL_2", label: "LEVEL 2 (Agent)" },
-  { value: "LEVEL_3", label: "LEVEL 3 (Admin)" },
+  { value: "LEVEL_1", label: "LEVEL 1 " },
+  { value: "LEVEL_2", label: "LEVEL 2 " },
+  { value: "LEVEL_3", label: "LEVEL 3 " },
 ];
 
 const SUPER_ADMIN_OPTION: { value: FormType["role"]; label: string } = {

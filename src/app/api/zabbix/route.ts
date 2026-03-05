@@ -3,7 +3,7 @@ import { Priority, ZabbixStatus } from "@/generated/prisma/client";
 import { prisma } from "@/libs/prisma";
 
 const DEFAULT_CUSTOMER_EMAIL = "support@eastwindmyanmar.com.mm";
-const LOCAL_CREATE_TICKET_URL = "http://127.0.0.1:3000/api/create-ticket";
+const LOCAL_CREATE_TICKET_URL = "http://10.2.10.16/api/create-ticket";
 
 type WebhookTag = {
   tag: string;
