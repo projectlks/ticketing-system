@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
 import fs from "fs/promises";
 import path from "path";
+
+import { authOptions } from "@/libs/auth";
 
 const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -15,11 +18,23 @@ interface Params {
   filename: string;
 }
 
+async function ensureAuthenticated() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+
+  return null;
+}
+
 // GET /api/uploads/[filename]
 export async function GET(
   req: NextRequest,
   context: { params: Promise<Params> }
 ) {
+  const unauthorizedResponse = await ensureAuthenticated();
+  if (unauthorizedResponse) return unauthorizedResponse;
+
   const { filename } = await context.params;
 
   if (!filename) return new NextResponse("filename required", { status: 400 });
@@ -48,6 +63,9 @@ export async function DELETE(
   req: NextRequest,
   context: { params: Promise<Params> }
 ) {
+  const unauthorizedResponse = await ensureAuthenticated();
+  if (unauthorizedResponse) return unauthorizedResponse;
+
   const { filename } = await context.params;
 
   if (!filename)

@@ -56,12 +56,6 @@ type OtrsApiError = {
     message: string;
 };
 
-function maskValue(value: string): string {
-    if (!value) return "";
-    if (value.length <= 4) return "*".repeat(value.length);
-    return `${value.slice(0, 2)}***${value.slice(-2)}`;
-}
-
 function recoverComposedPassword(value: string): string {
     // Docker Compose may interpolate `$_` using host env `_` (often `/usr/bin/docker`).
     // Recover intended literal pattern for passwords that contain `$_`.
@@ -552,8 +546,8 @@ export async function POST(req: Request) {
                 {
                     action: "failed",
                     error: "OTRS TicketSearch returned an error.",
-                    otrsError: searchApiError,
-                    otrsData: searchResponse.data,
+                    otrsError: { code: searchApiError.code },
+                    requestId,
                 },
                 { status: 502 }
             );
@@ -630,8 +624,8 @@ export async function POST(req: Request) {
                         action: "failed",
                         error: "OTRS Ticket update returned an error.",
                         ticketId: existingTicketId,
-                        otrsError: updateApiError,
-                        otrsData: updateResult.response.data,
+                        otrsError: { code: updateApiError.code },
+                        requestId,
                     },
                     { status: 502 }
                 );
@@ -724,8 +718,8 @@ export async function POST(req: Request) {
                 {
                     action: "failed",
                     error: "OTRS Ticket create returned an error.",
-                    otrsError: createApiError,
-                    otrsData: createResponse.data,
+                    otrsError: { code: createApiError.code },
+                    requestId,
                 },
                 { status: 502 }
             );
@@ -752,11 +746,10 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     error: "OTRS API call failed",
-                    details: error.message,
+                    requestId,
                     otrsStatus: error.response?.status ?? null,
-                    otrsData: error.response?.data ?? null,
                 },
-                { status: 500 }
+                { status: 502 }
             );
         }
 
@@ -764,7 +757,7 @@ export async function POST(req: Request) {
         const details = error instanceof Error ? error.message : String(error);
         console.error("[create-ticket] unknown failure", { requestId, details });
         return NextResponse.json(
-            { error: "OTRS API call failed", details },
+            { error: "OTRS API call failed", requestId },
             { status: 500 }
         );
     }

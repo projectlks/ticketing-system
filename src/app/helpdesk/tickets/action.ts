@@ -199,17 +199,12 @@ export async function createTicket(formData: FormData) {
 
     // Insert ticket images
     if (images.length) {
-console.log("Creating ticket images for URLs:", images);
-
         await prisma.ticketImage.createMany({
             data: images.map((url) => ({
                 ticketId: ticket.id,
                 url,
             })),
         });
-    }
-    else {
-        console.log("No images to create for this ticket.");
     }
 
 
@@ -344,9 +339,6 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
     // 7. အသစ် upload လုပ်ထားတဲ့ images URL တွေကို ticketImage table ထဲသို့ထည့်မယ်
     if (newImageUrls.length) {
-
-
-        console.log("Adding new ticket images for URLs:", newImageUrls);
         const newImagesData = newImageUrls.map(url => ({ ticketId, url }));
         await prisma.ticketImage.createMany({ data: newImagesData });
     }
@@ -362,8 +354,10 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
 
     // 2. အချိန်တွေတွက်မယ်
-    const responseDue = dayjs(oldData.startSlaTime).add(sla.responseTime, 'minute').toDate();
-    const resolutionDue = dayjs(oldData.startSlaTime).add(sla.resolutionTime, 'minute').toDate();
+    const rawSlaBaseTime = oldData.startSlaTime ?? oldData.createdAt;
+    const slaBaseTime = Number.isNaN(rawSlaBaseTime.getTime()) ? new Date() : rawSlaBaseTime;
+    const responseDue = dayjs(slaBaseTime).add(sla.responseTime, 'minute').toDate();
+    const resolutionDue = dayjs(slaBaseTime).add(sla.resolutionTime, 'minute').toDate();
 
 
 
@@ -374,6 +368,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
         data: {
             ...parsed,
             slaId: sla.id, // update SLA
+            startSlaTime: slaBaseTime,
             responseDue,
             resolutionDue
         },

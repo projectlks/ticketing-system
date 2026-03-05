@@ -298,8 +298,17 @@ export function useTicketForm({
             method: "POST",
             body: fd,
         });
-        const data = await res.json();
-        return data.urls as string[];
+        const data = (await res.json()) as {
+            success?: boolean;
+            urls?: string[];
+            message?: string;
+        };
+
+        if (!res.ok || !data.success || !Array.isArray(data.urls)) {
+            throw new Error(data.message ?? "Failed to upload images.");
+        }
+
+        return data.urls;
     };
 
 
@@ -370,8 +379,6 @@ export function useTicketForm({
                 );
 
                 const { urlsToDelete } = await updateTicket(ticket.id, fd);
-
-                console.log("URLs to delete:", urlsToDelete);
 
                 await Promise.all(
                     urlsToDelete.map((url) => {

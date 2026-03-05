@@ -57,6 +57,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       "/helpdesk/category",
       "/helpdesk/department",
       "/helpdesk/user",
+      "/helpdesk/profile",
     ] as const;
 
     void Promise.all(

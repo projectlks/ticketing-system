@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import type { Route } from "next";
 
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Terms modal ထဲမှာ အဓိကပြမယ့် စည်းကမ်းချက်များ
 const TERMS_ITEMS = [
@@ -27,10 +28,35 @@ const PROHIBITED_ACTIONS = [
 const TERMS_AGREEMENT_STORAGE_KEY = "ticketing_terms_agreed";
 const MAIN_AGREEMENT_CHECKBOX_ID = "signin-terms-agreement";
 const MODAL_AGREEMENT_CHECKBOX_ID = "terms-modal-agreement";
+const DEFAULT_HELPDESK_CALLBACK_URL = "/helpdesk";
 
 function getInitialAgreementState(): boolean {
   if (typeof window === "undefined") return false;
   return sessionStorage.getItem(TERMS_AGREEMENT_STORAGE_KEY) === "true";
+}
+
+function resolveSafeCallbackUrl(rawCallbackUrl: string | null): string {
+  if (!rawCallbackUrl) return DEFAULT_HELPDESK_CALLBACK_URL;
+  if (!rawCallbackUrl.startsWith("/") || rawCallbackUrl.startsWith("//")) {
+    return DEFAULT_HELPDESK_CALLBACK_URL;
+  }
+  return rawCallbackUrl;
+}
+
+function resolveSafePostSignInRoute(rawUrl: string | null | undefined): string {
+  if (!rawUrl) return DEFAULT_HELPDESK_CALLBACK_URL;
+  if (rawUrl.startsWith("/") && !rawUrl.startsWith("//")) return rawUrl;
+
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.pathname.startsWith("/helpdesk")) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    return DEFAULT_HELPDESK_CALLBACK_URL;
+  }
+
+  return DEFAULT_HELPDESK_CALLBACK_URL;
 }
 
 export default function SignInPage() {
@@ -44,6 +70,7 @@ export default function SignInPage() {
   // Sign in page ပေါ်က main agreement state (submit enable/disable အတွက်သုံး)
   const [hasAgreed, setHasAgreed] = useState(getInitialAgreementState);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Login form input state
   const [data, setData] = useState<{
@@ -176,7 +203,7 @@ export default function SignInPage() {
       redirect: false,
       email: data.email,
       password: data.password,
-      callbackUrl: "/helpdesk",
+      callbackUrl: resolveSafeCallbackUrl(searchParams.get("callbackUrl")),
     });
 
     setLoading(false);
@@ -187,7 +214,7 @@ export default function SignInPage() {
         response: res.error,
       }));
     } else if (res?.ok) {
-      router.push(`/helpdesk`);
+      router.push(resolveSafePostSignInRoute(res.url) as Route);
     }
   };
 

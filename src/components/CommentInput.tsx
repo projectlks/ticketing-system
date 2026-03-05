@@ -76,11 +76,16 @@ export default function CommentInput({
       body: formData,
     });
 
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
+    const payload = (await response.json()) as {
+      success?: boolean;
+      urls?: string[];
+      message?: string;
+    };
+
+    if (!response.ok || !payload.success || !Array.isArray(payload.urls) || !payload.urls[0]) {
+      throw new Error(payload.message ?? "Upload failed");
     }
 
-    const payload = await response.json();
     return payload.urls[0];
   };
 

@@ -7,6 +7,7 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { signOut, useSession } from "next-auth/react";
+import Link from "next/link";
 
 import Avatar from "./Avatar";
 import { useUserData } from "@/context/UserProfileContext";
@@ -20,7 +21,8 @@ export default function UserMenu() {
 
   const displayName = userData?.name || session?.user?.name || "Loading...";
   const displayEmail = userData?.email || session?.user?.email || "Loading...";
-  const displayProfileUrl = userData?.profileUrl || session?.user?.image || null;
+  const displayProfileUrl =
+    userData?.profileUrl || session?.user?.picture || session?.user?.image || null;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,14 +61,14 @@ export default function UserMenu() {
           </div>
 
           <div className="mt-3 space-y-1">
-            {/* <button
-              type="button"
+            <Link
+              href="/helpdesk/profile"
               onClick={() => setDropdownOpen(false)}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
             >
               <PencilSquareIcon className="h-4 w-4" />
-              Edit profile
-            </button> */}
+              My profile
+            </Link>
 
             <button
               type="button"

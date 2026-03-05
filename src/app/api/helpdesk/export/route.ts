@@ -193,8 +193,18 @@ export async function GET(req: NextRequest) {
       lower.includes("status") ||
       lower.includes("priority");
 
+    if (!isValidationError) {
+      console.error("[helpdesk-export] failed", {
+        message,
+        failedAt: new Date().toISOString(),
+      });
+    }
+
     return NextResponse.json(
-      { success: false, message },
+      {
+        success: false,
+        message: isValidationError ? message : "Failed to export tickets",
+      },
       { status: isValidationError ? 400 : 500 },
     );
   }

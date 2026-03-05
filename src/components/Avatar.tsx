@@ -31,6 +31,7 @@ const Avatar: React.FC<AvatarProps> = ({ name, size = 40, className = "", profil
                     alt={name || "User Avatar"}
                     fill
                     className="object-cover rounded-full"
+                    unoptimized
                 />
             </div>
         );

@@ -3,7 +3,8 @@ import { Priority, ZabbixStatus } from "@/generated/prisma/client";
 import { prisma } from "@/libs/prisma";
 
 const DEFAULT_CUSTOMER_EMAIL = "support@eastwindmyanmar.com.mm";
-const LOCAL_CREATE_TICKET_URL = "http://10.2.10.16/api/create-ticket";
+const LOCAL_CREATE_TICKET_URL =
+  process.env.LOCAL_CREATE_TICKET_URL?.trim() || "http://127.0.0.1:3000/api/create-ticket";
 
 type WebhookTag = {
   tag: string;
@@ -519,6 +520,8 @@ async function syncOtrsTicket(context: NormalizedWebhookContext): Promise<OtrsSy
 /* -------------------------------------------------------------------------- */
 
 export async function POST(req: NextRequest) {
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   try {
     const payload = (await req.json()) as WebhookPayload;
     const context = buildWebhookContext(payload);
@@ -549,13 +552,18 @@ export async function POST(req: NextRequest) {
     }
 
     console.error("[zabbix] webhook processing failed", {
+      requestId,
       message: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       failedAt: new Date().toISOString(),
     });
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
+      {
+        success: false,
+        error: "Internal server error",
+        requestId,
+      },
       { status: 500 },
     );
   }

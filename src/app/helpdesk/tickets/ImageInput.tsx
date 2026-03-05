@@ -75,8 +75,6 @@ export default function ImageUploader({
   const showEmptyState = previews.length === 0 && existingImages.length === 0;
 
 
-  console.log("existingImages.length:", existingImages.length);
-
   return (
     <section className="space-y-2">
       <p className="text-sm font-medium text-zinc-700">Attachments</p>
@@ -138,6 +136,7 @@ export default function ImageUploader({
                   width={420}
                   height={280}
                   className="aspect-square w-full object-cover"
+                  unoptimized
                 />
 
                 {/* Overlay */}
@@ -204,6 +203,7 @@ export default function ImageUploader({
                   width={420}
                   height={280}
                   className="aspect-square w-full object-cover"
+                  unoptimized
                 />
 
                 <div className="absolute inset-0 hidden items-center justify-center gap-3 bg-black/40 group-hover:flex">
