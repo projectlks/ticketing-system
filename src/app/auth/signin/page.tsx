@@ -24,6 +24,15 @@ const PROHIBITED_ACTIONS = [
   "Publishing company materials to third parties",
 ];
 
+const TERMS_AGREEMENT_STORAGE_KEY = "ticketing_terms_agreed";
+const MAIN_AGREEMENT_CHECKBOX_ID = "signin-terms-agreement";
+const MODAL_AGREEMENT_CHECKBOX_ID = "terms-modal-agreement";
+
+function getInitialAgreementState(): boolean {
+  if (typeof window === "undefined") return false;
+  return sessionStorage.getItem(TERMS_AGREEMENT_STORAGE_KEY) === "true";
+}
+
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,10 +42,7 @@ export default function SignInPage() {
   const [modalAgreementChecked, setModalAgreementChecked] = useState(false);
 
   // Sign in page ပေါ်က main agreement state (submit enable/disable အတွက်သုံး)
-  const [hasAgreed, setHasAgreed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("ticketing_terms_agreed") === "true";
-  });
+  const [hasAgreed, setHasAgreed] = useState(getInitialAgreementState);
   const router = useRouter();
 
   // Login form input state
@@ -80,6 +86,10 @@ export default function SignInPage() {
   // Terms link/checkbox click လုပ်ချိန် popup ဖွင့်
   const openTermsModal = () => {
     setModalAgreementChecked(hasAgreed);
+    setErrors((prev) => ({
+      ...prev,
+      agreement: "",
+    }));
     setShowTermsModal(true);
   };
 
@@ -91,7 +101,7 @@ export default function SignInPage() {
     if (!isChecked) {
       setHasAgreed(false);
       if (typeof window !== "undefined") {
-        sessionStorage.removeItem("ticketing_terms_agreed");
+        sessionStorage.removeItem(TERMS_AGREEMENT_STORAGE_KEY);
       }
       setErrors((prev) => ({
         ...prev,
@@ -109,7 +119,7 @@ export default function SignInPage() {
 
     setHasAgreed(true);
     if (typeof window !== "undefined") {
-      sessionStorage.setItem("ticketing_terms_agreed", "true");
+      sessionStorage.setItem(TERMS_AGREEMENT_STORAGE_KEY, "true");
     }
 
     setErrors((prev) => ({
@@ -166,7 +176,7 @@ export default function SignInPage() {
       redirect: false,
       email: data.email,
       password: data.password,
-      callbackUrl: "/helpesk",
+      callbackUrl: "/helpdesk",
     });
 
     setLoading(false);
@@ -271,29 +281,31 @@ export default function SignInPage() {
 
                 {/* Agreement checkbox row + terms modal trigger */}
                 <div>
-                  <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-700">
+                  <div className="flex items-start gap-2 text-sm text-zinc-700">
                     <input
+                      id={MAIN_AGREEMENT_CHECKBOX_ID}
                       type="checkbox"
                       checked={hasAgreed}
                       onChange={handleMainAgreementToggle}
                       disabled={loading}
                       className="mt-0.5 accent-zinc-900"
                     />
-                    <span>
-                      I agree to the{" "}
+                    <div>
+                      <label
+                        htmlFor={MAIN_AGREEMENT_CHECKBOX_ID}
+                        className="cursor-pointer"
+                      >
+                        I agree to the{" "}
+                      </label>
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openTermsModal();
-                        }}
+                        onClick={openTermsModal}
                         className="font-semibold underline underline-offset-2 hover:text-blue-700"
                       >
                         Terms and Conditions
                       </button>
-                    </span>
-                  </label>
+                    </div>
+                  </div>
                   {errors.agreement && (
                     <p className="mt-1 text-xs text-red-500">{errors.agreement}</p>
                   )}
@@ -388,8 +400,12 @@ export default function SignInPage() {
 
             {/* Modal footer: agreement checkbox + action buttons */}
             <footer className="border-t border-zinc-200 px-6 py-4">
-              <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-700">
+              <label
+                htmlFor={MODAL_AGREEMENT_CHECKBOX_ID}
+                className="flex cursor-pointer items-start gap-2 text-sm text-zinc-700"
+              >
                 <input
+                  id={MODAL_AGREEMENT_CHECKBOX_ID}
                   type="checkbox"
                   checked={modalAgreementChecked}
                   onChange={(e) => setModalAgreementChecked(e.target.checked)}
