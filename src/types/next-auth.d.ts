@@ -1,5 +1,7 @@
 // types/next-auth.d.ts
-import NextAuth from "next-auth";
+import "next-auth";
+
+type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
 
 declare module "next-auth" {
   interface Session {
@@ -8,7 +10,7 @@ declare module "next-auth" {
       name: string | null;
       email: string | null;
       image?: string | null;     // NextAuth default avatar field
-      role: string;
+      role: AppRole | "";
       picture?: string | null;   // optional, custom profile URL
     };
   }
@@ -18,7 +20,7 @@ declare module "next-auth" {
     name: string | null;
     email: string | null;
     password?: string;          // optional, only for credentials login
-    role: string;
+    role: AppRole;
     profileUrl?: string | null; // optional, your stored avatar
   }
 }
@@ -28,7 +30,7 @@ declare module "next-auth/jwt" {
     id: string;
     name: string | null;
     email: string | null;
-    role: string;
+    role?: AppRole;
     picture?: string | null;   // optional, carry profile URL through JWT
   }
 }

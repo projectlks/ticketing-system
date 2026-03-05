@@ -64,6 +64,8 @@ import type { NextAuthOptions } from "next-auth";
 import bcrypt from "bcrypt";
 import { prisma } from "./prisma";
 
+type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
+
 
 
 
@@ -99,14 +101,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        token.role = user.role as AppRole;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = (token.role as AppRole | undefined) ?? "LEVEL_1";
       }
       return session;
     },

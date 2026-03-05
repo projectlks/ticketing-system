@@ -1,9 +1,9 @@
 "use server";
 
 import { Priority, Status } from "@/generated/prisma/client";
+import dayjs from "@/libs/dayjs";
 import { prisma } from "@/libs/prisma";
 import { getOrSetCache } from "@/libs/redis-cache";
-import { formatDistanceToNow } from "date-fns";
 
 import {
   HELPDESK_CACHE_TTL_SECONDS,
@@ -207,7 +207,7 @@ export async function getAnalysisDashboardData(
         department: ticket.department?.name ?? "Unassigned",
         priority: toPriorityLevel(ticket.priority),
         status: toTicketStatus(ticket.status),
-        created: formatDistanceToNow(ticket.createdAt, { addSuffix: true }),
+        created: dayjs(ticket.createdAt).fromNow(),
       }));
 
       const kpi: AnalysisKpi = {

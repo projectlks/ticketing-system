@@ -7,7 +7,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useSession } from "next-auth/react";
+import React, { useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { z } from "zod";
@@ -15,7 +16,7 @@ import { z } from "zod";
 import { createUser } from "../action";
 import { departmentNamesQueryOptions } from "../../queries/query-options";
 
-const RoleEnum = z.enum(["ADMIN", "REQUESTER", "AGENT", "SUPER_ADMIN"]);
+const RoleEnum = z.enum(["LEVEL_1", "LEVEL_2", "LEVEL_3", "SUPER_ADMIN"]);
 
 const UserSchema = z.object({
   name: z.string().min(5, "Name must be at least 5 letters"),
@@ -29,12 +30,16 @@ type FormType = z.infer<typeof UserSchema>;
 
 type FormErrors = Partial<Record<keyof FormType, string>>;
 
-const ROLE_OPTIONS: Array<FormType["role"]> = [
-  "REQUESTER",
-  "AGENT",
-  "ADMIN",
-  "SUPER_ADMIN",
+const BASE_ROLE_OPTIONS: Array<{ value: FormType["role"]; label: string }> = [
+  { value: "LEVEL_1", label: "LEVEL 1 (Requester)" },
+  { value: "LEVEL_2", label: "LEVEL 2 (Agent)" },
+  { value: "LEVEL_3", label: "LEVEL 3 (Admin)" },
 ];
+
+const SUPER_ADMIN_OPTION: { value: FormType["role"]; label: string } = {
+  value: "SUPER_ADMIN",
+  label: "SUPER ADMIN",
+};
 
 const inputClass =
   "h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200";
@@ -46,17 +51,30 @@ const initialForm: FormType = {
   email: "",
   password: "",
   department: "",
-  role: "REQUESTER",
+  role: "LEVEL_1",
 };
 
 export default function UserForm() {
+  const { data: session } = useSession();
   const [form, setForm] = useState<FormType>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
+  const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(
+    null,
+  );
   const departmentsQuery = useQuery(departmentNamesQueryOptions());
   const departments = departmentsQuery.data ?? [];
   const isDepartmentLoading = departmentsQuery.isLoading;
+  const canAssignSuperAdmin = session?.user.role === "SUPER_ADMIN";
+
+  const visibleRoleOptions = useMemo(() => {
+    // SUPER_ADMIN role assign UI ကို SUPER_ADMIN user တွေသာ မြင်နိုင်အောင် ခွဲထားပါတယ်။
+    if (canAssignSuperAdmin) {
+      return [...BASE_ROLE_OPTIONS, SUPER_ADMIN_OPTION];
+    }
+
+    return BASE_ROLE_OPTIONS;
+  }, [canAssignSuperAdmin]);
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -103,7 +121,8 @@ export default function UserForm() {
       toast.success("User created.");
       handleReset();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create user.";
+      const message =
+        error instanceof Error ? error.message : "Failed to create user.";
       toast.error(message);
       setServerErrorMessage(message);
     } finally {
@@ -142,8 +161,7 @@ export default function UserForm() {
 
             <Link
               href="/helpdesk/user"
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
-            >
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100">
               <ArrowLeftIcon className="h-3.5 w-3.5" />
               Back to Users
             </Link>
@@ -151,20 +169,20 @@ export default function UserForm() {
 
           {/* Header chip တွေက create flow မှာလိုအပ်တဲ့ field map ကိုကြိုပြထားလို့
               form ဖောင့်အောက်ထိ scroll မလုပ်ခင် user expectation ကိုတိတိကျကျပေးနိုင်ပါတယ်။ */}
-          <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] [font-family:ui-monospace,SFMono-Regular,Menlo,monospace]">
+          <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-[ui-monospace,SFMono-Regular,Menlo,monospace]">
             <span className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-zinc-700">
               fields: name email password department role
             </span>
             <span className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-zinc-500">
-              department: {isDepartmentLoading ? "loading..." : departments.length}
+              department:{" "}
+              {isDepartmentLoading ? "loading..." : departments.length}
             </span>
           </div>
         </header>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5"
-        >
+          className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
           {mergedErrorMessage && (
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
@@ -186,7 +204,9 @@ export default function UserForm() {
                 placeholder="Enter full name"
                 autoComplete="name"
               />
-              {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
+              {errors.name && (
+                <p className="text-xs text-red-600">{errors.name}</p>
+              )}
             </label>
 
             <label className="space-y-1">
@@ -202,7 +222,9 @@ export default function UserForm() {
                 placeholder="name@company.com"
                 autoComplete="email"
               />
-              {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-xs text-red-600">{errors.email}</p>
+              )}
             </label>
 
             <label className="space-y-1">
@@ -218,7 +240,9 @@ export default function UserForm() {
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
               />
-              {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
+              {errors.password && (
+                <p className="text-xs text-red-600">{errors.password}</p>
+              )}
             </label>
 
             <label className="space-y-1">
@@ -231,10 +255,11 @@ export default function UserForm() {
                   value={form.department}
                   onChange={handleChange}
                   className={`${selectClass} ${errors.department ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
-                  disabled={isDepartmentLoading}
-                >
+                  disabled={isDepartmentLoading}>
                   <option value="">
-                    {isDepartmentLoading ? "Loading departments..." : "Select Department"}
+                    {isDepartmentLoading
+                      ? "Loading departments..."
+                      : "Select Department"}
                   </option>
                   {departments.map((department) => (
                     <option key={department.id} value={department.id}>
@@ -256,16 +281,16 @@ export default function UserForm() {
               <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
                 Role
               </span>
+              {/* User create UI အတွက် role dropdown ကို schema role အသစ်နဲ့ တိတိကျကျချိတ်ထားပါတယ် */}
               <div className="relative">
                 <select
                   name="role"
                   value={form.role}
                   onChange={handleChange}
-                  className={`${selectClass} ${errors.role ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
-                >
-                  {ROLE_OPTIONS.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
+                  className={`${selectClass} ${errors.role ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}>
+                  {visibleRoleOptions.map((roleOption) => (
+                    <option key={roleOption.value} value={roleOption.value}>
+                      {roleOption.label}
                     </option>
                   ))}
                 </select>
@@ -274,7 +299,9 @@ export default function UserForm() {
                   className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
                 />
               </div>
-              {errors.role && <p className="text-xs text-red-600">{errors.role}</p>}
+              {errors.role && (
+                <p className="text-xs text-red-600">{errors.role}</p>
+              )}
             </label>
           </div>
 
@@ -288,15 +315,13 @@ export default function UserForm() {
                 type="button"
                 onClick={handleReset}
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
+                className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50">
                 Reset
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
+                className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50">
                 {submitting ? "Creating..." : "Create User"}
               </button>
             </div>

@@ -4,6 +4,8 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/libs/prisma";
 import bcrypt from "bcrypt";
 
+type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
+
 
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -49,7 +51,7 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        token.role = user.role as AppRole;
         token.picture = user.profileUrl || null;
         token.name = user.name || null;
         token.email = user.email || null;
@@ -60,7 +62,7 @@ const handler = NextAuth({
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = (token.role as AppRole | undefined) ?? "LEVEL_1";
         session.user.picture = token.picture as string | null;
         session.user.name = token.name as string | null;
         session.user.email = token.email as string | null;

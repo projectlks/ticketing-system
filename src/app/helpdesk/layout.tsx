@@ -27,7 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
 
   const canAccessConfiguration =
-    session?.user.role === "SUPER_ADMIN" || session?.user.role === "ADMIN";
+    session?.user.role === "SUPER_ADMIN" || session?.user.role === "LEVEL_3";
 
   const visibleSections = useMemo(
     () => getVisibleSections(navSections, canAccessConfiguration),

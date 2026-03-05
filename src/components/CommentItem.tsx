@@ -1,7 +1,7 @@
 // "use client";
 
 // import Image from "next/image";
-// import moment from "moment";
+// import dayjs from "@/libs/dayjs";
 // import React, { useState } from "react";
 // import {
 //   ChatBubbleOvalLeftEllipsisIcon,
@@ -79,7 +79,7 @@
 //               {comment.commenter?.name ?? "Unknown"}
 //             </p>
 //             <p className="text-xs text-zinc-500">
-//               {moment(comment.createdAt).fromNow()}
+//               {dayjs(comment.createdAt).fromNow()}
 //             </p>
 //           </div>
 //           <p className="truncate text-[11px] text-zinc-500">
@@ -174,7 +174,7 @@
 "use client";
 
 import Image from "next/image";
-import moment from "moment";
+import dayjs from "@/libs/dayjs";
 import React, { useState } from "react";
 import {
   ChatBubbleOvalLeftEllipsisIcon,
@@ -258,7 +258,7 @@ export default function CommentItem({
                 {comment.commenter?.name ?? "Unknown"}
               </p>
               <p className="text-xs text-zinc-500">
-                {moment(comment.createdAt).fromNow()}
+                {dayjs(comment.createdAt).fromNow()}
               </p>
             </div>
 

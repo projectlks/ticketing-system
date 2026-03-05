@@ -7,6 +7,7 @@ import {
 } from "@heroicons/react/24/outline";
 import type { Role } from "@/generated/prisma/client";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -14,7 +15,7 @@ import { z } from "zod";
 
 import { updateUser } from "../action";
 
-const RoleEnum = z.enum(["ADMIN", "REQUESTER", "AGENT", "SUPER_ADMIN"]);
+const RoleEnum = z.enum(["LEVEL_1", "LEVEL_2", "LEVEL_3", "SUPER_ADMIN"]);
 
 const UserSchema = z.object({
   id: z.string(),
@@ -44,12 +45,16 @@ type EditUserFormProps = {
   departments: { id: string; name: string }[];
 };
 
-const ROLE_OPTIONS: Array<FormValues["role"]> = [
-  "REQUESTER",
-  "AGENT",
-  "ADMIN",
-  "SUPER_ADMIN",
+const BASE_ROLE_OPTIONS: Array<{ value: FormValues["role"]; label: string }> = [
+  { value: "LEVEL_1", label: "LEVEL_1 (Requester)" },
+  { value: "LEVEL_2", label: "LEVEL_2 (Agent)" },
+  { value: "LEVEL_3", label: "LEVEL_3 (Admin)" },
 ];
+
+const SUPER_ADMIN_OPTION: { value: FormValues["role"]; label: string } = {
+  value: "SUPER_ADMIN",
+  label: "SUPER_ADMIN",
+};
 
 const inputClass =
   "h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200";
@@ -57,6 +62,7 @@ const inputClass =
 const selectClass = `${inputClass} appearance-none pr-10`;
 
 export default function EditUserForm({ user, departments }: EditUserFormProps) {
+  const { data: session } = useSession();
   const initialForm = useMemo<FormValues>(
     () => ({
       id: user.id,
@@ -73,6 +79,19 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
+  const canManageSuperAdminRole = session?.user.role === "SUPER_ADMIN";
+
+  const visibleRoleOptions = useMemo(() => {
+    // SUPER_ADMIN role manage UI ကို SUPER_ADMIN user ကပဲမြင်ပြီး ပြင်နိုင်အောင် ခွဲထားပါတယ်။
+    if (canManageSuperAdminRole || form.role === "SUPER_ADMIN") {
+      return [...BASE_ROLE_OPTIONS, SUPER_ADMIN_OPTION];
+    }
+
+    return BASE_ROLE_OPTIONS;
+  }, [canManageSuperAdminRole, form.role]);
+
+  const isRoleSelectLocked =
+    !canManageSuperAdminRole && form.role === "SUPER_ADMIN";
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -266,16 +285,18 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
               <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
                 Role
               </span>
+              {/* Edit user UI မှာ role select က database role enum နဲ့ one-to-one map ဖြစ်အောင်ထားပါတယ် */}
               <div className="relative">
                 <select
                   name="role"
                   value={form.role}
                   onChange={handleChange}
+                  disabled={isRoleSelectLocked}
                   className={`${selectClass} ${errors.role ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
                 >
-                  {ROLE_OPTIONS.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
+                  {visibleRoleOptions.map((roleOption) => (
+                    <option key={roleOption.value} value={roleOption.value}>
+                      {roleOption.label}
                     </option>
                   ))}
                 </select>
@@ -284,6 +305,11 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
                   className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
                 />
               </div>
+              {isRoleSelectLocked && (
+                <p className="text-xs text-zinc-500">
+                  SUPER_ADMIN role ကို SUPER_ADMIN user ပဲ ပြင်ဆင်နိုင်ပါတယ်။
+                </p>
+              )}
               {errors.role && <p className="text-xs text-red-600">{errors.role}</p>}
             </label>
           </div>

@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('REQUESTER', 'AGENT', 'ADMIN', 'SUPER_ADMIN');
+CREATE TYPE "Role" AS ENUM ('LEVEL_1', 'LEVEL_2', 'LEVEL_3', 'SUPER_ADMIN');
 
 -- CreateEnum
 CREATE TYPE "Priority" AS ENUM ('REQUEST', 'MINOR', 'MAJOR', 'CRITICAL');
@@ -11,7 +11,39 @@ CREATE TYPE "Status" AS ENUM ('NEW', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'
 CREATE TYPE "Severity" AS ENUM ('INFORMATION', 'WARNING', 'AVERAGE', 'HIGH', 'DISASTER');
 
 -- CreateEnum
+CREATE TYPE "CreationMode" AS ENUM ('MANUAL', 'AUTOMATIC');
+
+-- CreateEnum
+CREATE TYPE "ZabbixStatus" AS ENUM ('PROBLEM', 'RESOLVED');
+
+-- CreateEnum
 CREATE TYPE "AuditAction" AS ENUM ('CREATE', 'UPDATE', 'DELETE');
+
+-- CreateTable
+CREATE TABLE "ZabbixTicket" (
+    "id" SERIAL NOT NULL,
+    "eventid" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "clock" TIMESTAMP(3) NOT NULL,
+    "triggerId" TEXT NOT NULL,
+    "triggerName" TEXT,
+    "triggerDesc" TEXT,
+    "triggerStatus" TEXT,
+    "triggerSeverity" TEXT,
+    "hostName" TEXT NOT NULL,
+    "hostTag" TEXT,
+    "hostGroup" TEXT,
+    "itemId" TEXT,
+    "itemName" TEXT,
+    "itemDescription" TEXT,
+    "last5Values" TEXT,
+    "tags" TEXT,
+    "otrsTicketId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ZabbixTicket_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -19,7 +51,7 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
-    "role" "Role" NOT NULL DEFAULT 'REQUESTER',
+    "role" "Role" NOT NULL DEFAULT 'LEVEL_1',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "isArchived" BOOLEAN NOT NULL DEFAULT false,
@@ -54,7 +86,7 @@ CREATE TABLE "Ticket" (
     "title" VARCHAR(100) NOT NULL,
     "description" TEXT NOT NULL,
     "departmentId" TEXT,
-    "requesterId" TEXT NOT NULL,
+    "requesterId" TEXT,
     "status" "Status" NOT NULL DEFAULT 'NEW',
     "assignedToId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -66,6 +98,9 @@ CREATE TABLE "Ticket" (
     "categoryId" TEXT,
     "remark" TEXT,
     "isSlaViolated" BOOLEAN NOT NULL DEFAULT false,
+    "creationMode" "CreationMode" NOT NULL DEFAULT 'MANUAL',
+    "problemId" TEXT,
+    "zabbixStatus" "ZabbixStatus",
     "startSlaTime" TIMESTAMP(3),
     "responseDue" TIMESTAMP(3),
     "resolutionDue" TIMESTAMP(3),
@@ -76,7 +111,7 @@ CREATE TABLE "Ticket" (
 -- CreateTable
 CREATE TABLE "SLA" (
     "id" TEXT NOT NULL,
-    "priority" TEXT NOT NULL,
+    "priority" "Priority" NOT NULL,
     "responseTime" INTEGER NOT NULL,
     "resolutionTime" INTEGER NOT NULL,
     "rcaTime" INTEGER,
@@ -136,11 +171,9 @@ CREATE TABLE "audit" (
     "changedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "entity" TEXT NOT NULL,
     "entityId" TEXT NOT NULL,
-    "field" TEXT NOT NULL,
-    "oldValue" TEXT,
-    "newValue" TEXT,
     "userId" TEXT NOT NULL,
     "action" "AuditAction" NOT NULL,
+    "changes" JSONB,
 
     CONSTRAINT "audit_pkey" PRIMARY KEY ("id")
 );
@@ -157,21 +190,50 @@ CREATE TABLE "category" (
     CONSTRAINT "category_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "MailSetting" (
-    "id" TEXT NOT NULL,
-    "emails" TEXT[],
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+-- CreateIndex
+CREATE UNIQUE INDEX "ZabbixTicket_otrsTicketId_key" ON "ZabbixTicket"("otrsTicketId");
 
-    CONSTRAINT "MailSetting_pkey" PRIMARY KEY ("id")
-);
+-- CreateIndex
+CREATE INDEX "ZabbixTicket_eventid_idx" ON "ZabbixTicket"("eventid");
+
+-- CreateIndex
+CREATE INDEX "ZabbixTicket_status_idx" ON "ZabbixTicket"("status");
+
+-- CreateIndex
+CREATE INDEX "ZabbixTicket_clock_idx" ON "ZabbixTicket"("clock");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ZabbixTicket_triggerId_hostName_key" ON "ZabbixTicket"("triggerId", "hostName");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE INDEX "User_departmentId_idx" ON "User"("departmentId");
+
+-- CreateIndex
+CREATE INDEX "User_creatorId_idx" ON "User"("creatorId");
+
+-- CreateIndex
+CREATE INDEX "User_updaterId_idx" ON "User"("updaterId");
+
+-- CreateIndex
+CREATE INDEX "User_name_idx" ON "User"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "department_name_key" ON "department"("name");
+
+-- CreateIndex
+CREATE INDEX "department_creatorId_idx" ON "department"("creatorId");
+
+-- CreateIndex
+CREATE INDEX "department_updaterId_idx" ON "department"("updaterId");
+
+-- CreateIndex
+CREATE INDEX "department_createdAt_idx" ON "department"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Ticket_problemId_key" ON "Ticket"("problemId");
 
 -- CreateIndex
 CREATE INDEX "Ticket_departmentId_idx" ON "Ticket"("departmentId");
@@ -180,10 +242,67 @@ CREATE INDEX "Ticket_departmentId_idx" ON "Ticket"("departmentId");
 CREATE INDEX "Ticket_assignedToId_idx" ON "Ticket"("assignedToId");
 
 -- CreateIndex
+CREATE INDEX "Ticket_requesterId_idx" ON "Ticket"("requesterId");
+
+-- CreateIndex
+CREATE INDEX "Ticket_categoryId_idx" ON "Ticket"("categoryId");
+
+-- CreateIndex
+CREATE INDEX "Ticket_slaId_idx" ON "Ticket"("slaId");
+
+-- CreateIndex
+CREATE INDEX "Ticket_createdAt_idx" ON "Ticket"("createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "Ticket_updatedAt_idx" ON "Ticket"("updatedAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "Ticket_isSlaViolated_idx" ON "Ticket"("isSlaViolated");
+
+-- CreateIndex
+CREATE INDEX "Ticket_isArchived_status_createdAt_idx" ON "Ticket"("isArchived", "status", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "Ticket_assignedToId_isArchived_status_idx" ON "Ticket"("assignedToId", "isArchived", "status");
+
+-- CreateIndex
+CREATE INDEX "Ticket_requesterId_isArchived_status_idx" ON "Ticket"("requesterId", "isArchived", "status");
+
+-- CreateIndex
+CREATE INDEX "Ticket_departmentId_isArchived_status_idx" ON "Ticket"("departmentId", "isArchived", "status");
+
+-- CreateIndex
+CREATE INDEX "Ticket_assignedToId_isArchived_status_updatedAt_idx" ON "Ticket"("assignedToId", "isArchived", "status", "updatedAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "Ticket_priority_isArchived_status_idx" ON "Ticket"("priority", "isArchived", "status");
+
+-- CreateIndex
+CREATE INDEX "Ticket_creationMode_idx" ON "Ticket"("creationMode");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "SLA_priority_key" ON "SLA"("priority");
 
 -- CreateIndex
+CREATE INDEX "TicketImage_ticketId_idx" ON "TicketImage"("ticketId");
+
+-- CreateIndex
+CREATE INDEX "TicketView_userId_idx" ON "TicketView"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "TicketView_ticketId_userId_key" ON "TicketView"("ticketId", "userId");
+
+-- CreateIndex
+CREATE INDEX "Comment_ticketId_createdAt_idx" ON "Comment"("ticketId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Comment_parentId_idx" ON "Comment"("parentId");
+
+-- CreateIndex
+CREATE INDEX "Comment_commenterId_idx" ON "Comment"("commenterId");
+
+-- CreateIndex
+CREATE INDEX "CommentLike_userId_idx" ON "CommentLike"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "CommentLike_commentId_userId_key" ON "CommentLike"("commentId", "userId");
@@ -193,6 +312,24 @@ CREATE INDEX "audit_entity_entityId_idx" ON "audit"("entity", "entityId");
 
 -- CreateIndex
 CREATE INDEX "audit_changedAt_idx" ON "audit"("changedAt");
+
+-- CreateIndex
+CREATE INDEX "audit_entity_entityId_changedAt_idx" ON "audit"("entity", "entityId", "changedAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "audit_userId_idx" ON "audit"("userId");
+
+-- CreateIndex
+CREATE INDEX "category_departmentId_idx" ON "category"("departmentId");
+
+-- CreateIndex
+CREATE INDEX "category_departmentId_name_idx" ON "category"("departmentId", "name");
+
+-- CreateIndex
+CREATE INDEX "category_parentId_idx" ON "category"("parentId");
+
+-- CreateIndex
+CREATE INDEX "category_name_createdAt_idx" ON "category"("name", "createdAt" DESC);
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -213,7 +350,7 @@ ALTER TABLE "department" ADD CONSTRAINT "department_updaterId_fkey" FOREIGN KEY 
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_assignedToId_fkey" FOREIGN KEY ("assignedToId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

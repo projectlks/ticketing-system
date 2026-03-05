@@ -9,6 +9,8 @@ const ADMIN_ONLY_ROUTES = [
     "/helpdesk/user",
 ];
 
+const PRIVILEGED_ROLES = new Set(["LEVEL_3", "SUPER_ADMIN"]);
+
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
@@ -24,8 +26,7 @@ export async function middleware(req: NextRequest) {
         pathname.startsWith(route)
     );
 
-    const isAdmin =
-        token.role === "ADMIN" || token.role === "SUPER_ADMIN";
+    const isAdmin = PRIVILEGED_ROLES.has(String(token.role ?? ""));
 
     if (isAdminRoute && !isAdmin) {
         return NextResponse.redirect(

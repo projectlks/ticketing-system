@@ -9,9 +9,7 @@ import {
     invalidateCacheByPrefixes,
 } from "@/libs/redis-cache";
 import { z } from "zod";
-import { startOfDay, endOfDay } from "date-fns";
-
-import dayjs from 'dayjs';
+import dayjs from "@/libs/dayjs";
 import {
     HELPDESK_CACHE_PREFIXES,
     HELPDESK_CACHE_TTL_SECONDS,
@@ -57,13 +55,13 @@ const CLOSED_LIKE_STATUSES: Status[] = ["CLOSED", "RESOLVED", "CANCELED"];
 // "Today" ကို Myanmar timezone (+06:30) အတိုင်းတွက်ပြီး KPI count မှာ timezone mismatch မဖြစ်အောင် helper ထည့်ထားပါတယ်။
 const MYANMAR_OFFSET_MS = (6 * 60 + 30) * 60 * 1000;
 const getMyanmarDayRange = (baseDate = new Date()) => {
-    const shifted = new Date(baseDate.getTime() + MYANMAR_OFFSET_MS);
-    const startShifted = startOfDay(shifted);
-    const endShifted = endOfDay(shifted);
+    const shifted = dayjs(baseDate.getTime() + MYANMAR_OFFSET_MS);
+    const startShifted = shifted.startOf("day");
+    const endShifted = shifted.endOf("day");
 
     return {
-        start: new Date(startShifted.getTime() - MYANMAR_OFFSET_MS),
-        end: new Date(endShifted.getTime() - MYANMAR_OFFSET_MS),
+        start: new Date(startShifted.valueOf() - MYANMAR_OFFSET_MS),
+        end: new Date(endShifted.valueOf() - MYANMAR_OFFSET_MS),
     };
 };
 
@@ -89,7 +87,7 @@ export type SingleTicket = {
 }
 
 
-async function generateTicketId(): Promise<string> {
+export async function generateTicketId(): Promise<string> {
     const now = new Date();
     const year = now.getFullYear(); // 2025
     const month = (now.getMonth() + 1).toString().padStart(2, '0'); // 08

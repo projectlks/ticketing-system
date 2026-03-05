@@ -1,404 +1,562 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Priority, ZabbixStatus } from "@/generated/prisma/client";
 import { prisma } from "@/libs/prisma";
 
+const DEFAULT_CUSTOMER_EMAIL = "support@eastwindmyanmar.com.mm";
+const LOCAL_CREATE_TICKET_URL = "http://127.0.0.1:3000/api/create-ticket";
 
 type WebhookTag = {
-    tag: string;
-    value: string;
+  tag: string;
+  value: string;
 };
 
 type WebhookEvent = {
-    id: string;
-    status?: string;
-    value?: string;
-    datetime?: string;
+  id: string;
+  status?: string;
+  value?: string;
+  datetime?: string;
 };
 
 type WebhookTrigger = {
-    id?: string;
-    name?: string;
-    description?: string;
-    status?: string;
-    severity?: string;
+  id?: string;
+  name?: string;
+  description?: string;
+  status?: string;
+  severity?: string;
 };
 
 type WebhookHost = {
-    id?: string;
-    name?: string;
-    ip?: string;
-    group?: string;
-    inventory_tag?: string;
+  id?: string;
+  name?: string;
+  ip?: string;
+  group?: string;
+  inventory_tag?: string;
 };
 
 type WebhookItem = {
-    id?: string;
-    name?: string;
-    key?: string;
-    value?: string;
+  id?: string;
+  name?: string;
+  key?: string;
+  value?: string;
 };
 
 type WebhookPayload = {
-    event: WebhookEvent;
-    trigger?: WebhookTrigger;
-    host?: WebhookHost;
-    item?: WebhookItem;
-    tags?: WebhookTag[] | string;
+  event: WebhookEvent;
+  trigger?: WebhookTrigger;
+  host?: WebhookHost;
+  item?: WebhookItem;
+  tags?: WebhookTag[] | string;
 };
 
 type CreateTicketResponse = {
-    action?: "created" | "updated" | "skipped" | "failed";
-    ticketId?: string | number;
-    error?: string;
-    reason?: string;
-    otrsError?: {
-        code?: string | null;
-        message?: string;
+  action?: "created" | "updated" | "skipped" | "failed";
+  ticketId?: string | number;
+  error?: string;
+  reason?: string;
+  otrsError?: {
+    code?: string | null;
+    message?: string;
+  };
+  data?: {
+    TicketID?: string | number;
+    Error?: {
+      ErrorMessage?: string;
+      ErrorCode?: string;
     };
-    data?: {
-        TicketID?: string | number;
-        Error?: {
-            ErrorMessage?: string;
-            ErrorCode?: string;
-        };
-    };
+  };
 };
 
+type CreateTicketCallResult = {
+  url: string;
+  status: number;
+  data: CreateTicketResponse;
+};
+
+type OtrsSyncResult =
+  | { action: "ok" }
+  | {
+      action: "skipped";
+      reason: string | null;
+    };
+
+type NormalizedWebhookContext = {
+  event: WebhookEvent;
+  trigger: WebhookTrigger;
+  host: WebhookHost;
+  item: WebhookItem;
+  normalizedTriggerId: string;
+  normalizedHostName: string;
+  clock: Date;
+  status: "0" | "1";
+  tagsString: string | null;
+  last5Values: string | null;
+  problemId: string;
+  internalPriority: Priority;
+};
+
+class RequestValidationError extends Error {
+  status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = "RequestValidationError";
+    this.status = status;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         Generic normalization helpers                        */
+/* -------------------------------------------------------------------------- */
+
+// OTRS API response ထဲက TicketID field ဟာ number/string အမျိုးမျိုးပြန်လာနိုင်လို့
+// DB ထဲသိမ်းမယ့်အချိန် string တစ်မျိုးတည်းပဲအသုံးပြုနိုင်အောင် normalize လုပ်ထားသည်။
 function normalizeTicketId(value: unknown): string | null {
-    if (typeof value === "number" && Number.isFinite(value)) {
-        return String(value);
-    }
-    if (typeof value === "string" && value.trim()) {
-        return value.trim();
-    }
-    return null;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return null;
 }
 
+// Null/empty string များကြောင့် composite key မပျက်စီးအောင် fallback ဖြင့် normalize လုပ်သည်။
+function normalizeRequiredText(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : fallback;
+}
+
+// Zabbix datetime format (`YYYY.MM.DD HH:mm:ss`) နဲ့ ISO format နှစ်မျိုးလုံးကို လက်ခံပြီး
+// DB Date column အတွက် canonical Date object ပြောင်းပေးသည်။
 function parseWebhookDatetime(value: string | undefined): Date | null {
-    if (!value) {
-        return new Date();
-    }
+  if (!value) return new Date();
 
-    const direct = new Date(value);
-    if (!Number.isNaN(direct.getTime())) {
-        return direct;
-    }
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) return direct;
 
-    const matched = value.match(/^(\d{4})\.(\d{2})\.(\d{2})\s?(\d{2}:\d{2}:\d{2})$/);
-    if (!matched) {
-        return null;
-    }
+  const matched = value.match(/^(\d{4})\.(\d{2})\.(\d{2})\s?(\d{2}:\d{2}:\d{2})$/);
+  if (!matched) return null;
 
-    const [, year, month, day, time] = matched;
-    const normalized = `${year}-${month}-${day}T${time}Z`;
-    const reparsed = new Date(normalized);
-    return Number.isNaN(reparsed.getTime()) ? null : reparsed;
+  const [, year, month, day, time] = matched;
+  const normalized = `${year}-${month}-${day}T${time}Z`;
+  const reparsed = new Date(normalized);
+
+  return Number.isNaN(reparsed.getTime()) ? null : reparsed;
 }
+
+function normalizeTags(tags: WebhookPayload["tags"]): string | null {
+  if (Array.isArray(tags)) {
+    return tags.map((entry) => `${entry.tag}:${entry.value}`).join(",");
+  }
+
+  if (typeof tags === "string") return tags;
+  return null;
+}
+
+function mapSeverityToPriority(severity: string | undefined): Priority {
+  switch (severity?.toLowerCase()) {
+    case "disaster":
+    case "high":
+      return "CRITICAL";
+    case "average":
+      return "MAJOR";
+    case "warning":
+      return "MINOR";
+    default:
+      return "REQUEST";
+  }
+}
+
+function mapSeverityToOtrsPriorityLabel(severity: string | undefined): string {
+  const severityMap: Record<string, string> = {
+    Disaster: "1 Critical",
+    High: "2 High",
+    Average: "3 Medium",
+    Warning: "4 Low",
+    Information: "5 Very Low",
+  };
+
+  return severity ? (severityMap[severity] ?? "3 Medium") : "3 Medium";
+}
+
+/* -------------------------------------------------------------------------- */
+/*                    Request parsing + validation layer                        */
+/* -------------------------------------------------------------------------- */
+
+// POST route တစ်လမ်းလုံးအသုံးပြုမယ့် "single source of truth" context ကိုတည်ဆောက်သည်။
+// ဒီ function မှာ validation/normalization ပြီးသွားတာကြောင့် နောက်ပိုင်း helper များတွင်
+// duplicate null-check မလိုတော့ဘဲ logic ရှင်းလင်းစေသည်။
+function buildWebhookContext(payload: WebhookPayload): NormalizedWebhookContext {
+  const event = payload.event;
+  const trigger = payload.trigger ?? {};
+  const host = payload.host ?? {};
+  const item = payload.item ?? {};
+
+  if (!event?.id) {
+    throw new RequestValidationError("Missing event id");
+  }
+
+  const clock = parseWebhookDatetime(event.datetime);
+  if (!clock) {
+    throw new RequestValidationError("Invalid event datetime");
+  }
+
+  const normalizedTriggerId = normalizeRequiredText(trigger.id, `unknown-trigger-${event.id}`);
+  const normalizedHostName = normalizeRequiredText(host.name, "unknown-host");
+
+  const status: "0" | "1" =
+    event.status?.toLowerCase() === "resolved" || event.value === "0" ? "1" : "0";
+
+  const tagsString = normalizeTags(payload.tags);
+  const last5Values = item.value ? `1: ${item.value} (${item.name ?? ""})` : null;
+
+  return {
+    event,
+    trigger,
+    host,
+    item,
+    normalizedTriggerId,
+    normalizedHostName,
+    clock,
+    status,
+    tagsString,
+    last5Values,
+    problemId: `zabbix-${event.id}`,
+    internalPriority: mapSeverityToPriority(trigger.severity),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       DB sync helpers (Zabbix + Ticket)                      */
+/* -------------------------------------------------------------------------- */
+
+// Webhook ကနေ auto-create ဖြစ်လာတဲ့ ticket တွေကို ဘယ် user အောက်မှာပိုင်မလဲဆိုတာ
+// သတ်မှတ်ပေးသည့် policy function ဖြစ်သည်။
+async function resolveAutomationRequesterId(): Promise<string | null> {
+  // Resolution order is explicit so future maintainers can reason about
+  // who owns auto-generated tickets without reading several files.
+  const configuredEmail = process.env.AUTOMATION_REQUESTER_EMAIL?.trim().toLowerCase();
+  const candidateEmails = [configuredEmail, DEFAULT_CUSTOMER_EMAIL].filter(
+    (value): value is string => Boolean(value),
+  );
+
+  for (const email of candidateEmails) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, isArchived: true },
+    });
+
+    if (user && !user.isArchived) return user.id;
+  }
+
+  const activeSuperAdmin = await prisma.user.findFirst({
+    where: { role: "SUPER_ADMIN", isArchived: false },
+    select: { id: true },
+  });
+  if (activeSuperAdmin) return activeSuperAdmin.id;
+
+  const firstActiveUser = await prisma.user.findFirst({
+    where: { isArchived: false },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return firstActiveUser?.id ?? null;
+}
+
+async function generateTicketIdForWebhook(): Promise<string> {
+  // Local generator keeps webhook route independent from server action modules.
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  const count = await prisma.ticket.count({
+    where: {
+      createdAt: {
+        gte: new Date(year, now.getMonth(), 1),
+        lt: new Date(year, now.getMonth() + 1, 1),
+      },
+    },
+  });
+
+  const ticketNumber = String(count + 1).padStart(3, "0");
+  return `TKT-${year}-${month}-${ticketNumber}`;
+}
+
+// Zabbix raw event snapshot ကို unique key (triggerId + hostName) အလိုက် upsert လုပ်သည်။
+// Monitoring source data ကို historical syncing အတွက် stable ဖြစ်အောင်ဦးစားပေးထားသည်။
+async function upsertZabbixSnapshot(context: NormalizedWebhookContext) {
+  await prisma.zabbixTicket.upsert({
+    where: {
+      triggerId_hostName: {
+        triggerId: context.normalizedTriggerId,
+        hostName: context.normalizedHostName,
+      },
+    },
+    update: {
+      name: context.trigger.name ?? `Zabbix Event ${context.event.id}`,
+      status: context.status,
+      clock: context.clock,
+      triggerId: context.normalizedTriggerId,
+      triggerName: context.trigger.name ?? null,
+      triggerDesc: context.trigger.description ?? null,
+      triggerStatus: context.trigger.status ?? null,
+      triggerSeverity: context.trigger.severity ?? null,
+      hostName: context.normalizedHostName,
+      hostTag: context.host.inventory_tag ?? null,
+      hostGroup: context.host.group ?? null,
+      itemId: context.item.id ?? null,
+      itemName: context.item.name ?? null,
+      itemDescription: context.item.key ?? null,
+      last5Values: context.last5Values,
+      tags: context.tagsString,
+    },
+    create: {
+      eventid: context.event.id,
+      name: context.trigger.name ?? `Zabbix Event ${context.event.id}`,
+      status: context.status,
+      clock: context.clock,
+      triggerId: context.normalizedTriggerId,
+      triggerName: context.trigger.name ?? null,
+      triggerDesc: context.trigger.description ?? null,
+      triggerStatus: context.trigger.status ?? null,
+      triggerSeverity: context.trigger.severity ?? null,
+      hostName: context.normalizedHostName,
+      hostTag: context.host.inventory_tag ?? null,
+      hostGroup: context.host.group ?? null,
+      itemId: context.item.id ?? null,
+      itemName: context.item.name ?? null,
+      itemDescription: context.item.key ?? null,
+      last5Values: context.last5Values,
+      tags: context.tagsString,
+    },
+  });
+}
+
+function toTicketZabbixStatus(status: "0" | "1"): ZabbixStatus {
+  return status === "0" ? "PROBLEM" : "RESOLVED";
+}
+
+// Application internal ticket table ကို zabbix problemId နဲ့ idempotent upsert လုပ်သည်။
+// requesterId ကို optional fallback strategy နဲ့ resolve လုပ်ပြီး required relation error မဖြစ်စေသည်။
+async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
+  const [ticketId, requesterId] = await Promise.all([
+    generateTicketIdForWebhook(),
+    resolveAutomationRequesterId(),
+  ]);
+
+  const zabbixStatus = toTicketZabbixStatus(context.status);
+  const title = context.trigger.name ?? `Zabbix Event ${context.event.id}`;
+  const description = `Host: ${context.normalizedHostName}, Trigger: ${context.trigger.name ?? "unknown"}, Item: ${context.item.name ?? "unknown"}`;
+
+  await prisma.ticket.upsert({
+    where: { problemId: context.problemId },
+    update: {
+      title,
+      description,
+      zabbixStatus,
+      priority: context.internalPriority,
+    },
+    create: {
+      ticketId,
+      problemId: context.problemId,
+      title,
+      description,
+      ...(requesterId ? { requesterId } : {}),
+      zabbixStatus,
+      priority: context.internalPriority,
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*                     create-ticket API integration helpers                    */
+/* -------------------------------------------------------------------------- */
+
+// OTRS bridge endpoint (/api/create-ticket) ကိုခေါ်ရန် payload structure တစ်နေရာတည်းမှာစုထားသည်။
+// Field mapping ပြောင်းလဲလိုအပ်လာတဲ့အချိန် POST handler ကိုမထိခိုက်ဘဲ ဒီ function ပဲပြင်နိုင်သည်။
+function buildCreateTicketPayload(context: NormalizedWebhookContext) {
+  const ticketState =
+    context.event.status?.toLowerCase() === "resolved" || context.event.value === "0"
+      ? "recovery"
+      : "new";
+
+  return {
+    Ticket: {
+      Title: context.trigger.name ?? "Monitoring Problem",
+      QueueID: "96",
+      Service: "CEIR",
+      State: ticketState,
+      Priority: mapSeverityToOtrsPriorityLabel(context.trigger.severity),
+      Type: "Incident",
+      CustomerUser: DEFAULT_CUSTOMER_EMAIL,
+    },
+    DynamicField: [
+      {
+        Name: "ZabbixState",
+        Value: context.status === "0" ? "PROBLEM" : "Recovered",
+      },
+      {
+        Name: "ZabbixTrigger",
+        Value: context.trigger.id ?? "",
+      },
+      {
+        Name: "ZabbixEvent",
+        Value: context.event.id,
+      },
+      {
+        Name: "ZabbixHost",
+        Value: context.host.name ?? "",
+      },
+    ],
+    EventTime: context.event.datetime ?? new Date().toISOString(),
+    TriggerClient: context.host.inventory_tag ?? "",
+    TriggerGroups: context.host.group ?? "",
+  };
+}
+
+async function callCreateTicket(url: string, payload: unknown): Promise<CreateTicketCallResult> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `create-ticket returned non-JSON from ${url} (status ${response.status}): ${responseText.slice(0, 160)}`,
+    );
+  }
+
+  return {
+    url,
+    status: response.status,
+    data: JSON.parse(responseText) as CreateTicketResponse,
+  };
+}
+
+async function callCreateTicketWithFallback(payload: unknown): Promise<CreateTicketCallResult> {
+  const configuredBaseUrl = process.env.BASE_URL?.trim();
+  const primaryCreateTicketUrl = configuredBaseUrl
+    ? `${configuredBaseUrl}/api/create-ticket`
+    : LOCAL_CREATE_TICKET_URL;
+
+  try {
+    return await callCreateTicket(primaryCreateTicketUrl, payload);
+  } catch (primaryError) {
+    if (primaryCreateTicketUrl === LOCAL_CREATE_TICKET_URL) {
+      throw primaryError;
+    }
+
+    console.error("[zabbix] create-ticket primary call failed, retrying localhost", {
+      primaryCreateTicketUrl,
+      reason: primaryError instanceof Error ? primaryError.message : String(primaryError),
+    });
+
+    return callCreateTicket(LOCAL_CREATE_TICKET_URL, payload);
+  }
+}
+
+function resolveCreateTicketError(ticketData: CreateTicketResponse, statusCode: number): string | null {
+  return (
+    ticketData.error ??
+    ticketData.otrsError?.message ??
+    ticketData.data?.Error?.ErrorMessage ??
+    (statusCode >= 400 ? `create-ticket status ${statusCode}` : null)
+  );
+}
+
+async function persistOtrsTicketId(context: NormalizedWebhookContext, otrsTicketId: string) {
+  await prisma.zabbixTicket.update({
+    where: {
+      triggerId_hostName: {
+        triggerId: context.normalizedTriggerId,
+        hostName: context.normalizedHostName,
+      },
+    },
+    data: { otrsTicketId },
+  });
+}
+
+// OTRS side-effect flow (build payload -> call API -> inspect response -> persist TicketID)
+// ကိုစုစည်းထားသော orchestration helper ဖြစ်သည်။
+async function syncOtrsTicket(context: NormalizedWebhookContext): Promise<OtrsSyncResult> {
+  const createTicketPayload = buildCreateTicketPayload(context);
+  const createTicketResult = await callCreateTicketWithFallback(createTicketPayload);
+  const ticketData = createTicketResult.data;
+
+  if (ticketData.action === "skipped") {
+    return {
+      action: "skipped",
+      reason: ticketData.reason ?? null,
+    };
+  }
+
+  const createTicketErrorMessage = resolveCreateTicketError(ticketData, createTicketResult.status);
+  if (createTicketErrorMessage) {
+    const errorCode = ticketData.otrsError?.code ?? ticketData.data?.Error?.ErrorCode;
+    throw new Error(errorCode ? `${createTicketErrorMessage} (${errorCode})` : createTicketErrorMessage);
+  }
+
+  const otrsTicketId =
+    normalizeTicketId(ticketData.data?.TicketID) ?? normalizeTicketId(ticketData.ticketId);
+
+  if (otrsTicketId) {
+    await persistOtrsTicketId(context, otrsTicketId);
+  } else {
+    console.warn("[zabbix] create-ticket succeeded but no TicketID returned", {
+      action: ticketData.action,
+      eventId: context.event.id,
+    });
+  }
+
+  return { action: "ok" };
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                 Route handler                               */
+/* -------------------------------------------------------------------------- */
 
 export async function POST(req: NextRequest) {
-    // console.log("[zabbix] webhook received");
+  try {
+    const payload = (await req.json()) as WebhookPayload;
+    const context = buildWebhookContext(payload);
 
-    try {
-        const body: WebhookPayload = await req.json();
-        // console.log("[zabbix] payload(raw)", body);
+    // အဆင့် (1): Zabbix snapshot table ကို အရင် sync လုပ်ပြီး raw monitoring source ကိုညှိထားသည်။
+    await upsertZabbixSnapshot(context);
 
-        const event = body.event;
-        const trigger = body.trigger ?? {};
-        const host = body.host ?? {};
-        const item = body.item ?? {};
+    // အဆင့် (2): Internal ticket table ကို problemId အခြေခံ idempotent upsert လုပ်သည်။
+    await upsertInternalHelpdeskTicket(context);
 
-        // console.log("[zabbix] payload(summary)", {
-        //     eventId: event?.id,
-        //     eventStatus: event?.status,
-        //     eventValue: event?.value,
-        //     eventDatetime: event?.datetime,
-        //     triggerId: trigger?.id,
-        //     triggerName: trigger?.name,
-        //     hostName: host?.name,
-        //     itemId: item?.id,
-        //     hasTags: Boolean(body.tags),
-        // });
-
-        if (!event?.id) {
-            // console.error("[zabbix] validation failed: missing event.id");
-            return NextResponse.json(
-                { success: false, message: "Missing event id" },
-                { status: 400 }
-            );
-        }
-
-        const clock = parseWebhookDatetime(event.datetime);
-
-        if (!clock) {
-            // console.error("[zabbix] invalid event datetime", { eventDatetime: event.datetime });
-            return NextResponse.json(
-                { success: false, message: "Invalid event datetime" },
-                { status: 400 }
-            );
-        }
-
-        const status =
-            event.status?.toLowerCase() === "resolved" ||
-                event.value === "0"
-                ? "1"
-                : "0";
-
-        let tagsString: string | null = null;
-
-        if (Array.isArray(body.tags)) {
-            tagsString = body.tags
-                .map((t) => `${t.tag}:${t.value}`)
-                .join(",");
-        } else if (typeof body.tags === "string") {
-            tagsString = body.tags;
-        }
-
-        const last5Values = item.value
-            ? `1: ${item.value} (${item.name ?? ""})`
-            : null;
-
-        // console.log("[zabbix] upsert start", {
-        //     upsertKey: {
-        //         triggerId: trigger.id ?? "unknown",
-        //         hostName: host.name ?? "unknown",
-        //     },
-        //     status,
-        //     clock: clock.toISOString(),
-        // });
-
-        await prisma.zabbixTicket.upsert({
-            where: {
-                triggerId_hostName: {
-                    triggerId: trigger.id ?? "unknown",
-                    hostName: host.name ?? "unknown"
-                }
-            },
-            update: {
-                name: trigger.name ?? `Zabbix Event ${event.id}`,
-                status,
-                clock,
-
-                triggerId: trigger.id ?? null,
-                triggerName: trigger.name ?? null,
-                triggerDesc: trigger.description ?? null,
-                triggerStatus: trigger.status ?? null,
-                triggerSeverity: trigger.severity ?? null,
-
-                hostName: host.name ?? null,
-                hostTag: host.inventory_tag ?? null,
-                hostGroup: host.group ?? null,
-
-                itemId: item.id ?? null,
-                itemName: item.name ?? null,
-                itemDescription: item.key ?? null,
-                last5Values,
-                tags: tagsString,
-            },
-            create: {
-                eventid: event.id,
-                name: trigger.name ?? `Zabbix Event ${event.id}`,
-                status,
-                clock,
-
-                triggerId: trigger.id ?? null,
-                triggerName: trigger.name ?? null,
-                triggerDesc: trigger.description ?? null,
-                triggerStatus: trigger.status ?? null,
-                triggerSeverity: trigger.severity ?? null,
-
-                hostName: host.name ?? null,
-                hostTag: host.inventory_tag ?? null,
-                hostGroup: host.group ?? null,
-
-                itemId: item.id ?? null,
-                itemName: item.name ?? null,
-                itemDescription: item.key ?? null,
-                last5Values,
-                tags: tagsString,
-            },
-        });
-
-        // console.log("[zabbix] upsert success", {
-        //     eventId: event.id,
-        //     triggerId: trigger.id ?? "unknown",
-        //     hostName: host.name ?? "unknown",
-        // });
-
-        const severityMap: Record<string, string> = {
-            Disaster: "1 Critical",
-            High: "2 High",
-            Average: "3 Medium",
-            Warning: "4 Low",
-            Information: "5 Very Low",
-        };
-
-        const ticketPriority = trigger.severity
-            ? severityMap[trigger.severity as string] ?? "3 Medium"
-            : "3 Medium";
-
-        const ticketState =
-            event.status?.toLowerCase() === "resolved" || event.value === "0"
-                ? "recovery"  // already recovered
-                : "new";      // problem
-
-        const createTicketPayload = {
-            Ticket: {
-                Title: trigger.name ?? "Monitoring Problem",
-                QueueID: "96",
-                Service: "CEIR",
-                State: ticketState,
-                Priority: ticketPriority,
-                Type: "Incident",
-                CustomerUser: "support@eastwindmyanmar.com.mm",
-            },
-
-            DynamicField: [
-                {
-                    Name: "ZabbixState",
-                    Value: status === "0" ? "PROBLEM" : "Recovered",
-                },
-                {
-                    Name: "ZabbixTrigger",
-                    Value: trigger.id ?? "",
-                },
-                {
-                    Name: "ZabbixEvent",
-                    Value: event.id,
-                },
-                {
-                    Name: "ZabbixHost",
-                    Value: host.name ?? "",
-                },
-            ],
-
-            EventTime: event.datetime ?? new Date().toISOString(),
-            TriggerClient: host.inventory_tag ?? "",
-            TriggerGroups: host.group ?? "",
-        };
-
-        const configuredBaseUrl = process.env.BASE_URL?.trim();
-        const primaryCreateTicketUrl = configuredBaseUrl
-            ? `${configuredBaseUrl}/api/create-ticket`
-            : "http://127.0.0.1:3000/api/create-ticket";
-        const localFallbackCreateTicketUrl = "http://127.0.0.1:3000/api/create-ticket";
-
-        const callCreateTicket = async (url: string) => {
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(createTicketPayload),
-            });
-
-            const responseText = await response.text();
-            const contentType = response.headers.get("content-type") ?? "";
-
-            if (!contentType.includes("application/json")) {
-                throw new Error(
-                    `create-ticket returned non-JSON from ${url} (status ${response.status}): ${responseText.slice(0, 160)}`
-                );
-            }
-
-            return {
-                url,
-                status: response.status,
-                data: JSON.parse(responseText),
-            };
-        };
-
-        let createTicketResult: {
-            url: string;
-            status: number;
-            data: unknown;
-        };
-
-        try {
-            createTicketResult = await callCreateTicket(primaryCreateTicketUrl);
-        } catch (primaryError) {
-            if (primaryCreateTicketUrl === localFallbackCreateTicketUrl) {
-                throw primaryError;
-            }
-            console.error("[zabbix] create-ticket primary call failed, retrying localhost", {
-                primaryCreateTicketUrl,
-                reason: primaryError instanceof Error ? primaryError.message : String(primaryError),
-            });
-            createTicketResult = await callCreateTicket(localFallbackCreateTicketUrl);
-        }
-
-        const ticketData = createTicketResult.data as CreateTicketResponse;
-        // console.log("[zabbix] create-ticket response", {
-        //     status: createTicketResult.status,
-        //     action: ticketData?.action,
-        //     url: createTicketResult.url,
-        // });
-
-        if (ticketData.action === "skipped") {
-            console.warn("[zabbix] create-ticket skipped", {
-                reason: ticketData.reason,
-                triggerId: trigger.id ?? "unknown",
-            });
-            return NextResponse.json({
-                success: true,
-                action: "skipped",
-                reason: ticketData.reason ?? null,
-            });
-        }
-
-        const createTicketErrorMessage =
-            ticketData?.error ||
-            ticketData?.otrsError?.message ||
-            ticketData?.data?.Error?.ErrorMessage ||
-            (createTicketResult.status >= 400 ? `create-ticket status ${createTicketResult.status}` : null);
-
-        if (createTicketErrorMessage) {
-            const errorCode = ticketData?.otrsError?.code ?? ticketData?.data?.Error?.ErrorCode;
-            throw new Error(
-                errorCode
-                    ? `${createTicketErrorMessage} (${errorCode})`
-                    : createTicketErrorMessage
-            );
-        }
-
-        const otrsTicketId =
-            normalizeTicketId(ticketData?.data?.TicketID) ??
-            normalizeTicketId(ticketData?.ticketId);
-
-        // console.log("[zabbix] parsed OTRS ticket id", { otrsTicketId });
-
-        if (otrsTicketId) {
-            await prisma.zabbixTicket.update({
-                where: {
-                    triggerId_hostName: {
-                        triggerId: trigger.id ?? "unknown",
-                        hostName: host.name ?? "unknown"
-                    }
-                },
-                data: { otrsTicketId },
-            });
-            // console.log("[zabbix] db updated with OTRS ticket id", {
-            //     triggerId: trigger.id ?? "unknown",
-            //     hostName: host.name ?? "unknown",
-            //     otrsTicketId,
-            // });
-        } else {
-            console.warn("[zabbix] create-ticket succeeded but no TicketID returned", {
-                action: ticketData?.action,
-                eventId: event.id,
-            });
-        }
-
-        // console.log("[zabbix] webhook processing success", { eventId: event.id });
-        return NextResponse.json({ success: true });
-    } catch (error: unknown) {
-        console.error("[zabbix] webhook processing failed", {
-            message: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : undefined,
-            failedAt: new Date().toISOString(),
-        });
-
-        return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-            { status: 500 }
-        );
+    // အဆင့် (3): OTRS sync flow ကိုသီးခြား helper မှာချုပ်ပြီး POST ကို orchestration only ထားသည်။
+    const otrsResult = await syncOtrsTicket(context);
+    if (otrsResult.action === "skipped") {
+      return NextResponse.json({
+        success: true,
+        action: "skipped",
+        reason: otrsResult.reason,
+      });
     }
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    if (error instanceof RequestValidationError) {
+      return NextResponse.json(
+        { success: false, message: error.message },
+        { status: error.status },
+      );
+    }
+
+    console.error("[zabbix] webhook processing failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      failedAt: new Date().toISOString(),
+    });
+
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
 }

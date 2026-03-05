@@ -1,8 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import dayjs from "dayjs";
-import duration from "dayjs/plugin/duration";
-dayjs.extend(duration);
+import dayjs from "@/libs/dayjs";
 
 type CountdownProps = {
   targetTime: string; // ISO string

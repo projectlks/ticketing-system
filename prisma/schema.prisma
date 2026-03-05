@@ -23,10 +23,11 @@ datasource db {
 // ======================
 // Enums
 // ======================
+
 enum Role {
-  REQUESTER
-  AGENT
-  ADMIN
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
   SUPER_ADMIN
 }
 
@@ -54,6 +55,16 @@ enum Severity {
   DISASTER
 }
 
+enum CreationMode {
+  MANUAL
+  AUTOMATIC
+}
+
+enum ZabbixStatus {
+  PROBLEM
+  RESOLVED
+}
+
 // prisma/schema.prisma
 
 model ZabbixTicket {
@@ -64,13 +75,13 @@ model ZabbixTicket {
   clock   DateTime
 
   // New useful fields
-  triggerId       String?
+  triggerId       String
   triggerName     String?
   triggerDesc     String?
   triggerStatus   String?
   triggerSeverity String?
 
-  hostName  String?
+  hostName  String
   hostTag   String? // inventory tag from host
   hostGroup String? // comma separated host groups
 
@@ -101,7 +112,7 @@ model User {
   name     String
   email    String @unique
   password String
-  role     Role   @default(REQUESTER)
+  role     Role   @default(LEVEL_1)
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -186,8 +197,8 @@ model Ticket {
   departmentId String?
   department   Department? @relation("DepartmentTickets", fields: [departmentId], references: [id])
 
-  requesterId String
-  requester   User   @relation("TicketRequester", fields: [requesterId], references: [id])
+  requesterId String?
+  requester   User?   @relation("TicketRequester", fields: [requesterId], references: [id])
 
   status Status @default(NEW)
 
@@ -218,6 +229,14 @@ model Ticket {
   // ✅ SLA Violation tracking
   isSlaViolated Boolean @default(false)
 
+  // ✅ New field for audit trail
+  creationMode CreationMode @default(MANUAL)
+
+  // for auto create ticket
+
+  problemId    String?       @unique
+  zabbixStatus ZabbixStatus? // e.g. "detected", "investigating", "resolved"
+
   startSlaTime  DateTime?
   responseDue   DateTime?
   resolutionDue DateTime?
@@ -238,13 +257,14 @@ model Ticket {
   @@index([departmentId, isArchived, status])
   @@index([assignedToId, isArchived, status, updatedAt(sort: Desc)])
   @@index([priority, isArchived, status])
+  @@index([creationMode]) // Add an index if you plan to filter reports by source
 }
 
 // SLA
 
 model SLA {
   id             String   @id @default(uuid())
-  priority       String   @unique
+  priority       Priority @unique
   responseTime   Int // minutes
   resolutionTime Int // minutes
   rcaTime        Int?
@@ -381,9 +401,9 @@ model Category {
   @@map("category")
 }
 
-model MailSetting {
-  id        String   @id @default(cuid())
-  emails    String[] // array of email addresses
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// model MailSetting {
+//   id        String   @id @default(cuid())
+//   emails    String[] // array of email addresses
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }

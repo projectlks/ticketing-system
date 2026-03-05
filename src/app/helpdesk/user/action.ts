@@ -1,6 +1,6 @@
 "use server";
 
-import { Role } from "@/generated/prisma/client";
+import { Prisma, Role } from "@/generated/prisma/client";
 import { getCurrentUserId } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
 import {
@@ -17,6 +17,76 @@ import {
 } from "../cache/redis-keys";
 import type { TicketStats } from "./types";
 
+const ROLE_VALUES = ["LEVEL_1", "LEVEL_2", "LEVEL_3", "SUPER_ADMIN"] as const;
+const SUPER_ADMIN_ROLE: Role = "SUPER_ADMIN";
+const SUPER_ADMIN_ROLE_PERMISSION_ERROR =
+  "Only SUPER_ADMIN can assign or manage SUPER_ADMIN role.";
+
+async function getCurrentUserContext(): Promise<{ id: string; role: Role }> {
+  const currentUserId = await getCurrentUserId();
+  if (!currentUserId) throw new Error("Unauthorized");
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: currentUserId },
+    select: { id: true, role: true },
+  });
+
+  if (!currentUser) {
+    throw new Error("Unauthorized");
+  }
+
+  return currentUser;
+}
+
+function ensureSuperAdminRolePermission(params: {
+  actorRole: Role;
+  nextRole: Role;
+  previousRole?: Role;
+}) {
+  const { actorRole, nextRole, previousRole } = params;
+  const touchesSuperAdmin =
+    nextRole === SUPER_ADMIN_ROLE || previousRole === SUPER_ADMIN_ROLE;
+
+  if (touchesSuperAdmin && actorRole !== SUPER_ADMIN_ROLE) {
+    throw new Error(SUPER_ADMIN_ROLE_PERMISSION_ERROR);
+  }
+}
+
+function getUniqueConstraintTarget(error: Prisma.PrismaClientKnownRequestError) {
+  const target = error.meta?.target;
+  if (Array.isArray(target)) return target.join(",");
+  if (typeof target === "string") return target;
+  return JSON.stringify(target ?? "");
+}
+
+function getDriverConstraintFields(error: Prisma.PrismaClientKnownRequestError) {
+  const meta = error.meta as
+    | {
+        driverAdapterError?: {
+          cause?: {
+            constraint?: { fields?: string[] };
+          };
+        };
+      }
+    | undefined;
+
+  return meta?.driverAdapterError?.cause?.constraint?.fields ?? [];
+}
+
+function toUserMutationError(error: unknown): Error {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    const target = getUniqueConstraintTarget(error);
+    const fields = getDriverConstraintFields(error);
+
+    if (target.includes("User_email_key") || fields.includes("email")) {
+      return new Error("User with this email already exists");
+    }
+  }
+
+  if (error instanceof Error) return error;
+  return new Error("Failed to save user");
+}
+
 /* -------------------------------
    ZOD VALIDATION SCHEMAS
 -------------------------------- */
@@ -26,7 +96,7 @@ const UserFormSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   department: z.string(),
-  role: z.enum(["REQUESTER", "AGENT", "ADMIN", "SUPER_ADMIN"]),
+  role: z.enum(ROLE_VALUES),
 });
 
 const createSchema = UserFormSchema.omit({ id: true });
@@ -58,21 +128,29 @@ export async function createUser(formData: FormData): Promise<void> {
 
   if (!department) throw new Error("Selected department does not exist");
 
-  const currentUserId = await getCurrentUserId();
-  if (!currentUserId) throw new Error("Unauthorized");
+  const currentUser = await getCurrentUserContext();
+
+  ensureSuperAdminRolePermission({
+    actorRole: currentUser.role,
+    nextRole: parsed.role,
+  });
 
   const hashedPassword = await bcrypt.hash(parsed.password, 10);
 
-  await prisma.user.create({
-    data: {
-      name: parsed.name,
-      email: parsed.email,
-      password: hashedPassword,
-      departmentId: parsed.department,
-      role: parsed.role,
-      creatorId: currentUserId,
-    },
-  });
+  try {
+    await prisma.user.create({
+      data: {
+        name: parsed.name,
+        email: parsed.email,
+        password: hashedPassword,
+        departmentId: parsed.department,
+        role: parsed.role,
+        creatorId: currentUser.id,
+      },
+    });
+  } catch (error) {
+    throw toUserMutationError(error);
+  }
 
   await invalidateCacheByPrefixes([
     HELPDESK_CACHE_PREFIXES.users,
@@ -90,15 +168,14 @@ const UpdateUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).optional(),
   departmentId: z.string(),
-  role: z.enum(["REQUESTER", "AGENT", "ADMIN", "SUPER_ADMIN"]),
+  role: z.enum(ROLE_VALUES),
 });
 
 export async function updateUser(formData: FormData) {
   const raw = Object.fromEntries(formData.entries());
   const parsed = UpdateUserSchema.parse(raw);
 
-  const currentUserId = await getCurrentUserId();
-  if (!currentUserId) throw new Error("Unauthorized");
+  const currentUser = await getCurrentUserContext();
 
   const oldUser = await prisma.user.findUnique({
     where: { id: parsed.id },
@@ -106,11 +183,17 @@ export async function updateUser(formData: FormData) {
   });
   if (!oldUser) throw new Error("User not found");
 
+  ensureSuperAdminRolePermission({
+    actorRole: currentUser.role,
+    previousRole: oldUser.role,
+    nextRole: parsed.role,
+  });
+
   const updateData: {
     name: string;
     email: string;
     password?: string;
-    role: "REQUESTER" | "AGENT" | "ADMIN" | "SUPER_ADMIN";
+    role: (typeof ROLE_VALUES)[number];
     departmentId: string;
     updaterId: string;
   } = {
@@ -118,18 +201,24 @@ export async function updateUser(formData: FormData) {
     email: parsed.email,
     role: parsed.role,
     departmentId: parsed.departmentId,
-    updaterId: currentUserId,
+    updaterId: currentUser.id,
   };
 
   if (parsed.password) {
     updateData.password = await bcrypt.hash(parsed.password, 10);
   }
 
-  const updated = await prisma.user.update({
-    where: { id: parsed.id },
-    data: updateData,
-    include: { department: true },
-  });
+  const updated = await (async () => {
+    try {
+      return await prisma.user.update({
+        where: { id: parsed.id },
+        data: updateData,
+        include: { department: true },
+      });
+    } catch (error) {
+      throw toUserMutationError(error);
+    }
+  })();
 
   await invalidateCacheByPrefixes([
     HELPDESK_CACHE_PREFIXES.users,
