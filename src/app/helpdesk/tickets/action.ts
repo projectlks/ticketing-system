@@ -540,6 +540,11 @@ export async function getAllTickets(
         HELPDESK_CACHE_TTL_SECONDS.ticketsList,
         async () => {
             const { search, filters, page, pageSize } = normalizedOptions;
+            const safePage = Math.max(1, page);
+            const safePageSize = Number.isFinite(pageSize)
+                ? Math.max(0, Math.floor(pageSize))
+                : 20;
+            const showAllRows = safePageSize === 0;
             // Default အဖြစ် archived ticket မပါစေချင်လို့ unarchived only condition နဲ့စထားပါတယ်။
             const where: Prisma.TicketWhereInput = { isArchived: false };
             if (search) {
@@ -644,8 +649,8 @@ export async function getAllTickets(
             const tickets = await prisma.ticket.findMany({
                 where,
                 orderBy: { createdAt: "desc" },
-                skip: (page - 1) * pageSize,
-                take: pageSize,
+                skip: showAllRows ? 0 : (safePage - 1) * safePageSize,
+                ...(showAllRows ? {} : { take: safePageSize }),
                 include: {
                     requester: { select: { name: true, email: true } },
                     assignedTo: { select: { name: true, email: true } },
@@ -770,6 +775,5 @@ export async function getTicketAuditLogs(ticketId: string) {
             }),
     );
 }
-
 
 

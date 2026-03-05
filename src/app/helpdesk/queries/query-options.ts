@@ -51,10 +51,17 @@ const normalizeAnalysisFilter = (filter: AnalysisFilterInput = {}) => ({
   toDate: filter.toDate ?? "",
 });
 
+const normalizeAlertsPageSize = (value: number): number => {
+  if (!Number.isFinite(value)) return DEFAULT_ALERTS_QUERY_INPUT.pageSize;
+  const parsed = Math.floor(value);
+  if (parsed === 0) return 0;
+  return Math.max(1, parsed);
+};
+
 const normalizeAlertsQueryInput = (input: AlertsListQueryInput): AlertsListQueryInput => ({
   filter: input.filter,
   page: Math.max(1, input.page),
-  pageSize: Math.max(1, input.pageSize),
+  pageSize: normalizeAlertsPageSize(input.pageSize),
 });
 
 // Query key ကိုတစ်နေရာတည်းမှာပေါင်းထားမှ invalidation/prefetch သုံးချိန်မှာ typo မဖြစ်ဘဲ

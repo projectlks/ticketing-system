@@ -1,14 +1,14 @@
-import { prisma } from "@/libs/prisma";
+import { prisma } from "../src/libs/prisma";
 import bcrypt from "bcrypt";
 
 
 async function main() {
   // ===== Create default Department =====
   const department = await prisma.department.upsert({
-    where: { name: "IT" },
+    where: { name: "EWM" },
     update: {},
     create: {
-      name: "IT",
+      name: "EWM",
     },
   });
 
@@ -48,6 +48,7 @@ async function main() {
       { priority: "MINOR", responseTime: 240, resolutionTime: 1440, rcaTime: 10, availability: "7*24" },
       { priority: "REQUEST", responseTime: 480, resolutionTime: 43200, availability: "5*8" },
     ],
+    skipDuplicates: true,
   });
 
   console.log("✅ Seed data inserted successfully!");

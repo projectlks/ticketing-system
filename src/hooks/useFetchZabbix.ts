@@ -25,11 +25,12 @@ export const useFetchZabbix = (
   const query = useQuery(alertsProblemsQueryOptions(queryInput, apiKey));
 
   const total = query.data?.total ?? 0;
-  const safePageSize = Math.max(1, pageSize);
-  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const isAllRows = pageSize === 0;
+  const safePageSize = isAllRows ? Math.max(1, total) : Math.max(1, pageSize);
+  const totalPages = isAllRows ? 1 : Math.max(1, Math.ceil(total / safePageSize));
 
   useEffect(() => {
-    if (page >= totalPages) return;
+    if (isAllRows || page >= totalPages) return;
 
     const nextPageInput = {
       filter,
@@ -40,7 +41,7 @@ export const useFetchZabbix = (
     // လက်ရှိ page ဖွင့်ထားချိန် next page ကို background မှာ warm-up လုပ်ထားလို့
     // pagination next click တဲ့အချိန် latency ကိုလျှော့နိုင်ပါတယ်။
     void queryClient.prefetchQuery(alertsProblemsQueryOptions(nextPageInput, apiKey));
-  }, [apiKey, filter, page, pageSize, queryClient, totalPages]);
+  }, [apiKey, filter, isAllRows, page, pageSize, queryClient, totalPages]);
 
   return {
     data: query.data?.alerts ?? [],

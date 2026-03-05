@@ -211,7 +211,8 @@ export default function Page() {
     [ticketsQuery.data?.tickets],
   );
   const totalTickets = ticketsQuery.data?.total ?? 0;
-  const totalPages = Math.ceil(totalTickets / pageSize);
+  const totalPages =
+    pageSize === 0 ? 1 : Math.ceil(totalTickets / Math.max(1, pageSize));
   const isLoading = ticketsQuery.isLoading;
   const errorMessage = ticketsQuery.error
     ? ticketsQuery.error instanceof Error

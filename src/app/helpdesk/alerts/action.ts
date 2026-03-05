@@ -27,11 +27,18 @@ const normalizePositiveInt = (value: number | undefined, fallback: number) => {
 
 const normalizePaginationInput = (input: AlertsPaginationInput = {}) => {
   const page = normalizePositiveInt(input.page, DEFAULT_ALERTS_PAGE);
-  const requestedPageSize = normalizePositiveInt(
-    input.pageSize,
-    DEFAULT_ALERTS_PAGE_SIZE,
-  );
-  const pageSize = Math.min(requestedPageSize, MAX_ALERTS_PAGE_SIZE);
+  const rawPageSize = input.pageSize;
+  let pageSize: number;
+
+  if (rawPageSize === 0) {
+    pageSize = 0;
+  } else {
+    const requestedPageSize = normalizePositiveInt(
+      rawPageSize,
+      DEFAULT_ALERTS_PAGE_SIZE,
+    );
+    pageSize = Math.min(requestedPageSize, MAX_ALERTS_PAGE_SIZE);
+  }
 
   return { page, pageSize };
 };
@@ -48,15 +55,16 @@ export async function getPaginatedZabbixTickets(input: AlertsPaginationInput = {
       HELPDESK_CACHE_TTL_SECONDS.zabbixTickets,
       async () => {
         const total = await prisma.zabbixTicket.count();
-        const totalPages = Math.max(1, Math.ceil(total / pageSize));
-        const safePage = Math.min(page, totalPages);
+        const totalPages =
+          pageSize === 0 ? 1 : Math.max(1, Math.ceil(total / pageSize));
+        const safePage = pageSize === 0 ? 1 : Math.min(page, totalPages);
 
         const tickets = await prisma.zabbixTicket.findMany({
           orderBy: {
             eventid: "desc",
           },
-          skip: (safePage - 1) * pageSize,
-          take: pageSize,
+          skip: pageSize === 0 ? 0 : (safePage - 1) * pageSize,
+          ...(pageSize === 0 ? {} : { take: pageSize }),
         });
 
         return {
