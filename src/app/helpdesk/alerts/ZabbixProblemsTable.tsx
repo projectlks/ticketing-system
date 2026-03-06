@@ -67,7 +67,7 @@ export default function ZabbixProblemsTable() {
   const filter = getFilterFromQuery(searchParams.get("filter"));
 
   const [currentPage, setCurrentPageState] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [visibleColumns, setVisibleColumns] = useState(defaultVisible);
 
   const {

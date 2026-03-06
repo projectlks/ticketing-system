@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Priority, ZabbixStatus } from "@/generated/prisma/client";
 import { prisma } from "@/libs/prisma";
+import dayjs from "@/libs/dayjs";
+import { HELPDESK_CACHE_PREFIXES } from "@/app/helpdesk/cache/redis-keys";
+import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
 
 const DEFAULT_CUSTOMER_EMAIL = "support@eastwindmyanmar.com.mm";
 const LOCAL_CREATE_TICKET_URL =
@@ -76,9 +79,9 @@ type CreateTicketCallResult = {
 type OtrsSyncResult =
   | { action: "ok" }
   | {
-      action: "skipped";
-      reason: string | null;
-    };
+    action: "skipped";
+    reason: string | null;
+  };
 
 type NormalizedWebhookContext = {
   event: WebhookEvent;
@@ -346,25 +349,67 @@ async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
   const title = context.trigger.name ?? `Zabbix Event ${context.event.id}`;
   const description = `Host: ${context.normalizedHostName}, Trigger: ${context.trigger.name ?? "unknown"}, Item: ${context.item.name ?? "unknown"}`;
 
+  const priority = context.internalPriority;
+
+  const sla = await prisma.sLA.findUnique({
+    where: { priority },
+  });
+
+  if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
+
+  // 2. အချိန်တွေတွက်မယ်
+  const now = new Date();
+  const responseDue = dayjs(now).add(sla.responseTime, 'minute').toDate();
+  const resolutionDue = dayjs(now).add(sla.resolutionTime, 'minute').toDate();
+
+
+
   await prisma.ticket.upsert({
     where: { problemId: context.problemId },
     update: {
       title,
       description,
       zabbixStatus,
-      priority: context.internalPriority,
+      status: zabbixStatus === "PROBLEM" ? "OPEN" : "RESOLVED",
+
     },
     create: {
       ticketId,
       problemId: context.problemId,
       title,
       description,
-      ...(requesterId ? { requesterId } : {}),
+      // ...(requesterId ? { requesterId } : {}),
       zabbixStatus,
-      priority: context.internalPriority,
+      priority,
+      resolutionDue,
+      responseDue,
+      status: "OPEN",
     },
   });
+
+
+  // Add audit log
+  await prisma.audit.create({
+    data: {
+      entity: "Ticket",
+      entityId: ticketId,
+      action: "CREATE",
+    },
+  });
+
+  // Ticket data အသစ်တက်လာတာနဲ့ list/dashboard cache တွေကိုရှင်းထားမှ
+  // overview/tickets/analysis page တွေမှာ stale result မကျန်တော့ပါ။
+  await invalidateCacheByPrefixes([
+    HELPDESK_CACHE_PREFIXES.tickets,
+    HELPDESK_CACHE_PREFIXES.overview,
+    HELPDESK_CACHE_PREFIXES.departments,
+    HELPDESK_CACHE_PREFIXES.analysis,
+    HELPDESK_CACHE_PREFIXES.users,
+  ]);
+
 }
+
+
 
 /* -------------------------------------------------------------------------- */
 /*                     create-ticket API integration helpers                    */

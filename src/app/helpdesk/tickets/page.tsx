@@ -96,15 +96,15 @@ export default function Page() {
     Object.fromEntries(columns.map((column) => [column.key, true])),
   );
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
-  const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>(
-    {},
-  );
+  const [selectedFilters, setSelectedFilters] = useState<
+    Record<string, string[]>
+  >({});
   const [selectedSearchQueryFilters, setSelectedSearchQueryFilters] = useState<
     Record<string, string[]>
   >({});
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
 
   const getStatusColor = useStatusColor;
   const getPriorityColor = usePriorityColor;
@@ -127,7 +127,8 @@ export default function Page() {
       return null;
     }
 
-    const departmentName = searchParams.get("departmentName")?.trim() || "Department";
+    const departmentName =
+      searchParams.get("departmentName")?.trim() || "Department";
     return {
       preset: presetValue,
       presetLabel: PRESET_LABELS[presetValue],
@@ -207,7 +208,7 @@ export default function Page() {
 
   const ticketsQuery = useQuery(ticketsListQueryOptions(queryInput));
   const tickets = useMemo(
-    () => ((ticketsQuery.data?.tickets ?? []) as TicketWithRelations[]),
+    () => (ticketsQuery.data?.tickets ?? []) as TicketWithRelations[],
     [ticketsQuery.data?.tickets],
   );
   const totalTickets = ticketsQuery.data?.total ?? 0;
@@ -329,7 +330,12 @@ export default function Page() {
           filterGroups={[
             {
               title: "Ownership",
-              options: ["My Tickets", "Assigned To Me", "Followed", "Unassigned"],
+              options: [
+                "My Tickets",
+                "Assigned To Me",
+                "Followed",
+                "Unassigned",
+              ],
             },
             {
               title: "Status",
@@ -375,8 +381,7 @@ export default function Page() {
               <button
                 type="button"
                 onClick={() => router.replace("/helpdesk/tickets")}
-                className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
-              >
+                className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100">
                 Clear Preset
               </button>
             </div>
@@ -407,6 +412,7 @@ export default function Page() {
                       className="accent-zinc-900"
                     />
                   </th>
+                  <TableHead data="No" />
                   {visibleColumnKeys.map((column) => (
                     <TableHead key={column.key} data={column.label} />
                   ))}
@@ -418,26 +424,25 @@ export default function Page() {
                   <tr>
                     <td
                       colSpan={visibleColumnKeys.length + 1}
-                      className="px-4 py-8 text-center text-sm text-zinc-500"
-                    >
+                      className="px-4 py-8 text-center text-sm text-zinc-500">
                       No tickets found for current filters.
                     </td>
                   </tr>
                 )}
 
-                {tickets.map((ticket) => (
+                {tickets.map((ticket, index) => (
                   <tr
                     key={ticket.id}
-                    className="cursor-pointer border-b border-zinc-100 transition-colors hover:bg-zinc-50"
-                    onClick={() => router.push(`/helpdesk/tickets/${ticket.id}`)}
-                  >
+                    className={`cursor-pointer border-b border-zinc-100 transition-colors  ${ticket.isSlaViolated ? "bg-red-50 hover:bg-red-100" : "hover:bg-zinc-50"} `}
+                    onClick={() =>
+                      router.push(`/helpdesk/tickets/${ticket.id}`)
+                    }>
                     <td
                       className="px-3 py-3"
                       onClick={(event) => {
                         event.stopPropagation();
                         toggleSelectTicket(ticket.id);
-                      }}
-                    >
+                      }}>
                       <input
                         type="checkbox"
                         checked={selectedTickets.includes(ticket.id)}
@@ -446,8 +451,16 @@ export default function Page() {
                       />
                     </td>
 
+                    {/* <TableBody className="px-4 py-3 text-left">{index}</TableBody> */}
+
+                    <TableBody data={String(index + 1 + ((currentPage - 1) * pageSize))} />
+
                     {visibleColumnKeys.map((column) => {
-                      const cellContent = renderCell(ticket, column.key, helpers);
+                      const cellContent = renderCell(
+                        ticket,
+                        column.key,
+                        helpers,
+                      );
 
                       return React.isValidElement(cellContent) ? (
                         React.cloneElement(cellContent, {

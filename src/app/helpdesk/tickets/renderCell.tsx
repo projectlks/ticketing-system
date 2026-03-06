@@ -112,7 +112,7 @@ export const renderCell = (
     //   );
 
     case "resolutionDue": {
-      const isClosed = ticket.status.toLowerCase() === "closed";
+      const isClosed = ticket.status.toLowerCase() === "closed" || ticket.status.toLowerCase() === "resolved";
 
       if (!ticket.resolutionDue || isClosed) return "-";
 

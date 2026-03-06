@@ -52,6 +52,35 @@ const VALID_PRIORITY_SET = new Set<Priority>(
 const ACTIVE_WORK_STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "NEW" ];
 const CLOSED_LIKE_STATUSES: Status[] = ["CLOSED", "RESOLVED", "CANCELED"];
 
+// Empty string / "null" / "undefined" values coming from form data
+// should be treated as NULL for optional foreign-key columns.
+const normalizeOptionalRelationId = (
+    value: string | FormDataEntryValue | null | undefined,
+): string | null => {
+    const normalized = (typeof value === "string" ? value : value?.toString() ?? "").trim();
+    if (!normalized) return null;
+
+    const lower = normalized.toLowerCase();
+    if (lower === "null" || lower === "undefined") return null;
+    return normalized;
+};
+
+const ensureAssignableUserExists = async (assignedToId: string | null) => {
+    if (!assignedToId) return;
+
+    const assignee = await prisma.user.findFirst({
+        where: {
+            id: assignedToId,
+            isArchived: false,
+        },
+        select: { id: true },
+    });
+
+    if (!assignee) {
+        throw new Error("Selected assignee does not exist");
+    }
+};
+
 // "Today" ကို Myanmar timezone (+06:30) အတိုင်းတွက်ပြီး KPI count မှာ timezone mismatch မဖြစ်အောင် helper ထည့်ထားပါတယ်။
 const MYANMAR_OFFSET_MS = (6 * 60 + 30) * 60 * 1000;
 const getMyanmarDayRange = (baseDate = new Date()) => {
@@ -127,6 +156,7 @@ export async function createTicket(formData: FormData) {
 
     // Validate using Zod
     const parsed = createFormSchema.parse(raw);
+    const normalizedAssignedToId = normalizeOptionalRelationId(parsed.assignedToId);
 
     const userId = await getCurrentUserId();
     if (!userId) throw new Error("Unauthorized");
@@ -150,6 +180,8 @@ export async function createTicket(formData: FormData) {
             throw new Error("Selected department does not exist");
         }
     }
+
+    await ensureAssignableUserExists(normalizedAssignedToId);
 
     // Generate ticketId
     const ticketId = await generateTicketId();
@@ -183,7 +215,7 @@ export async function createTicket(formData: FormData) {
             startSlaTime: now,
             responseDue,
             resolutionDue,
-            assignedToId: parsed.assignedToId,
+            assignedToId: normalizedAssignedToId,
 
             ticketId,
             title: parsed.title,
@@ -249,6 +281,8 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
     // Validate input (partial allowed)
     const parsed = TicketFormSchema.parse(raw);
+    const normalizedAssignedToId = normalizeOptionalRelationId(parsed.assignedToId);
+    await ensureAssignableUserExists(normalizedAssignedToId);
 
 
     // Build update data
@@ -259,7 +293,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
         categoryId: string
         priority: string
         remark: string
-        assignedToId: string
+        assignedToId: string | null
         status: Status
 
     } = {
@@ -269,7 +303,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
         categoryId: parsed.categoryId,
         priority: parsed.priority,
         remark: parsed.remark || "",
-        assignedToId: parsed.assignedToId || "",
+        assignedToId: normalizedAssignedToId,
         status: parsed.status
 
     };
@@ -366,7 +400,14 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     const updated = await prisma.ticket.update({
         where: { id: ticketId },
         data: {
-            ...parsed,
+            title: parsed.title,
+            description: parsed.description,
+            departmentId: parsed.departmentId,
+            categoryId: parsed.categoryId,
+            priority: parsed.priority,
+            remark: parsed.remark || "",
+            assignedToId: normalizedAssignedToId,
+            status: parsed.status,
             slaId: sla.id, // update SLA
             startSlaTime: slaBaseTime,
             responseDue,

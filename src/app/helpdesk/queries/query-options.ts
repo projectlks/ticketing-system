@@ -126,13 +126,13 @@ export const DEFAULT_TICKETS_QUERY_INPUT: TicketsListQueryInput = {
   search: {},
   filters: {},
   page: 1,
-  pageSize: 10,
+  pageSize: 20,
 };
 
 export const DEFAULT_ALERTS_QUERY_INPUT: AlertsListQueryInput = {
   filter: "Zabbix",
   page: 1,
-  pageSize: 10,
+  pageSize: 20,
 };
 
 export const toTicketsListQueryInput = (

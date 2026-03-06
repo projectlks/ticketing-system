@@ -14,7 +14,7 @@ type AlertsPaginationInput = {
 };
 
 const DEFAULT_ALERTS_PAGE = 1;
-const DEFAULT_ALERTS_PAGE_SIZE = 10;
+const DEFAULT_ALERTS_PAGE_SIZE = 20;
 const MAX_ALERTS_PAGE_SIZE = 100;
 
 const normalizePositiveInt = (value: number | undefined, fallback: number) => {

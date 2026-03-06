@@ -353,6 +353,13 @@ export function useTicketForm({
 
             const fd = new FormData();
             Object.entries(form).forEach(([key, value]) => {
+                const normalized = String(value ?? "").trim();
+
+                // assignedToId က empty ဖြစ်ရင် optional field အနေနဲ့မပို့ဘဲချန်ထားမယ်။
+                if (key === "assignedToId" && !normalized) {
+                    return;
+                }
+
                 fd.append(key, String(value ?? ""));
             });
 
