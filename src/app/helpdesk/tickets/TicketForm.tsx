@@ -171,11 +171,24 @@ export default function TicketForm(props: TicketFormProps) {
     ticketId,
   } = useTicketForm(props);
 
+  const ribbonStatus =
+    form.status === "RESOLVED" ||
+    form.status === "CLOSED" ||
+    form.status === "CANCELED"
+      ? form.status
+      : null;
+
+  const ribbonStyles: Record<NonNullable<typeof ribbonStatus>, string> = {
+    RESOLVED: "bg-emerald-600 text-emerald-50",
+    CLOSED: "bg-zinc-700 text-zinc-50",
+    CANCELED: "bg-rose-600 text-rose-50",
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <ToastContainer />
 
-      <section className="mx-auto w-full max-w-[1480px] relative px-4 py-5 sm:px-6 sm:py-6">
+      <section className="mx-auto w-full max-w-[1480px] relative px-4  py-5 sm:px-6 sm:py-6">
         <div
           className={`grid items-start relative gap-5 ${
             ticketId
@@ -186,7 +199,15 @@ export default function TicketForm(props: TicketFormProps) {
             1. 'sticky' + 'top-6' makes it stay at the top.
             2. 'self-start' ensures the container doesn't stretch to the full height of the grid.
           */}
-          <div className="xl:sticky xl:top-24 self-start rounded-2xl border border-zinc-200 p-5 bg-white shadow-sm sm:p-7">
+          <div className="xl:sticky xl:top-24 self-start rounded-2xl overflow-hidden  border border-zinc-200 p-5 bg-white shadow-sm sm:p-7">
+            {ribbonStatus && (
+              <div className="pointer-events-none absolute right-[-46px] top-6 z-10 w-44 rotate-45">
+                <div
+                  className={`border border-white/25 py-1.5 text-center text-[11px] font-semibold tracking-[0.2em] shadow-sm ${ribbonStyles[ribbonStatus]}`}>
+                  {ribbonStatus}
+                </div>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
               <Header
                 ticketId={form.ticketId ?? "NEW"}

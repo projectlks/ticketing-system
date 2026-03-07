@@ -45,7 +45,7 @@ export default function Header({
           </h1>
         </div>
 
-        {mode === "edit" && resolutionDueIso && (
+        {mode === "edit" && resolutionDueIso &&  status !== "RESOLVED" &&  status !== "CLOSED" &&  status !== "CANCELED" && (
           <div className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600">
             {/* Edit mode မှာ SLA ကျန်ချိန်ကို အမြင်လွယ်အောင် header ထဲကနေပြထားပါတယ်။ */}
             <span className="mr-2 font-medium">Time left</span>

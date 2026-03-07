@@ -1,15 +1,21 @@
 // import { getTicketAuditLogs } from "@/app/helpdesk/tickets/action";
 import { TicketFormData } from "@/app/helpdesk/tickets/ticket.schema";
 import { Audit } from "@/generated/prisma/client";
+import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 
+dotenv.config();
+
 const server = http.createServer();
-const PORT = Number(process.env.WEB_SOCKET_PORT) || 3001;
+const PORT = Number(process.env.WEB_SOCKET_PORT || process.env.NEXT_PUBLIC_WEB_SOCKET_PORT) || 3010;
+const SOCKET_PATH = process.env.WEB_SOCKET_PATH || process.env.NEXT_PUBLIC_WEB_SOCKET_PATH || "/socket.io";
+const corsOrigin = process.env.WEB_SOCKET_CORS_ORIGIN || "*";
 
 const io = new Server(server, {
+    path: SOCKET_PATH,
     cors: {
-        origin: "*",
+        origin: corsOrigin === "*" ? "*" : corsOrigin.split(",").map((origin) => origin.trim()),
         methods: ["GET", "POST"],
     },
 });
@@ -41,7 +47,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-    console.log(`⚡ Socket server running on 0.0.0.0:${PORT}`);
+    console.log(`⚡ Socket server running on 0.0.0.0:${PORT} path=${SOCKET_PATH}`);
 });
-
-

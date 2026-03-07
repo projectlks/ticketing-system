@@ -6,8 +6,10 @@ import { HELPDESK_CACHE_PREFIXES } from "@/app/helpdesk/cache/redis-keys";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
 
 const DEFAULT_CUSTOMER_EMAIL = "support@eastwindmyanmar.com.mm";
+const APP_PORT = process.env.PORT?.trim() || "4000";
 const LOCAL_CREATE_TICKET_URL =
-  process.env.LOCAL_CREATE_TICKET_URL?.trim() || "http://127.0.0.1:3000/api/create-ticket";
+  process.env.LOCAL_CREATE_TICKET_URL?.trim() ||
+  `http://127.0.0.1:${APP_PORT}/api/create-ticket`;
 
 type WebhookTag = {
   tag: string;
@@ -482,11 +484,33 @@ async function callCreateTicket(url: string, payload: unknown): Promise<CreateTi
   };
 }
 
-async function callCreateTicketWithFallback(payload: unknown): Promise<CreateTicketCallResult> {
-  const configuredBaseUrl = process.env.BASE_URL?.trim();
-  const primaryCreateTicketUrl = configuredBaseUrl
-    ? `${configuredBaseUrl}/api/create-ticket`
-    : LOCAL_CREATE_TICKET_URL;
+function resolvePrimaryCreateTicketUrl(requestOrigin?: string): string {
+  if (!requestOrigin) {
+    return LOCAL_CREATE_TICKET_URL;
+  }
+
+  try {
+    const origin = new URL(requestOrigin);
+    const isLoopbackHost =
+      origin.hostname === "localhost" || origin.hostname === "127.0.0.1" || origin.hostname === "::1";
+
+    // Reverse proxy setups can report https://localhost as request origin even when
+    // the local Next.js server only serves HTTP, which causes fetch TLS failures.
+    if (isLoopbackHost && origin.protocol === "https:") {
+      return LOCAL_CREATE_TICKET_URL;
+    }
+
+    return new URL("/api/create-ticket", origin).toString();
+  } catch {
+    return LOCAL_CREATE_TICKET_URL;
+  }
+}
+
+async function callCreateTicketWithFallback(
+  payload: unknown,
+  requestOrigin?: string,
+): Promise<CreateTicketCallResult> {
+  const primaryCreateTicketUrl = resolvePrimaryCreateTicketUrl(requestOrigin);
 
   try {
     return await callCreateTicket(primaryCreateTicketUrl, payload);
@@ -527,9 +551,12 @@ async function persistOtrsTicketId(context: NormalizedWebhookContext, otrsTicket
 
 // OTRS side-effect flow (build payload -> call API -> inspect response -> persist TicketID)
 // ကိုစုစည်းထားသော orchestration helper ဖြစ်သည်။
-async function syncOtrsTicket(context: NormalizedWebhookContext): Promise<OtrsSyncResult> {
+async function syncOtrsTicket(
+  context: NormalizedWebhookContext,
+  requestOrigin?: string,
+): Promise<OtrsSyncResult> {
   const createTicketPayload = buildCreateTicketPayload(context);
-  const createTicketResult = await callCreateTicketWithFallback(createTicketPayload);
+  const createTicketResult = await callCreateTicketWithFallback(createTicketPayload, requestOrigin);
   const ticketData = createTicketResult.data;
 
   if (ticketData.action === "skipped") {
@@ -578,7 +605,7 @@ export async function POST(req: NextRequest) {
     await upsertInternalHelpdeskTicket(context);
 
     // အဆင့် (3): OTRS sync flow ကိုသီးခြား helper မှာချုပ်ပြီး POST ကို orchestration only ထားသည်။
-    const otrsResult = await syncOtrsTicket(context);
+    const otrsResult = await syncOtrsTicket(context, req.nextUrl.origin);
     if (otrsResult.action === "skipped") {
       return NextResponse.json({
         success: true,

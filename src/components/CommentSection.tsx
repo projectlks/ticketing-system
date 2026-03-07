@@ -1,11 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import type { Comment } from "../generated/prisma/client";
 
 import CommentInput from "./CommentInput";
 import CommentItem from "./CommentItem";
 import { getSocket, joinTicket } from "@/libs/socket-client";
+
+const Player = dynamic(
+  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
+  { ssr: false },
+);
 
 export type CommentWithRelations = Comment & {
   commenter?: {
@@ -140,13 +146,6 @@ export default function CommentSection({
             {comments.length} {comments.length === 1 ? "message" : "messages"}
           </p>
         </div>
-
-        {typingUser && (
-          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs text-zinc-600">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-500" />
-            {typingUser} is typing
-          </div>
-        )}
       </header>
 
       <div id="commentsSection" className="h-[42vh] overflow-y-auto pr-1 sm:h-[48vh]">
@@ -169,6 +168,21 @@ export default function CommentSection({
       </div>
 
       <div className="mt-3 border-t border-zinc-100 pt-3">
+        <div className="mb-2 min-h-[40px]">
+          {typingUser ? (
+            <div className="inline-flex items-center gap-2.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600">
+              <Player
+                autoplay
+                loop
+                src="/typing.json"
+                style={{ height: "24px", width: "24px" }}
+              />
+              <span>{typingUser} is typing...</span>
+            </div>
+          ) : (
+            <div aria-hidden className="h-[40px]" />
+          )}
+        </div>
         <CommentInput ticketId={ticketId} />
       </div>
     </section>

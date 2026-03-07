@@ -7,14 +7,33 @@ import type { CommentWithRelations } from "@/components/CommentSection";
 import { Audit } from "@/generated/prisma/client";
 
 let socket: Socket | null = null;
-const url = `${process.env.NEXT_PUBLIC_WEB_SOCKET_URL}:${process.env.NEXT_PUBLIC_WEB_SOCKET_PORT}`;
-console.log("Connecting to socket at", url);
+const SOCKET_PATH = process.env.NEXT_PUBLIC_WEB_SOCKET_PATH || "/socket.io";
+
+function resolveSocketUrl() {
+    const configuredUrl = process.env.NEXT_PUBLIC_WEB_SOCKET_URL?.trim();
+    if (configuredUrl) {
+        return configuredUrl;
+    }
+
+    if (typeof window !== "undefined") {
+        return window.location.origin;
+    }
+
+    return undefined;
+}
 
 export function getSocket(): Socket {
     if (!socket) {
-        socket = io(url, {
+        const url = resolveSocketUrl();
+        console.log("Connecting to socket at", url ?? "same-origin", "path", SOCKET_PATH);
+
+        const options = {
+            path: SOCKET_PATH,
             autoConnect: false, // we will connect manually
-        });
+            transports: ["websocket", "polling"],
+        };
+
+        socket = url ? io(url, options) : io(options);
 
         socket.on("connect", () => {
             console.log("✅ Socket connected:", socket?.id);
@@ -25,7 +44,7 @@ export function getSocket(): Socket {
         });
 
         socket.on("connect_error", (err) => {
-            console.error("Socket connection error:", err);
+            console.error("Socket connection error:", err.message);
         });
 
         socket.connect();
