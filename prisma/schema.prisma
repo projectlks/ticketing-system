@@ -69,7 +69,7 @@ enum ZabbixStatus {
 
 model ZabbixTicket {
   id      Int      @id @default(autoincrement())
-  eventid String
+  eventid String   @unique
   name    String
   status  String
   clock   DateTime
@@ -98,8 +98,7 @@ model ZabbixTicket {
 
   createdAt DateTime @default(now())
 
-  @@unique([triggerId, hostName])
-  @@index([eventid])
+  @@index([triggerId, hostName])
   @@index([status])
   @@index([clock])
 }

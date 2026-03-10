@@ -46,9 +46,9 @@ type EditUserFormProps = {
 };
 
 const BASE_ROLE_OPTIONS: Array<{ value: FormValues["role"]; label: string }> = [
-  { value: "LEVEL_1", label: "LEVEL_1 (Requester)" },
-  { value: "LEVEL_2", label: "LEVEL_2 (Agent)" },
-  { value: "LEVEL_3", label: "LEVEL_3 (Admin)" },
+  { value: "LEVEL_1", label: "LEVEL_1" },
+  { value: "LEVEL_2", label: "LEVEL_2" },
+  { value: "LEVEL_3", label: "LEVEL_3" },
 ];
 
 const SUPER_ADMIN_OPTION: { value: FormValues["role"]; label: string } = {

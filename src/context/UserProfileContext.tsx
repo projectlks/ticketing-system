@@ -3,6 +3,7 @@
 // import { getCurrentUserData } from "@/app/lang/[locale]/main/profile/action";
 // import { UserFullData } from "@/app/lang/[locale]/main/profile/page";
 import { getBasicUserData } from "@/libs/action";
+import { useSession } from "next-auth/react";
 import {
   createContext,
   useContext,
@@ -29,39 +30,52 @@ interface UserDataContextType {
   setUserData: Dispatch<SetStateAction<UserData>>;
 }
 
+const EMPTY_USER: BasicUserData = {
+  id: "",
+  name: "",
+  email: "",
+  profileUrl: null,
+};
+
 const UserDataContext = createContext<UserDataContextType | undefined>(
   undefined
 );
 
 export const UserDataProvider = ({ children }: { children: ReactNode }) => {
-  // const { data: session } = useSession();
-
-  // preload from session
-  const initialUser: BasicUserData = {
-    id: "", // id only exists if you've extended next-auth user type
-    name: "",
-    email: "",
-    profileUrl: null,
-  };
-
-  const [userData, setUserData] = useState<BasicUserData>(initialUser);
+  const { status } = useSession();
+  const [userData, setUserData] = useState<BasicUserData>(EMPTY_USER);
+  const safeUserData = status === "authenticated" ? userData : EMPTY_USER;
 
   // overwrite with full DB user
   useEffect(() => {
+    let isActive = true;
+
+    if (status !== "authenticated") {
+      return () => {
+        isActive = false;
+      };
+    }
+
     async function fetchUserData() {
       try {
         const data: BasicUserData = await getBasicUserData();
-        setUserData(data);
+        if (isActive) {
+          setUserData(data);
+        }
       } catch (err) {
         console.error("Failed to fetch full user data:", err);
       }
     }
 
     fetchUserData();
-  }, []);
+
+    return () => {
+      isActive = false;
+    };
+  }, [status]);
 
   return (
-    <UserDataContext.Provider value={{ userData, setUserData }}>
+    <UserDataContext.Provider value={{ userData: safeUserData, setUserData }}>
       {children}
     </UserDataContext.Provider>
   );

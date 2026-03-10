@@ -21,6 +21,10 @@ type WebhookEvent = {
   status?: string;
   value?: string;
   datetime?: string;
+  recovery_id?: string;
+  event_recovery_id?: string;
+  recoveryEventId?: string;
+  r_eventid?: string;
 };
 
 type WebhookTrigger = {
@@ -52,6 +56,9 @@ type WebhookPayload = {
   host?: WebhookHost;
   item?: WebhookItem;
   tags?: WebhookTag[] | string;
+  event_recovery_id?: string;
+  recovery_event_id?: string;
+  recoveryEventId?: string;
 };
 
 type CreateTicketResponse = {
@@ -94,6 +101,8 @@ type NormalizedWebhookContext = {
   normalizedHostName: string;
   clock: Date;
   status: "0" | "1";
+  isRecoveryEvent: boolean;
+  problemEventId: string;
   tagsString: string | null;
   last5Values: string | null;
   problemId: string;
@@ -126,6 +135,12 @@ function normalizeTicketId(value: unknown): string | null {
 function normalizeRequiredText(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : fallback;
+}
+
+function normalizeOptionalText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 // Zabbix datetime format (`YYYY.MM.DD HH:mm:ss`) နဲ့ ISO format နှစ်မျိုးလုံးကို လက်ခံပြီး
@@ -181,6 +196,34 @@ function mapSeverityToOtrsPriorityLabel(severity: string | undefined): string {
   return severity ? (severityMap[severity] ?? "3 Medium") : "3 Medium";
 }
 
+function isResolvedEvent(event: WebhookEvent): boolean {
+  return event.status?.toLowerCase() === "resolved" || event.value === "0";
+}
+
+function resolveProblemEventId(payload: WebhookPayload): string | null {
+  const event = payload.event;
+  if (!event?.id) return null;
+
+  if (!isResolvedEvent(event)) return event.id;
+
+  const recoveryCandidates: unknown[] = [
+    event.event_recovery_id,
+    event.recovery_id,
+    event.recoveryEventId,
+    event.r_eventid,
+    payload.event_recovery_id,
+    payload.recovery_event_id,
+    payload.recoveryEventId,
+  ];
+
+  for (const candidate of recoveryCandidates) {
+    const normalized = normalizeOptionalText(candidate);
+    if (normalized) return normalized;
+  }
+
+  return null;
+}
+
 /* -------------------------------------------------------------------------- */
 /*                    Request parsing + validation layer                        */
 /* -------------------------------------------------------------------------- */
@@ -206,8 +249,14 @@ function buildWebhookContext(payload: WebhookPayload): NormalizedWebhookContext 
   const normalizedTriggerId = normalizeRequiredText(trigger.id, `unknown-trigger-${event.id}`);
   const normalizedHostName = normalizeRequiredText(host.name, "unknown-host");
 
-  const status: "0" | "1" =
-    event.status?.toLowerCase() === "resolved" || event.value === "0" ? "1" : "0";
+  const recoveryEvent = isResolvedEvent(event);
+  const status: "0" | "1" = recoveryEvent ? "1" : "0";
+  const problemEventId = resolveProblemEventId(payload);
+  if (!problemEventId) {
+    throw new RequestValidationError(
+      "Missing event_recovery_id for resolved event. Configure webhook to send recovery link.",
+    );
+  }
 
   const tagsString = normalizeTags(payload.tags);
   const last5Values = item.value ? `1: ${item.value} (${item.name ?? ""})` : null;
@@ -221,9 +270,11 @@ function buildWebhookContext(payload: WebhookPayload): NormalizedWebhookContext 
     normalizedHostName,
     clock,
     status,
+    isRecoveryEvent: recoveryEvent,
+    problemEventId,
     tagsString,
     last5Values,
-    problemId: `zabbix-${event.id}`,
+    problemId: `zabbix-${problemEventId}`,
     internalPriority: mapSeverityToPriority(trigger.severity),
   };
 }
@@ -285,15 +336,11 @@ async function generateTicketIdForWebhook(): Promise<string> {
   return `TKT-${year}-${month}-${ticketNumber}`;
 }
 
-// Zabbix raw event snapshot ကို unique key (triggerId + hostName) အလိုက် upsert လုပ်သည်။
-// Monitoring source data ကို historical syncing အတွက် stable ဖြစ်အောင်ဦးစားပေးထားသည်။
+// Zabbix raw events ကို event_id အလိုက် idempotent upsert လုပ်ပြီး event history မပျောက်အောင်ထားသည်။
 async function upsertZabbixSnapshot(context: NormalizedWebhookContext) {
   await prisma.zabbixTicket.upsert({
     where: {
-      triggerId_hostName: {
-        triggerId: context.normalizedTriggerId,
-        hostName: context.normalizedHostName,
-      },
+      eventid: context.event.id,
     },
     update: {
       name: context.trigger.name ?? `Zabbix Event ${context.event.id}`,
@@ -342,62 +389,83 @@ function toTicketZabbixStatus(status: "0" | "1"): ZabbixStatus {
 // Application internal ticket table ကို zabbix problemId နဲ့ idempotent upsert လုပ်သည်။
 // requesterId ကို optional fallback strategy နဲ့ resolve လုပ်ပြီး required relation error မဖြစ်စေသည်။
 async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
-  const [ticketId, requesterId] = await Promise.all([
-    generateTicketIdForWebhook(),
-    resolveAutomationRequesterId(),
-  ]);
-
   const zabbixStatus = toTicketZabbixStatus(context.status);
   const title = context.trigger.name ?? `Zabbix Event ${context.event.id}`;
   const description = `Host: ${context.normalizedHostName}, Trigger: ${context.trigger.name ?? "unknown"}, Item: ${context.item.name ?? "unknown"}`;
-
   const priority = context.internalPriority;
 
-  const sla = await prisma.sLA.findUnique({
-    where: { priority },
-  });
-
-  if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
-
-  // 2. အချိန်တွေတွက်မယ်
-  const now = new Date();
-  const responseDue = dayjs(now).add(sla.responseTime, 'minute').toDate();
-  const resolutionDue = dayjs(now).add(sla.resolutionTime, 'minute').toDate();
-
-
-
-  await prisma.ticket.upsert({
+  const existingTicket = await prisma.ticket.findUnique({
     where: { problemId: context.problemId },
-    update: {
-      title,
-      description,
-      zabbixStatus,
-      status: zabbixStatus === "PROBLEM" ? "OPEN" : "RESOLVED",
-
-    },
-    create: {
-      ticketId,
-      problemId: context.problemId,
-      title,
-      description,
-      // ...(requesterId ? { requesterId } : {}),
-      zabbixStatus,
-      priority,
-      resolutionDue,
-      responseDue,
-      status: "OPEN",
-    },
+    select: { id: true },
   });
 
+  if (existingTicket) {
+    await prisma.ticket.update({
+      where: { id: existingTicket.id },
+      data: {
+        title,
+        description,
+        zabbixStatus,
+        status: zabbixStatus === "PROBLEM" ? "OPEN" : "RESOLVED",
+      },
+    });
 
-  // Add audit log
-  await prisma.audit.create({
-    data: {
-      entity: "Ticket",
-      entityId: ticketId,
-      action: "CREATE",
-    },
-  });
+    await prisma.audit.create({
+      data: {
+        entity: "Ticket",
+        entityId: existingTicket.id,
+        action: "UPDATE",
+      },
+    });
+  } else {
+    if (context.isRecoveryEvent) {
+      console.warn("[zabbix] Recovery event received without matching problem ticket", {
+        eventId: context.event.id,
+        problemEventId: context.problemEventId,
+        triggerId: context.normalizedTriggerId,
+        hostName: context.normalizedHostName,
+      });
+      return;
+    }
+
+    const [ticketId, requesterId, sla] = await Promise.all([
+      generateTicketIdForWebhook(),
+      resolveAutomationRequesterId(),
+      prisma.sLA.findUnique({
+        where: { priority },
+      }),
+    ]);
+
+    if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
+
+    const now = new Date();
+    const responseDue = dayjs(now).add(sla.responseTime, "minute").toDate();
+    const resolutionDue = dayjs(now).add(sla.resolutionTime, "minute").toDate();
+
+    const createdTicket = await prisma.ticket.create({
+      data: {
+        ticketId,
+        problemId: context.problemId,
+        title,
+        description,
+        ...(requesterId ? { requesterId } : {}),
+        zabbixStatus,
+        priority,
+        resolutionDue,
+        responseDue,
+        status: "OPEN",
+        creationMode: "AUTOMATIC",
+      },
+    });
+
+    await prisma.audit.create({
+      data: {
+        entity: "Ticket",
+        entityId: createdTicket.id,
+        action: "CREATE",
+      },
+    });
+  }
 
   // Ticket data အသစ်တက်လာတာနဲ့ list/dashboard cache တွေကိုရှင်းထားမှ
   // overview/tickets/analysis page တွေမှာ stale result မကျန်တော့ပါ။
@@ -408,7 +476,6 @@ async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
     HELPDESK_CACHE_PREFIXES.analysis,
     HELPDESK_CACHE_PREFIXES.users,
   ]);
-
 }
 
 
@@ -540,10 +607,7 @@ function resolveCreateTicketError(ticketData: CreateTicketResponse, statusCode: 
 async function persistOtrsTicketId(context: NormalizedWebhookContext, otrsTicketId: string) {
   await prisma.zabbixTicket.update({
     where: {
-      triggerId_hostName: {
-        triggerId: context.normalizedTriggerId,
-        hostName: context.normalizedHostName,
-      },
+      eventid: context.event.id,
     },
     data: { otrsTicketId },
   });

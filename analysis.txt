@@ -1,0 +1,143 @@
+ဖြစ်စဉ်ခွဲခြမ်းစိတ်ဖြာမှု (Incident Analysis): supports.ceir.gov.mm အတွက် Cloudflare 522
+ရေးသားချိန်: 2026-03-07 11:51 UTC
+ဖြစ်စဉ်ကိုးကားချက်များ:
+- Error code: 522
+- Cloudflare Ray ID: 9d8959795e747a47
+- Error ဖြစ်ပွားချိန်: 2026-03-07 11:45:05 UTC
+- Cloudflare POP: SIN (Singapore)
+
+================================================================
+1) အကျဉ်းချုပ်
+================================================================
+လက်ရှိ evidence များအရ timeout 522 ၏ အဓိကပြဿနာသည် ဒီ VM ပေါ်ရှိ Application process သို့မဟုတ် Nginx ကြောင့် မဟုတ်ကြောင်း ပိုမိုခိုင်မာသည်။
+ပြဿနာဖြစ်နိုင်ချေမြင့်ရာနေရာမှာ Cloudflare နှင့် origin entry layer (F5/LB/firewall/network route) ကြား လမ်းကြောင်းဘက်တွင် intermittent reachability issue ဖြစ်နေခြင်းဖြစ်သည်။
+
+================================================================
+2) VM ဘက်မှ အချက်အလက်များ (Evidence)
+================================================================
+2.1 Incident window အတွင်း App/Service အခြေအနေ ကောင်းမွန်မှု
+- 2026-03-07 11:45 UTC ဝန်းကျင် Application process status:
+  - ticketing-web: online
+  - ticketing-socket: online
+  - ticketing-cron: online
+- nginx service:
+  - active (running)
+  - 2026-03-07 10:14:29 UTC တွင် start ဖြစ်ပြီး ဆက်လက် running ဖြစ်နေသည်
+- System resource (incident time နီးပါး):
+  - load average နိမ့် (0.10, 0.08, 0.02)
+  - memory ~31Gi ထဲမှ ~2.1Gi သုံးထား
+  - swap 0 သုံးထား
+  - disk usage ~36%
+
+2.2 VM အတွင်းမှ origin response မြန်ဆန်စွာ ပြန်နေမှု
+- Local origin probe:
+  - http://10.2.70.3/ (Host: supports.ceir.gov.mm) => HTTP 307, ~0.01s
+  - http://10.2.10.16/ (Host: supports.ceir.gov.mm) => HTTP 307, ~0.01s
+- DB connectivity (Prisma) စစ်ဆေးမှု:
+  - SELECT 1 => success
+  - user count query => success
+
+2.3 Incident အချိန် Nginx log မှာ external/cloudflare request မမြင်ရမှု
+- Access log (2026-03-07 11:45 UTC ဝန်းကျင်):
+  - 10.2.10.10 မှ internal monitoring call (/api/zabbix, HTTP 200) များသာ ရှိ
+  - report လာသော 522 ဖြစ်ချိန်နှင့် ကိုက်ညီသော external request မတွေ့
+- Error log (11:45 UTC ဝန်းကျင်):
+  - အဲဒီမိနစ်အတိအကျတွင် Nginx upstream timeout/error မရှိ
+
+2.4 အခြား supporting signals
+- နောက်ပိုင်း public endpoint ကိုစမ်းရာ Cloudflare challenge (HTTP 403) ပြန်လာသည်။ ဒါကြောင့် outage သည် permanent မဟုတ်ဘဲ intermittent ဖြစ်နိုင်ချေရှိသည်။
+- ဒီ VM မှ public IP path သို့ direct test အချို့ timeout ဖြစ်ခဲ့သည်။ (hairpin routing policy သက်ရောက်နိုင်သဖြင့် supporting signal အဖြစ်သာယူရမည်)
+
+================================================================
+3) VM root cause မဟုတ်ကြောင်း သတ်မှတ်နိုင်သည့်အကြောင်းပြချက်
+================================================================
+VM/app/nginx က အဓိကပြဿနာဖြစ်ခဲ့မယ်ဆိုရင် ယေဘုယျအားဖြင့် အောက်ပါလက္ခဏာများ ပေါ်တတ်သည်:
+- process restart/crash
+- CPU/memory/swap pressure မြင့်ခြင်း
+- အချိန်တူ Nginx upstream timeout/error ပြတင်းပေါက်
+- local origin probe မအောင်မြင်ခြင်း
+
+အထက်ပါလက္ခဏာများကို မတွေ့ခဲ့ပါ။
+ထိုအချိန်တူတည်းတွင် local origin response ကောင်းကောင်းပြန်နေပြီး internal monitor traffic လည်း HTTP 200 ဖြင့် အောင်မြင်နေသည်။
+ထို့ကြောင့် request သည် VM မရောက်မီ layer တစ်နေရာတွင် (Cloudflare -> firewall/LB/NAT/F5 path) ပျက်နေကြောင်း ပိုမိုညွှန်ပြသည်။
+
+================================================================
+4) နောက်ထပ် စစ်ဆေးသင့်သောနေရာများ (Layer by ownership)
+================================================================
+4.1 Cloudflare ဘက်
+စစ်ရန်:
+1. Incident time အတွင်း proxied hostname DNS record mapping
+   - A/AAAA records မှန်ကန်သလား၊ expected public origin endpoint ကိုညွှန်နေသလား
+2. Ray ID 9d8959795e747a47 အတွက် Cloudflare firewall/WAF/bot/origin connect telemetry
+3. Cloudflare LB/origin pool သုံးထားလျှင် health state/failover event များ
+4. SSL mode (Flexible/Full/Full strict) ကို origin/LB TLS setup နှင့် ကိုက်ညီမှု
+
+4.2 F5 / Load Balancer ဘက် (အရေးကြီးဆုံး)
+စစ်ရန်:
+1. supports.ceir.gov.mm VIP
+   - listener state, connection table, SYN backlog, timeout counters
+2. Pool members
+   - 2026-03-07 11:45 UTC ဝန်းကျင် health flapping ရှိ/မရှိ
+   - 10.2.70.3:80 ကို down/intermittent အဖြစ် mark လုပ်သွားမှုရှိ/မရှိ
+3. Health monitor config
+   - path, interval, timeout, fall/rise thresholds
+4. SNAT/NAT exhaustion
+   - ephemeral port exhaustion, conn table saturation
+5. LTM/ASM policy
+   - rate limit, DoS profile action, iRule drop/reset
+6. F5 logs ကို exact incident time + Cloudflare source ranges ဖြင့် correlation စစ်ရန်
+
+4.3 Perimeter Firewall / Security ဘက်
+စစ်ရန်:
+1. Cloudflare IP ranges allowlist (published ranges အကုန်)
+   - partial allowlist / stale ranges မဖြစ်သလား
+2. 11:45 UTC ဝန်းကျင် timed policy / geo policy / IPS action
+3. origin VIP သို့ TCP session drop/reset
+4. SYN flood mitigation false-positive ဖြစ်နေ/မနေ
+
+4.4 Routing / ISP / Transit ဘက်
+စစ်ရန်:
+1. Cloudflare SIN POP မှ origin public endpoint သို့ route stability
+2. Incident minute တွင် BGP flap / link error / congestion ရှိ/မရှိ
+3. Asymmetric routing ကြောင့် SYN/SYN-ACK mismatch ဖြစ်နေ/မနေ
+
+================================================================
+5) ချက်ချင်းလုပ်သင့်သော စစ်ဆေးမှုများ
+================================================================
+5.1 F5 + Firewall team (time-boxed)
+1. 2026-03-07 11:44:30 မှ 11:46:30 UTC အတွင်း log များ ထုတ်ယူပါ
+2. အောက်ပါ filter များနဲ့စစ်ပါ:
+   - source: Cloudflare egress IPs
+   - destination: supports.ceir.gov.mm VIP/public IP
+   - action: drop/reject/reset/timeout
+3. SYN VIP ရောက်သလား၊ SYN-ACK ပြန်ထွက်သလား confirm လုပ်ပါ
+4. အချိန်တူ pool member status transition ရှိ/မရှိ စစ်ပါ
+
+5.2 Cloudflare team
+1. Ray ID 9d8959795e747a47 ကို dashboard/logs မှာ lookup လုပ်ပါ
+2. အောက်ပါအချက်များ confirm လုပ်ပါ:
+   - origin connect timeout vs handshake timeout
+   - Cloudflare က hit သွားသော origin IP အတိအကျ
+   - retry attempt အလိုက် result code များ
+
+5.3 VM team (proof ဆက်စုရန်)
+1. Incident အချိန် live proof အတွက် rolling capture ထားပါ:
+   - tcpdump (port 80, SYN/ACK)
+   - nginx access/error tail (timestamp ဖြင့်)
+2. 5s interval health probe ကို Host header နဲ့ ဆက် run ပါ:
+   - 10.2.70.3
+   - 10.2.10.16
+
+================================================================
+6) ယာယီလျော့ချရေး အကြံပြုချက်များ
+================================================================
+1. LB visibility တိုးမြှင့်ရန် detailed connection logging ကို incident hours အတွင်း ယာယီဖွင့်ပါ
+2. Cloudflare IP allowlist automation ကိုစစ်ပါ (manual stale list မဖြစ်စေရန်)
+3. Pool member များစွာရှိပါက balancing algorithm + health sensitivity ကိုပြန်ညှိပါ
+4. Cloudflare/F5/origin ကြား connect/idle timeout mismatch မရှိကြောင်း ပြန်စစ်ပါ
+
+================================================================
+7) အဆုံးသတ်သတ်မှတ်ချက် (Bottom Line)
+================================================================
+လက်ရှိ evidence အရ ဒီ 522 ပြဿနာသည် application/database/VM performance root cause မဟုတ်ဘဲ upstream connectivity/edge-LB path ပြဿနာဖြစ်နိုင်ချေမြင့်သည်။
+အဓိကစစ်ဆေးမှုကို Cloudflare + F5/LB + Firewall/Routing layers တွင် exact-time correlation ဖြင့် ဆောင်ရွက်သင့်သည် (2026-03-07 11:45:05 UTC, Ray ID 9d8959795e747a47)။
