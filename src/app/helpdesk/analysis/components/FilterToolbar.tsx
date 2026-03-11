@@ -55,7 +55,7 @@ export default function FilterToolbar({
               Helpdesk Analytics
             </p>
             <h1 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">
-              Overview Dashboard
+              Reporting Dashboard
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               Applied range:{" "}
@@ -77,21 +77,21 @@ export default function FilterToolbar({
 
         <div className="mt-5 rounded-2xl border border-black/5 bg-white p-4 sm:p-5 ">
           {/* <div className="rounded-2xl bg-slate-100 p-1.5"> */}
-            <div className="flex flex-wrap gap-1.5">
-              {quickRangeOptions.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => onQuickRange(item.key)}
-                  disabled={isLoading}
-                  className={`h-9 px-4 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-40 ${
-                    activeQuickRange === item.key
-                      ? "bg-linear-to-r from-slate-900 to-slate-700 text-white shadow-sm"
-                      : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-                  }`}>
-                  {item.label}
-                </button>
-              ))}
+          <div className="flex flex-wrap gap-1.5">
+            {quickRangeOptions.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => onQuickRange(item.key)}
+                disabled={isLoading}
+                className={`h-9 px-4 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-40 ${
+                  activeQuickRange === item.key
+                    ? "bg-linear-to-r from-slate-900 to-slate-700 text-white shadow-sm"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                }`}>
+                {item.label}
+              </button>
+            ))}
             {/* </div> */}
           </div>
 

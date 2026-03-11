@@ -9,6 +9,7 @@ import TableHead from "@/components/TableHead";
 import { Ticket } from "@/generated/prisma/client";
 import { usePriorityColor } from "@/hooks/usePriorityColor";
 import { useStatusColor } from "@/hooks/useStatusColor";
+import { useCreationModeColor } from "@/hooks/useCreationModeColor";
 import TableFooter from "./TableFooter";
 import TableTopBar from "./TableTopBar";
 import { renderCell, RenderCellHelpers } from "./renderCell";
@@ -40,6 +41,7 @@ const columns = [
   { key: "department", label: "Department" },
   { key: "priority", label: "Priority" },
   { key: "createdAt", label: "Created At" },
+  { key: "creationMode", label: "Creation Mode" },
   // { key: "responseDue", label: "Response Due" },
   { key: "resolutionDue", label: "Resolution Due" },
   { key: "requester", label: "Requester" },
@@ -108,6 +110,7 @@ export default function Page() {
 
   const getStatusColor = useStatusColor;
   const getPriorityColor = usePriorityColor;
+  const getCreationModeColor = useCreationModeColor;
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -276,6 +279,7 @@ export default function Page() {
       "Requester",
       "Assigned To",
       "Created At",
+      "Creation Mode",
       "SLA Violated",
     ];
 
@@ -291,6 +295,7 @@ export default function Page() {
       new Date(ticket.createdAt).toLocaleString("en-US", {
         timeZone: "Asia/Yangon",
       }),
+      ticket.creationMode ?? "",
       ticket.isSlaViolated ? "Yes" : "No",
     ]);
 
@@ -312,7 +317,11 @@ export default function Page() {
     URL.revokeObjectURL(url);
   };
 
-  const helpers: RenderCellHelpers = { getStatusColor, getPriorityColor };
+  const helpers: RenderCellHelpers = {
+    getStatusColor,
+    getPriorityColor,
+    getCreationModeColor,
+  };
 
   const visibleColumnKeys = useMemo(
     () => columns.filter((column) => visibleColumns[column.key]),

@@ -1,26 +1,44 @@
 "use client";
 
 import type { AnalysisRecentTicket } from "../action";
+import PillBadge from "@/components/ticket/PillBadge";
+import { usePriorityColor } from "@/hooks/usePriorityColor";
+import { useStatusColor } from "@/hooks/useStatusColor";
 
 type RecentTicketsTableProps = {
   recentTickets: AnalysisRecentTicket[];
 };
 
-const priorityClassName: Record<AnalysisRecentTicket["priority"], string> = {
-  high: "bg-red-100 text-red-700",
-  medium: "bg-amber-100 text-amber-700",
-  low: "bg-emerald-100 text-emerald-700",
+const mapPriorityToTone = (priority: AnalysisRecentTicket["priority"]) => {
+  switch (priority) {
+    case "high":
+      return "CRITICAL";
+    case "medium":
+      return "MINOR";
+    case "low":
+      return "REQUEST";
+  }
+  return "REQUEST";
 };
 
-const statusClassName: Record<AnalysisRecentTicket["status"], string> = {
-  open: "bg-sky-100 text-sky-700",
-  pending: "bg-violet-100 text-violet-700",
-  closed: "bg-zinc-200 text-zinc-700",
+const mapStatusToTone = (status: AnalysisRecentTicket["status"]) => {
+  switch (status) {
+    case "open":
+      return "OPEN";
+    case "pending":
+      return "IN_PROGRESS";
+    case "closed":
+      return "CLOSED";
+  }
+  return "OPEN";
 };
 
 export default function RecentTicketsTable({
   recentTickets,
 }: RecentTicketsTableProps) {
+  const getPriorityColor = usePriorityColor;
+  const getStatusColor = useStatusColor;
+
   return (
     <div>
       <h2 className="text-lg font-semibold tracking-tight mb-6">Recent Tickets</h2>
@@ -63,19 +81,25 @@ export default function RecentTicketsTable({
                 {/* Priority/Status badge color mapping ကို helper object မှာသတ်မှတ်ထားလို့
                     string comparison logic မပြန့်ဘဲ UI styling rule ကိုတစ်နေရာထဲထိန်းနိုင်ပါတယ်။ */}
                 <td className="px-6 py-4 capitalize">
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${priorityClassName[ticket.priority]}`}
-                  >
-                    {ticket.priority}
-                  </span>
+                  <PillBadge
+                    label={ticket.priority}
+                    toneClass={getPriorityColor(
+                      mapPriorityToTone(ticket.priority),
+                      "borderAndText",
+                    )}
+                    dotClass={getPriorityColor(mapPriorityToTone(ticket.priority))}
+                  />
                 </td>
 
                 <td className="px-6 py-4 capitalize text-black/60">
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusClassName[ticket.status]}`}
-                  >
-                    {ticket.status}
-                  </span>
+                  <PillBadge
+                    label={ticket.status}
+                    toneClass={getStatusColor(
+                      mapStatusToTone(ticket.status),
+                      "borderAndText",
+                    )}
+                    dotClass={getStatusColor(mapStatusToTone(ticket.status))}
+                  />
                 </td>
 
                 <td className="px-6 py-4 text-black/60">{ticket.created}</td>

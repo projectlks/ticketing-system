@@ -1,10 +1,12 @@
 ﻿import React from "react";
 import Countdown from "@/components/Countdown";
 import { TicketWithRelations } from "@/app/helpdesk/tickets/page";
+import PillBadge from "@/components/ticket/PillBadge";
 
 export type RenderCellHelpers = {
   getStatusColor: (status: string, type?: "borderAndText") => string;
   getPriorityColor: (priority: string, type?: "borderAndText") => string;
+  getCreationModeColor: (mode: string, type?: "borderAndText") => string;
 };
 
 export const renderCell = (
@@ -12,7 +14,7 @@ export const renderCell = (
   columnKey: string,
   helpers: RenderCellHelpers,
 ) => {
-  const { getStatusColor, getPriorityColor } = helpers;
+  const { getStatusColor, getPriorityColor, getCreationModeColor } = helpers;
 
   switch (columnKey) {
     case "ticketId":
@@ -30,34 +32,22 @@ export const renderCell = (
     case "status":
       return (
         <td className="px-4 py-3">
-          <span
-            className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusColor(
-              ticket.status,
-              "borderAndText",
-            )}`}>
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${getStatusColor(ticket.status)}`}
-            />
-            {ticket.status.toLowerCase()}
-          </span>
+          <PillBadge
+            label={ticket.status.replace("_", " ").toLowerCase()}
+            toneClass={getStatusColor(ticket.status, "borderAndText")}
+            dotClass={getStatusColor(ticket.status)}
+          />
         </td>
       );
 
     case "priority":
       return (
         <td className="px-4 py-3">
-          <span
-            className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium ${getPriorityColor(
-              ticket.priority || "",
-              "borderAndText",
-            )}`}>
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${getPriorityColor(
-                ticket.priority || "",
-              )}`}
-            />
-            {(ticket.priority || "-").toLowerCase()}
-          </span>
+          <PillBadge
+            label={(ticket.priority || "-").toLowerCase()}
+            toneClass={getPriorityColor(ticket.priority || "", "borderAndText")}
+            dotClass={getPriorityColor(ticket.priority || "")}
+          />
         </td>
       );
 
@@ -65,6 +55,18 @@ export const renderCell = (
       return new Date(ticket.createdAt).toLocaleString("en-US", {
         timeZone: "Asia/Yangon",
       });
+
+    case "creationMode":
+      if (!ticket.creationMode) return "-";
+      return (
+        <td className="px-4 py-3">
+          <PillBadge
+            label={ticket.creationMode.replace("_", " ").toLowerCase()}
+            toneClass={getCreationModeColor(ticket.creationMode, "borderAndText")}
+            dotClass={getCreationModeColor(ticket.creationMode)}
+          />
+        </td>
+      );
 
     case "requester":
       return (
