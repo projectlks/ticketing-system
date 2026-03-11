@@ -22,9 +22,17 @@ const SUPER_ADMIN_ROLE: Role = "SUPER_ADMIN";
 const SUPER_ADMIN_ROLE_PERMISSION_ERROR =
   "Only SUPER_ADMIN can assign or manage SUPER_ADMIN role.";
 
-async function getCurrentUserContext(): Promise<{ id: string; role: Role }> {
+type UserActionResult<T> = {
+  data?: T;
+  error?: string;
+};
+
+
+async function getCurrentUserContext(): Promise<
+  UserActionResult<{ id: string; role: Role }>
+> {
   const currentUserId = await getCurrentUserId();
-  if (!currentUserId) throw new Error("Unauthorized");
+  if (!currentUserId) return { error: "Unauthorized" };
 
   const currentUser = await prisma.user.findUnique({
     where: { id: currentUserId },
@@ -32,24 +40,26 @@ async function getCurrentUserContext(): Promise<{ id: string; role: Role }> {
   });
 
   if (!currentUser) {
-    throw new Error("Unauthorized");
+    return { error: "Unauthorized" };
   }
 
-  return currentUser;
+  return { data: currentUser };
 }
 
 function ensureSuperAdminRolePermission(params: {
   actorRole: Role;
   nextRole: Role;
   previousRole?: Role;
-}) {
+}): string | null {
   const { actorRole, nextRole, previousRole } = params;
   const touchesSuperAdmin =
     nextRole === SUPER_ADMIN_ROLE || previousRole === SUPER_ADMIN_ROLE;
 
   if (touchesSuperAdmin && actorRole !== SUPER_ADMIN_ROLE) {
-    throw new Error(SUPER_ADMIN_ROLE_PERMISSION_ERROR);
+    return SUPER_ADMIN_ROLE_PERMISSION_ERROR;
   }
+
+  return null;
 }
 
 function getUniqueConstraintTarget(error: Prisma.PrismaClientKnownRequestError) {
@@ -73,18 +83,18 @@ function getDriverConstraintFields(error: Prisma.PrismaClientKnownRequestError) 
   return meta?.driverAdapterError?.cause?.constraint?.fields ?? [];
 }
 
-function toUserMutationError(error: unknown): Error {
+function toUserMutationErrorMessage(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
     const target = getUniqueConstraintTarget(error);
     const fields = getDriverConstraintFields(error);
 
     if (target.includes("User_email_key") || fields.includes("email")) {
-      return new Error("User with this email already exists");
+      return "User with this email already exists";
     }
   }
 
-  if (error instanceof Error) return error;
-  return new Error("Failed to save user");
+  if (error instanceof Error) return error.message;
+  return "Failed to save user";
 }
 
 /* -------------------------------
@@ -105,7 +115,9 @@ type CreateInput = z.infer<typeof createSchema>;
 /* -------------------------------
           CREATE USER
 -------------------------------- */
-export async function createUser(formData: FormData): Promise<void> {
+export async function createUser(
+  formData: FormData,
+): Promise<UserActionResult<null>> {
   const raw: CreateInput = {
     name: formData.get("name")?.toString() ?? "",
     email: formData.get("email")?.toString() ?? "",
@@ -114,42 +126,58 @@ export async function createUser(formData: FormData): Promise<void> {
     role: formData.get("role")?.toString() as CreateInput["role"],
   };
 
-  const parsed = createSchema.parse(raw);
+  const parsed = createSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid user data.",
+    };
+  }
 
   const existingUser = await prisma.user.findUnique({
-    where: { email: parsed.email },
+    where: { email: parsed.data.email },
   });
 
-  if (existingUser) throw new Error("User with this email already exists");
+  if (existingUser) {
+    return { error: "User with this email already exists" };
+  }
 
   const department = await prisma.department.findUnique({
-    where: { id: parsed.department },
+    where: { id: parsed.data.department },
   });
 
-  if (!department) throw new Error("Selected department does not exist");
+  if (!department) {
+    return { error: "Selected department does not exist" };
+  }
 
-  const currentUser = await getCurrentUserContext();
+  const currentUserResult = await getCurrentUserContext();
+  if (currentUserResult.error || !currentUserResult.data) {
+    return { error: currentUserResult.error ?? "Unauthorized" };
+  }
+  const currentUser = currentUserResult.data;
 
-  ensureSuperAdminRolePermission({
+  const permissionError = ensureSuperAdminRolePermission({
     actorRole: currentUser.role,
-    nextRole: parsed.role,
+    nextRole: parsed.data.role,
   });
+  if (permissionError) {
+    return { error: permissionError };
+  }
 
-  const hashedPassword = await bcrypt.hash(parsed.password, 10);
+  const hashedPassword = await bcrypt.hash(parsed.data.password, 10);
 
   try {
     await prisma.user.create({
       data: {
-        name: parsed.name,
-        email: parsed.email,
+        name: parsed.data.name,
+        email: parsed.data.email,
         password: hashedPassword,
-        departmentId: parsed.department,
-        role: parsed.role,
+        departmentId: parsed.data.department,
+        role: parsed.data.role,
         creatorId: currentUser.id,
       },
     });
   } catch (error) {
-    throw toUserMutationError(error);
+    return { error: toUserMutationErrorMessage(error) };
   }
 
   await invalidateCacheByPrefixes([
@@ -157,6 +185,8 @@ export async function createUser(formData: FormData): Promise<void> {
     HELPDESK_CACHE_PREFIXES.tickets,
     HELPDESK_CACHE_PREFIXES.overview,
   ]);
+
+  return { data: null };
 }
 
 /* -------------------------------
@@ -171,23 +201,37 @@ const UpdateUserSchema = z.object({
   role: z.enum(ROLE_VALUES),
 });
 
-export async function updateUser(formData: FormData) {
+export async function updateUser(
+  formData: FormData,
+): Promise<UserActionResult<unknown>> {
   const raw = Object.fromEntries(formData.entries());
-  const parsed = UpdateUserSchema.parse(raw);
+  const parsed = UpdateUserSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid user data.",
+    };
+  }
 
-  const currentUser = await getCurrentUserContext();
+  const currentUserResult = await getCurrentUserContext();
+  if (currentUserResult.error || !currentUserResult.data) {
+    return { error: currentUserResult.error ?? "Unauthorized" };
+  }
+  const currentUser = currentUserResult.data;
 
   const oldUser = await prisma.user.findUnique({
-    where: { id: parsed.id },
+    where: { id: parsed.data.id },
     include: { department: true },
   });
-  if (!oldUser) throw new Error("User not found");
+  if (!oldUser) return { error: "User not found" };
 
-  ensureSuperAdminRolePermission({
+  const permissionError = ensureSuperAdminRolePermission({
     actorRole: currentUser.role,
     previousRole: oldUser.role,
-    nextRole: parsed.role,
+    nextRole: parsed.data.role,
   });
+  if (permissionError) {
+    return { error: permissionError };
+  }
 
   const updateData: {
     name: string;
@@ -197,28 +241,27 @@ export async function updateUser(formData: FormData) {
     departmentId: string;
     updaterId: string;
   } = {
-    name: parsed.name,
-    email: parsed.email,
-    role: parsed.role,
-    departmentId: parsed.departmentId,
+    name: parsed.data.name,
+    email: parsed.data.email,
+    role: parsed.data.role,
+    departmentId: parsed.data.departmentId,
     updaterId: currentUser.id,
   };
 
-  if (parsed.password) {
-    updateData.password = await bcrypt.hash(parsed.password, 10);
+  if (parsed.data.password) {
+    updateData.password = await bcrypt.hash(parsed.data.password, 10);
   }
 
-  const updated = await (async () => {
-    try {
-      return await prisma.user.update({
-        where: { id: parsed.id },
-        data: updateData,
-        include: { department: true },
-      });
-    } catch (error) {
-      throw toUserMutationError(error);
-    }
-  })();
+  let updated: Awaited<ReturnType<typeof prisma.user.update>>;
+  try {
+    updated = await prisma.user.update({
+      where: { id: parsed.data.id },
+      data: updateData,
+      include: { department: true },
+    });
+  } catch (error) {
+    return { error: toUserMutationErrorMessage(error) };
+  }
 
   await invalidateCacheByPrefixes([
     HELPDESK_CACHE_PREFIXES.users,
@@ -226,23 +269,25 @@ export async function updateUser(formData: FormData) {
     HELPDESK_CACHE_PREFIXES.overview,
   ]);
 
-  return updated;
+  return { data: updated };
 }
 
-export async function getUserById(id: string): Promise<{
-  id: string;
-  name: string;
-  email: string;
-  departmentId: string | null;
-  role: Role;
-}> {
-  if (!id) throw new Error("User ID is required");
+export async function getUserById(id: string): Promise<
+  UserActionResult<{
+    id: string;
+    name: string;
+    email: string;
+    departmentId: string | null;
+    role: Role;
+  }>
+> {
+  if (!id) return { error: "User ID is required" };
 
-  return getOrSetCache(
+  const user = await getOrSetCache(
     helpdeskRedisKeys.userById(id),
     HELPDESK_CACHE_TTL_SECONDS.userById,
-    async () => {
-      const user = await prisma.user.findUnique({
+    async () =>
+      prisma.user.findUnique({
         where: { id },
         select: {
           id: true,
@@ -251,12 +296,11 @@ export async function getUserById(id: string): Promise<{
           departmentId: true,
           role: true,
         },
-      });
-
-      if (!user) throw new Error("User not found");
-      return user;
-    },
+      }),
   );
+
+  if (!user) return { error: "User not found" };
+  return { data: user };
 }
 
 export async function getUserToAssign(): Promise<

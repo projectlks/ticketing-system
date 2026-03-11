@@ -5,6 +5,11 @@ export type AnalysisDateFilter = {
   toDate?: string | null;
 };
 
+export type TicketDateWhereResult = {
+  where: Prisma.TicketWhereInput;
+  error?: string;
+};
+
 export const ANALYSIS_TIME_ZONE = "Asia/Yangon";
 
 // Analysis/reporting date range ကို Myanmar timezone (+06:30) အတိုင်း တိတိကျကျ filter လုပ်ဖို့ offset ကို fixed သတ်မှတ်ထားပါတယ်။
@@ -96,7 +101,7 @@ export const formatDateTimeInAnalysisTimeZone = (
 
 export function buildTicketDateWhere(
   filter: AnalysisDateFilter,
-): Prisma.TicketWhereInput {
+): TicketDateWhereResult {
   // Archived ticket မပါစေဖို့ base condition ကို default ထည့်ထားပါတယ်။
   const where: Prisma.TicketWhereInput = { isArchived: false };
 
@@ -108,11 +113,17 @@ export function buildTicketDateWhere(
 
   // Invalid date format ကို server side မှာတစ်ခါထပ်စစ်ပြီး route/action နှစ်နေရာလုံးမှာ shared validation ရနိုင်အောင်ထားပါတယ်။
   if (fromRaw && !fromDate) {
-    throw new Error("Invalid fromDate. Use YYYY-MM-DD format.");
+    return {
+      where,
+      error: "Invalid fromDate. Use YYYY-MM-DD format.",
+    };
   }
 
   if (toRaw && !toDate) {
-    throw new Error("Invalid toDate. Use YYYY-MM-DD format.");
+    return {
+      where,
+      error: "Invalid toDate. Use YYYY-MM-DD format.",
+    };
   }
 
   if (
@@ -120,7 +131,10 @@ export function buildTicketDateWhere(
     toDate &&
     toComparableDayValue(fromDate) > toComparableDayValue(toDate)
   ) {
-    throw new Error("fromDate must be less than or equal to toDate.");
+    return {
+      where,
+      error: "fromDate must be less than or equal to toDate.",
+    };
   }
 
   if (fromDate || toDate) {
@@ -136,5 +150,5 @@ export function buildTicketDateWhere(
     }
   }
 
-  return where;
+  return { where };
 }

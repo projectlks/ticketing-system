@@ -253,7 +253,19 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
       formData.append("name", parsed.data.name);
       formData.append("profileUrl", nextProfileUrl);
 
-      const updated = await updateMyAccountProfile(formData);
+      const result = await updateMyAccountProfile(formData);
+      if (result?.error || !result?.data) {
+        if (uploadedImageUrl) {
+          await deleteUploadedFileByUrl(uploadedImageUrl).catch(() => undefined);
+        }
+
+        const message = result?.error ?? "Failed to update profile.";
+        setServerErrorMessage(message);
+        toast.error(message);
+        return;
+      }
+
+      const updated = result.data;
       const nextUpdatedAt = new Date(updated.updatedAt);
 
       setPersistedProfile({

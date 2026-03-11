@@ -65,8 +65,10 @@ const normalizeOptionalRelationId = (
     return normalized;
 };
 
-const ensureAssignableUserExists = async (assignedToId: string | null) => {
-    if (!assignedToId) return;
+const ensureAssignableUserExists = async (
+    assignedToId: string | null,
+): Promise<string | null> => {
+    if (!assignedToId) return null;
 
     const assignee = await prisma.user.findFirst({
         where: {
@@ -77,8 +79,10 @@ const ensureAssignableUserExists = async (assignedToId: string | null) => {
     });
 
     if (!assignee) {
-        throw new Error("Selected assignee does not exist");
+        return "Selected assignee does not exist";
     }
+
+    return null;
 };
 
 // "Today" ကို Myanmar timezone (+06:30) အတိုင်းတွက်ပြီး KPI count မှာ timezone mismatch မဖြစ်အောင် helper ထည့်ထားပါတယ်။
@@ -115,6 +119,25 @@ export type SingleTicket = {
     assignedToId: string | null
 }
 
+type UpdatedTicketWithRelations = Prisma.TicketGetPayload<{
+    include: {
+        department: { select: { id: true; name: true } };
+        category: { select: { id: true; name: true } };
+        assignedTo: { select: { id: true; name: true } };
+    };
+}>;
+
+type TicketActionResult<T> = {
+    data?: T;
+    error?: string;
+};
+
+const toErrorMessage = (error: unknown, fallback: string) => {
+    if (error instanceof Error) return error.message;
+    if (typeof error === "string" && error.trim()) return error;
+    return fallback;
+};
+
 
 export async function generateTicketId(): Promise<string> {
     const now = new Date();
@@ -142,7 +165,9 @@ export async function generateTicketId(): Promise<string> {
 // ======================
 // Create Ticket
 // ======================
-export async function createTicket(formData: FormData) {
+export async function createTicket(
+    formData: FormData,
+): Promise<TicketActionResult<Ticket>> {
     // Parse and trim input
     const raw = {
         title: formData.get("title")?.toString() ?? "",
@@ -151,123 +176,130 @@ export async function createTicket(formData: FormData) {
         categoryId: formData.get("categoryId")?.toString().trim() || undefined,
         priority: (formData.get("priority")?.toString() as Priority) || undefined,
         assignedToId: formData.get("assignedToId")?.toString(),
-        status: (formData.get("status")) || "NEW"
+        status: formData.get("status") || "NEW",
     };
 
-    // Validate using Zod
-    const parsed = createFormSchema.parse(raw);
-    const normalizedAssignedToId = normalizeOptionalRelationId(parsed.assignedToId);
+    const parsed = createFormSchema.safeParse(raw);
+    if (!parsed.success) {
+        return {
+            error: parsed.error.issues[0]?.message ?? "Invalid ticket data.",
+        };
+    }
+
+    const normalizedAssignedToId = normalizeOptionalRelationId(
+        parsed.data.assignedToId,
+    );
 
     const userId = await getCurrentUserId();
-    if (!userId) throw new Error("Unauthorized");
+    if (!userId) return { error: "Unauthorized" };
 
-    // Validate categoryId exists (if provided)
-    if (parsed.categoryId) {
+    if (parsed.data.categoryId) {
         const categoryExists = await prisma.category.findUnique({
-            where: { id: parsed.categoryId },
+            where: { id: parsed.data.categoryId },
         });
         if (!categoryExists) {
-            throw new Error("Selected category does not exist");
+            return { error: "Selected category does not exist" };
         }
     }
 
-    // Validate departmentId exists (if provided)
-    if (parsed.departmentId) {
+    if (parsed.data.departmentId) {
         const departmentExists = await prisma.department.findUnique({
-            where: { id: parsed.departmentId },
+            where: { id: parsed.data.departmentId },
         });
         if (!departmentExists) {
-            throw new Error("Selected department does not exist");
+            return { error: "Selected department does not exist" };
         }
     }
 
-    await ensureAssignableUserExists(normalizedAssignedToId);
+    const assignError = await ensureAssignableUserExists(normalizedAssignedToId);
+    if (assignError) return { error: assignError };
 
-    // Generate ticketId
     const ticketId = await generateTicketId();
 
-    // Parse images from JSON string
-    const imagesJson = formData.get("images") as string | null;
-    const images = imagesJson ? JSON.parse(imagesJson) as string[] : [];
+    let images: string[] = [];
+    const imagesJson = formData.get("images");
+    if (typeof imagesJson === "string" && imagesJson.trim()) {
+        try {
+            const parsedImages = JSON.parse(imagesJson);
+            if (!Array.isArray(parsedImages)) {
+                return { error: "Invalid images payload." };
+            }
+            images = parsedImages as string[];
+        } catch {
+            return { error: "Invalid images payload." };
+        }
+    }
 
-
-
-
-    const priority = parsed.priority
-
+    const priority = parsed.data.priority;
 
     const sla = await prisma.sLA.findUnique({
         where: { priority },
     });
 
-    if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
+    if (!sla) return { error: `No SLA found for priority: ${priority}` };
 
-    // 2. အချိန်တွေတွက်မယ်
     const now = new Date();
-    const responseDue = dayjs(now).add(sla.responseTime, 'minute').toDate();
-    const resolutionDue = dayjs(now).add(sla.resolutionTime, 'minute').toDate();
+    const responseDue = dayjs(now).add(sla.responseTime, "minute").toDate();
+    const resolutionDue = dayjs(now).add(sla.resolutionTime, "minute").toDate();
 
-
-    // Create the ticket
-    const ticket = await prisma.ticket.create({
-        data: {
-            slaId: sla.id,
-            startSlaTime: now,
-            responseDue,
-            resolutionDue,
-            assignedToId: normalizedAssignedToId,
-
-            ticketId,
-            title: parsed.title,
-            description: parsed.description,
-            departmentId: parsed.departmentId,
-            categoryId: parsed.categoryId,
-            priority: parsed.priority as Priority,
-            requesterId: userId,
-        },
-    });
-
-
-
-    // Insert ticket images
-    if (images.length) {
-        await prisma.ticketImage.createMany({
-            data: images.map((url) => ({
-                ticketId: ticket.id,
-                url,
-            })),
+    try {
+        const ticket = await prisma.ticket.create({
+            data: {
+                slaId: sla.id,
+                startSlaTime: now,
+                responseDue,
+                resolutionDue,
+                assignedToId: normalizedAssignedToId,
+                ticketId,
+                title: parsed.data.title,
+                description: parsed.data.description,
+                departmentId: parsed.data.departmentId,
+                categoryId: parsed.data.categoryId,
+                priority: parsed.data.priority as Priority,
+                requesterId: userId,
+            },
         });
+
+        if (images.length) {
+            await prisma.ticketImage.createMany({
+                data: images.map((url) => ({
+                    ticketId: ticket.id,
+                    url,
+                })),
+            });
+        }
+
+        await prisma.audit.create({
+            data: {
+                entity: "Ticket",
+                entityId: ticket.id,
+                userId: userId,
+                action: "CREATE",
+            },
+        });
+
+        await invalidateCacheByPrefixes([
+            HELPDESK_CACHE_PREFIXES.tickets,
+            HELPDESK_CACHE_PREFIXES.overview,
+            HELPDESK_CACHE_PREFIXES.departments,
+            HELPDESK_CACHE_PREFIXES.analysis,
+            HELPDESK_CACHE_PREFIXES.users,
+        ]);
+
+        return { data: ticket };
+    } catch (error) {
+        return { error: toErrorMessage(error, "Failed to create ticket.") };
     }
-
-
-    // Add audit log
-    await prisma.audit.create({
-        data: {
-            entity: "Ticket",
-            entityId: ticket.id,
-            userId: userId,
-            action: "CREATE",
-        },
-    });
-
-    // Ticket data အသစ်တက်လာတာနဲ့ list/dashboard cache တွေကိုရှင်းထားမှ
-    // overview/tickets/analysis page တွေမှာ stale result မကျန်တော့ပါ။
-    await invalidateCacheByPrefixes([
-        HELPDESK_CACHE_PREFIXES.tickets,
-        HELPDESK_CACHE_PREFIXES.overview,
-        HELPDESK_CACHE_PREFIXES.departments,
-        HELPDESK_CACHE_PREFIXES.analysis,
-        HELPDESK_CACHE_PREFIXES.users,
-    ]);
-
-    return ticket;
 }
 
+export async function updateTicket(
+    ticketId: string,
+    formData: FormData,
+): Promise<
+    TicketActionResult<{ updated: UpdatedTicketWithRelations; urlsToDelete: string[] }>
+> {
+    if (!ticketId) return { error: "Ticket ID is required" };
 
-// ======================
-// Update Ticket
-// ======================
-export async function updateTicket(ticketId: string, formData: FormData) {
     const raw = {
         title: formData.get("title")?.toString(),
         description: formData.get("description")?.toString(),
@@ -276,149 +308,25 @@ export async function updateTicket(ticketId: string, formData: FormData) {
         priority: (formData.get("priority")?.toString() as Priority) || undefined,
         remark: formData.get("remark")?.toString(),
         assignedToId: formData.get("assignedToId")?.toString(),
-        status: formData.get("status")
+        status: formData.get("status"),
     };
 
-    // Validate input (partial allowed)
-    const parsed = TicketFormSchema.parse(raw);
-    const normalizedAssignedToId = normalizeOptionalRelationId(parsed.assignedToId);
-    await ensureAssignableUserExists(normalizedAssignedToId);
+    const parsed = TicketFormSchema.safeParse(raw);
+    if (!parsed.success) {
+        return {
+            error: parsed.error.issues[0]?.message ?? "Invalid ticket data.",
+        };
+    }
 
-
-    // Build update data
-    const updateData: {
-        title: string
-        description: string
-        departmentId: string
-        categoryId: string
-        priority: string
-        remark: string
-        assignedToId: string | null
-        status: Status
-
-    } = {
-        title: parsed.title,
-        description: parsed.description,
-        departmentId: parsed.departmentId,
-        categoryId: parsed.categoryId,
-        priority: parsed.priority,
-        remark: parsed.remark || "",
-        assignedToId: normalizedAssignedToId,
-        status: parsed.status
-
-    };
+    const normalizedAssignedToId = normalizeOptionalRelationId(parsed.data.assignedToId);
+    const assignError = await ensureAssignableUserExists(normalizedAssignedToId);
+    if (assignError) return { error: assignError };
 
     const oldData = await prisma.ticket.findFirst({
-        where: { id: ticketId, }, include: {
-            department: {
-                select: { id: true, name: true }
-            },
-
-            category: {
-                select: {
-                    id: true,
-                    name: true,
-                },
-            }
-            ,
-            assignedTo: {
-                select: {
-                    id: true,
-                    name: true,
-                },
-            },
-        },
-
-
-    })
-
-
-    if (!oldData) throw new Error("Ticket not found");
-
-    const currentUserId = await getCurrentUserId()
-
-    if (!currentUserId) throw new Error("Ticket not found");
-
-
-    // 4. formData ထဲက images ကို parse လုပ်မယ်  
-    // formData.get("existingImageIds") မှာ ကျန်ရှိနေတဲ့ image တွေရဲ့ id တွေ JSON string အဖြစ် ရှိတယ်လို့ယူထားတယ်
-    const existingImageIds = JSON.parse(formData.get("existingImageIds") as string || "[]") as string[];
-
-
-    
-    // formData.get("newImages") မှာ အသစ် upload လုပ်ထားတဲ့ images URL တွေ JSON string အဖြစ် ရှိတယ်လို့ယူထားတယ်
-    const newImageUrls = JSON.parse(formData.get("newImages") as string || "[]") as string[];
-
-
-
-    // 5. DB ထဲက ticketImage table မှာ အခု ticket နဲ့ ဆက်နွယ်ပြီး ကျန်ရှိတဲ့ image id တွေကို ရှာထုတ်မယ်
-    const imagesInDb = await prisma.ticketImage.findMany({
-        where: { ticketId },
-        select: { id: true, url: true },
-    });
-    const imagesInDbIds = imagesInDb.map(img => img.id);
-    const imagesInDbUrls = imagesInDb.map(img => img.url);
-
-    // 6. existingImageIds ထဲ မပါတဲ့ DB ရဲ့ image ids ကို filter လုပ်ပြီး ဖျက်ရန် id များကို ရှာမယ်
-    const idsToDelete = imagesInDbIds.filter(dbId => !existingImageIds.includes(dbId));
-    const urlsToDelete = imagesInDbUrls.filter(dbUrl => !newImageUrls.includes(dbUrl));
-
-    if (idsToDelete.length > 0) {
-        await prisma.ticketImage.deleteMany({
-            where: {
-                id: { in: idsToDelete },
-            }
-        });
-    }
-
-    // 7. အသစ် upload လုပ်ထားတဲ့ images URL တွေကို ticketImage table ထဲသို့ထည့်မယ်
-    if (newImageUrls.length) {
-        const newImagesData = newImageUrls.map(url => ({ ticketId, url }));
-        await prisma.ticketImage.createMany({ data: newImagesData });
-    }
-
-
-    const priority = parsed.priority
-
-
-    const sla = await prisma.sLA.findUnique({
-        where: { priority },
-    });
-
-    if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
-
-    // 2. အချိန်တွေတွက်မယ်
-    const rawSlaBaseTime = oldData.startSlaTime ?? oldData.createdAt;
-    const slaBaseTime = Number.isNaN(rawSlaBaseTime.getTime()) ? new Date() : rawSlaBaseTime;
-    const responseDue = dayjs(slaBaseTime).add(sla.responseTime, 'minute').toDate();
-    const resolutionDue = dayjs(slaBaseTime).add(sla.resolutionTime, 'minute').toDate();
-
-
-
-
-
-    const updated = await prisma.ticket.update({
         where: { id: ticketId },
-        data: {
-            title: parsed.title,
-            description: parsed.description,
-            departmentId: parsed.departmentId,
-            categoryId: parsed.categoryId,
-            priority: parsed.priority,
-            remark: parsed.remark || "",
-            assignedToId: normalizedAssignedToId,
-            status: parsed.status,
-            slaId: sla.id, // update SLA
-            startSlaTime: slaBaseTime,
-            responseDue,
-            resolutionDue
-        },
         include: {
             department: {
-                select: {
-                    id: true,
-                    name: true,
-                }
+                select: { id: true, name: true },
             },
             category: {
                 select: {
@@ -432,75 +340,181 @@ export async function updateTicket(ticketId: string, formData: FormData) {
                     name: true,
                 },
             },
-        }
+        },
     });
 
+    if (!oldData) return { error: "Ticket not found" };
 
+    const currentUserId = await getCurrentUserId();
+    if (!currentUserId) return { error: "Ticket not found" };
 
-
-
-    // Collect changes first
-    const changedFields: Array<keyof typeof updateData> = [
-        "title", "description", "departmentId", "categoryId", "priority", "remark", "assignedToId", "status"
-    ];
-
-    const changes: { field: string; oldValue: string; newValue: string }[] = [];
-
-    for (const field of changedFields) {
-        let oldValue = "";
-        let newValue = "";
-
-        if (field === "departmentId") {
-            oldValue = oldData?.department?.name ?? "";
-            newValue = updated.department?.name ?? "";
-        } else if (field === "categoryId") {
-            oldValue = oldData?.category?.name ?? "";
-            newValue = updated.category?.name ?? "";
-        } else if (field === "assignedToId") {
-            oldValue = oldData?.assignedTo?.name ?? "";
-            newValue = updated.assignedTo?.name ?? "";
-        } else {
-            oldValue = String(oldData[field] ?? "");
-            newValue = String(updateData[field] ?? "");
+    let existingImageIds: string[] = [];
+    try {
+        const parsedIds = JSON.parse(
+            (formData.get("existingImageIds") as string) || "[]",
+        );
+        if (!Array.isArray(parsedIds)) {
+            return { error: "Invalid existingImageIds payload." };
         }
-
-        if (oldValue !== newValue) {
-            changes.push({ field, oldValue, newValue });
-        }
+        existingImageIds = parsedIds as string[];
+    } catch {
+        return { error: "Invalid existingImageIds payload." };
     }
 
-    // Save a single audit row
-    if (changes.length > 0) {
-        await prisma.audit.create({
+    let newImageUrls: string[] = [];
+    try {
+        const parsedUrls = JSON.parse(
+            (formData.get("newImages") as string) || "[]",
+        );
+        if (!Array.isArray(parsedUrls)) {
+            return { error: "Invalid newImages payload." };
+        }
+        newImageUrls = parsedUrls as string[];
+    } catch {
+        return { error: "Invalid newImages payload." };
+    }
+
+    try {
+        const imagesInDb = await prisma.ticketImage.findMany({
+            where: { ticketId },
+            select: { id: true, url: true },
+        });
+        const imagesInDbIds = imagesInDb.map((img) => img.id);
+        const imagesInDbUrls = imagesInDb.map((img) => img.url);
+
+        const idsToDelete = imagesInDbIds.filter(
+            (dbId) => !existingImageIds.includes(dbId),
+        );
+        const urlsToDelete = imagesInDbUrls.filter(
+            (dbUrl) => !newImageUrls.includes(dbUrl),
+        );
+
+        if (idsToDelete.length > 0) {
+            await prisma.ticketImage.deleteMany({
+                where: {
+                    id: { in: idsToDelete },
+                },
+            });
+        }
+
+        if (newImageUrls.length) {
+            const newImagesData = newImageUrls.map((url) => ({ ticketId, url }));
+            await prisma.ticketImage.createMany({ data: newImagesData });
+        }
+
+        const priority = parsed.data.priority;
+        const sla = await prisma.sLA.findUnique({
+            where: { priority },
+        });
+
+        if (!sla) return { error: `No SLA found for priority: ${priority}` };
+
+        const rawSlaBaseTime = oldData.startSlaTime ?? oldData.createdAt;
+        const slaBaseTime = Number.isNaN(rawSlaBaseTime.getTime())
+            ? new Date()
+            : rawSlaBaseTime;
+        const responseDue = dayjs(slaBaseTime).add(sla.responseTime, "minute").toDate();
+        const resolutionDue = dayjs(slaBaseTime).add(sla.resolutionTime, "minute").toDate();
+
+        const updated = await prisma.ticket.update({
+            where: { id: ticketId },
             data: {
-                entity: "Ticket",
-                entityId: updated.id,
-                userId: currentUserId,
-                action: "UPDATE",
-                changes: changes
-                // changes: changes as unknown as Prisma.JsonValue, // ✅ Type assertion
+                title: parsed.data.title,
+                description: parsed.data.description,
+                departmentId: parsed.data.departmentId,
+                categoryId: parsed.data.categoryId,
+                priority: parsed.data.priority,
+                remark: parsed.data.remark || "",
+                assignedToId: normalizedAssignedToId,
+                status: parsed.data.status,
+                slaId: sla.id,
+                startSlaTime: slaBaseTime,
+                responseDue,
+                resolutionDue,
+            },
+            include: {
+                department: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                category: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                assignedTo: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
             },
         });
+
+        const changedFields: Array<keyof typeof raw> = [
+            "title",
+            "description",
+            "departmentId",
+            "categoryId",
+            "priority",
+            "remark",
+            "assignedToId",
+            "status",
+        ];
+
+        const changes: { field: string; oldValue: string; newValue: string }[] = [];
+
+        for (const field of changedFields) {
+            let oldValue = "";
+            let newValue = "";
+
+            if (field === "departmentId") {
+                oldValue = oldData?.department?.name ?? "";
+                newValue = updated.department?.name ?? "";
+            } else if (field === "categoryId") {
+                oldValue = oldData?.category?.name ?? "";
+                newValue = updated.category?.name ?? "";
+            } else if (field === "assignedToId") {
+                oldValue = oldData?.assignedTo?.name ?? "";
+                newValue = updated.assignedTo?.name ?? "";
+            } else {
+                oldValue = String((oldData as Record<string, unknown>)[field] ?? "");
+                newValue = String((parsed.data as Record<string, unknown>)[field] ?? "");
+            }
+
+            if (oldValue !== newValue) {
+                changes.push({ field, oldValue, newValue });
+            }
+        }
+
+        if (changes.length > 0) {
+            await prisma.audit.create({
+                data: {
+                    entity: "Ticket",
+                    entityId: updated.id,
+                    userId: currentUserId,
+                    action: "UPDATE",
+                    changes: changes,
+                },
+            });
+        }
+
+        await invalidateCacheByPrefixes([
+            HELPDESK_CACHE_PREFIXES.tickets,
+            HELPDESK_CACHE_PREFIXES.overview,
+            HELPDESK_CACHE_PREFIXES.departments,
+            HELPDESK_CACHE_PREFIXES.analysis,
+            HELPDESK_CACHE_PREFIXES.users,
+        ]);
+
+        return { data: { updated, urlsToDelete } };
+    } catch (error) {
+        return { error: toErrorMessage(error, "Failed to update ticket.") };
     }
-
-    await invalidateCacheByPrefixes([
-        HELPDESK_CACHE_PREFIXES.tickets,
-        HELPDESK_CACHE_PREFIXES.overview,
-        HELPDESK_CACHE_PREFIXES.departments,
-        HELPDESK_CACHE_PREFIXES.analysis,
-        HELPDESK_CACHE_PREFIXES.users,
-    ]);
-
-
-    return { updated, urlsToDelete };
 }
-
-// ======================
-// Get Single Ticket
-// ======================
-
-
-
 
 export async function getSingleTicket(id: string): Promise<SingleTicket | null> {
     return getOrSetCache(
@@ -701,97 +715,122 @@ export async function getAllTickets(
 // ======================
 // Get MY Tickets Count
 // ======================
-export async function getMyTickets() {
+export async function getMyTickets(): Promise<
+    TicketActionResult<{
+        request: number;
+        minor: number;
+        major: number;
+        critical: number;
+        assignedTotal: number;
+        openedRequest: number;
+        openedMinor: number;
+        openedMajor: number;
+        openedCritical: number;
+        openedTotal: number;
+        closedCount: number;
+        slaSuccess: number;
+        slaFail: number;
+    }>
+> {
     const userId = await getCurrentUserId();
     if (!userId) {
-        throw new Error("Unauthorized");
+        return { error: "Unauthorized" };
     }
+
     const cacheKey = helpdeskRedisKeys.myTickets(userId);
-    return getOrSetCache(
-        cacheKey,
-        HELPDESK_CACHE_TTL_SECONDS.myTickets,
-        async () => {
-            const priorityOrder: Priority[] = ["REQUEST", "MINOR", "MAJOR", "CRITICAL"];
-            // Assigned To Me / My Tickets (requester) နှစ်မျိုးလုံးကိုတူညီတဲ့ rule နဲ့တွက်နိုင်အောင်
-            // owner field ကို parameter ပေးပြီး reusable counter helper တည်ဆောက်ထားပါတယ်။
-            const countByOwnerAndPriority = async (
-                ownerField: "assignedToId" | "requesterId",
-            ) => {
-                const [request, minor, major, critical] = await Promise.all(
-                    priorityOrder.map((priority) =>
-                        prisma.ticket.count({
-                            where: {
-                                [ownerField]: userId,
-                                priority,
-                                isArchived: false,
-                                status: { in: ACTIVE_WORK_STATUSES },
-                            } as Prisma.TicketWhereInput,
-                        }),
-                    ),
-                );
-                return {
-                    request,
-                    minor,
-                    major,
-                    critical,
-                    total: request + minor + major + critical,
+    try {
+        const data = await getOrSetCache(
+            cacheKey,
+            HELPDESK_CACHE_TTL_SECONDS.myTickets,
+            async () => {
+                const priorityOrder: Priority[] = [
+                    "REQUEST",
+                    "MINOR",
+                    "MAJOR",
+                    "CRITICAL",
+                ];
+                const countByOwnerAndPriority = async (
+                    ownerField: "assignedToId" | "requesterId",
+                ) => {
+                    const [request, minor, major, critical] = await Promise.all(
+                        priorityOrder.map((priority) =>
+                            prisma.ticket.count({
+                                where: {
+                                    [ownerField]: userId,
+                                    priority,
+                                    isArchived: false,
+                                    status: { in: ACTIVE_WORK_STATUSES },
+                                } as Prisma.TicketWhereInput,
+                            }),
+                        ),
+                    );
+                    return {
+                        request,
+                        minor,
+                        major,
+                        critical,
+                        total: request + minor + major + critical,
+                    };
                 };
-            };
-            const [assignedCounts, openedCounts] = await Promise.all([
-                countByOwnerAndPriority("assignedToId"),
-                countByOwnerAndPriority("requesterId"),
-            ]);
-            const { start: todayStart, end: todayEnd } = getMyanmarDayRange();
-            const [closedCount, slaSuccess, slaFail] = await Promise.all([
-                prisma.ticket.count({
-                    where: {
-                        assignedToId: userId,
-                        isArchived: false,
-                        status: { in: CLOSED_LIKE_STATUSES },
-                        updatedAt: { gte: todayStart, lte: todayEnd },
-                    },
-                }),
-                prisma.ticket.count({
-                    where: {
-                        assignedToId: userId,
-                        isArchived: false,
-                        status: { in: CLOSED_LIKE_STATUSES },
-                        updatedAt: { gte: todayStart, lte: todayEnd },
-                        isSlaViolated: false,
-                    },
-                }),
-                prisma.ticket.count({
-                    where: {
-                        assignedToId: userId,
-                        isArchived: false,
-                        status: { in: CLOSED_LIKE_STATUSES },
-                        updatedAt: { gte: todayStart, lte: todayEnd },
-                        isSlaViolated: true,
-                    },
-                }),
-            ]);
-            return {
-                request: assignedCounts.request,
-                minor: assignedCounts.minor,
-                major: assignedCounts.major,
-                critical: assignedCounts.critical,
-                assignedTotal: assignedCounts.total,
-                openedRequest: openedCounts.request,
-                openedMinor: openedCounts.minor,
-                openedMajor: openedCounts.major,
-                openedCritical: openedCounts.critical,
-                openedTotal: openedCounts.total,
-                closedCount,
-                slaSuccess,
-                slaFail,
-            };
-        },
-    );
+
+                const [assignedCounts, openedCounts] = await Promise.all([
+                    countByOwnerAndPriority("assignedToId"),
+                    countByOwnerAndPriority("requesterId"),
+                ]);
+                const { start: todayStart, end: todayEnd } = getMyanmarDayRange();
+                const [closedCount, slaSuccess, slaFail] = await Promise.all([
+                    prisma.ticket.count({
+                        where: {
+                            assignedToId: userId,
+                            isArchived: false,
+                            status: { in: CLOSED_LIKE_STATUSES },
+                            updatedAt: { gte: todayStart, lte: todayEnd },
+                        },
+                    }),
+                    prisma.ticket.count({
+                        where: {
+                            assignedToId: userId,
+                            isArchived: false,
+                            status: { in: CLOSED_LIKE_STATUSES },
+                            updatedAt: { gte: todayStart, lte: todayEnd },
+                            isSlaViolated: false,
+                        },
+                    }),
+                    prisma.ticket.count({
+                        where: {
+                            assignedToId: userId,
+                            isArchived: false,
+                            status: { in: CLOSED_LIKE_STATUSES },
+                            updatedAt: { gte: todayStart, lte: todayEnd },
+                            isSlaViolated: true,
+                        },
+                    }),
+                ]);
+
+                return {
+                    request: assignedCounts.request,
+                    minor: assignedCounts.minor,
+                    major: assignedCounts.major,
+                    critical: assignedCounts.critical,
+                    assignedTotal: assignedCounts.total,
+                    openedRequest: openedCounts.request,
+                    openedMinor: openedCounts.minor,
+                    openedMajor: openedCounts.major,
+                    openedCritical: openedCounts.critical,
+                    openedTotal: openedCounts.total,
+                    closedCount,
+                    slaSuccess,
+                    slaFail,
+                };
+            },
+        );
+
+        return { data };
+    } catch (error) {
+        return { error: toErrorMessage(error, "Failed to load ticket stats.") };
+    }
 }
 
-
-
-// Get audit logs for a ticket
 export async function getTicketAuditLogs(ticketId: string) {
     return getOrSetCache(
         helpdeskRedisKeys.ticketAudits(ticketId),
@@ -809,5 +848,8 @@ export async function getTicketAuditLogs(ticketId: string) {
             }),
     );
 }
+
+
+
 
 

@@ -50,6 +50,11 @@ export type AnalysisDashboardData = {
   kpi: AnalysisKpi;
 };
 
+export type AnalysisDashboardResult = {
+  data?: AnalysisDashboardData;
+  error?: string;
+};
+
 type TicketBuckets = {
   open: number;
   closed: number;
@@ -99,130 +104,140 @@ const getPriorityBucket = (
 
 export async function getAnalysisDashboardData(
   filters: AnalysisFilterInput = {},
-): Promise<AnalysisDashboardData> {
+): Promise<AnalysisDashboardResult> {
   const fromDate = filters.fromDate ?? "";
   const toDate = filters.toDate ?? "";
   const cacheKey = helpdeskRedisKeys.analysis(fromDate, toDate);
 
-  return getOrSetCache(
-    cacheKey,
-    HELPDESK_CACHE_TTL_SECONDS.analysis,
-    async () => {
-      // Date filter rule ကို shared helper သုံးထားလို့ analysis/export နှစ်ဘက်တူညီနေစေပါတယ်။
-      const where = buildTicketDateWhere({ fromDate, toDate });
+  const { where, error } = buildTicketDateWhere({ fromDate, toDate });
+  if (error) {
+    return { error };
+  }
 
-      // Heavy query များကို parallel run လုပ်ထားလို့ dashboard response time လျှော့ပေးနိုင်ပါတယ်။
-      const [departments, statusGroups, priorityGroups, recentTicketsRaw] =
-        await Promise.all([
-          prisma.department.findMany({
-            orderBy: { name: "asc" },
-            select: { id: true, name: true },
-          }),
-          prisma.ticket.groupBy({
-            by: ["departmentId", "status"],
-            where,
-            _count: { _all: true },
-          }),
-          prisma.ticket.groupBy({
-            by: ["priority"],
-            where,
-            _count: { _all: true },
-          }),
-          prisma.ticket.findMany({
-            where,
-            orderBy: { createdAt: "desc" },
-            take: RECENT_TICKET_LIMIT,
-            select: {
-              ticketId: true,
-              title: true,
-              priority: true,
-              status: true,
-              createdAt: true,
-              department: { select: { name: true } },
-            },
-          }),
-        ]);
+  try {
+    const dashboardData = await getOrSetCache(
+      cacheKey,
+      HELPDESK_CACHE_TTL_SECONDS.analysis,
+      async () => {
+        const [departments, statusGroups, priorityGroups, recentTicketsRaw] =
+          await Promise.all([
+            prisma.department.findMany({
+              orderBy: { name: "asc" },
+              select: { id: true, name: true },
+            }),
+            prisma.ticket.groupBy({
+              by: ["departmentId", "status"],
+              where,
+              _count: { _all: true },
+            }),
+            prisma.ticket.groupBy({
+              by: ["priority"],
+              where,
+              _count: { _all: true },
+            }),
+            prisma.ticket.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              take: RECENT_TICKET_LIMIT,
+              select: {
+                ticketId: true,
+                title: true,
+                priority: true,
+                status: true,
+                createdAt: true,
+                department: { select: { name: true } },
+              },
+            }),
+          ]);
 
-      const statusTotals = createEmptyBuckets();
-      const unassignedTotals = createEmptyBuckets();
-      const departmentMap = new Map<string, TicketBuckets>();
+        const statusTotals = createEmptyBuckets();
+        const unassignedTotals = createEmptyBuckets();
+        const departmentMap = new Map<string, TicketBuckets>();
 
-      for (const row of statusGroups) {
-        const count = row._count._all;
-        const statusBucket = getStatusBucket(row.status);
+        for (const row of statusGroups) {
+          const count = row._count._all;
+          const statusBucket = getStatusBucket(row.status);
 
-        statusTotals[statusBucket] += count;
+          statusTotals[statusBucket] += count;
 
-        if (!row.departmentId) {
-          unassignedTotals[statusBucket] += count;
-          continue;
+          if (!row.departmentId) {
+            unassignedTotals[statusBucket] += count;
+            continue;
+          }
+
+          const current = departmentMap.get(row.departmentId) ?? createEmptyBuckets();
+          current[statusBucket] += count;
+          departmentMap.set(row.departmentId, current);
         }
 
-        const current = departmentMap.get(row.departmentId) ?? createEmptyBuckets();
-        current[statusBucket] += count;
-        departmentMap.set(row.departmentId, current);
-      }
+        const ticketData: AnalysisTicketData[] = departments.map((department) => {
+          const counts = departmentMap.get(department.id) ?? createEmptyBuckets();
 
-      const ticketData: AnalysisTicketData[] = departments.map((department) => {
-        const counts = departmentMap.get(department.id) ?? createEmptyBuckets();
+          return {
+            department: department.name,
+            tickets: {
+              [STATUS_LABEL.open]: counts.open,
+              [STATUS_LABEL.closed]: counts.closed,
+              [STATUS_LABEL.pending]: counts.pending,
+            },
+          };
+        });
+
+        const unassignedTotal =
+          unassignedTotals.open + unassignedTotals.closed + unassignedTotals.pending;
+
+        if (unassignedTotal > 0) {
+          ticketData.push({
+            department: "Unassigned",
+            tickets: {
+              [STATUS_LABEL.open]: unassignedTotals.open,
+              [STATUS_LABEL.closed]: unassignedTotals.closed,
+              [STATUS_LABEL.pending]: unassignedTotals.pending,
+            },
+          });
+        }
+
+        const priorityBreakdown: AnalysisPriorityBreakdown = {
+          high: 0,
+          medium: 0,
+          low: 0,
+        };
+
+        for (const row of priorityGroups) {
+          const priorityBucket = getPriorityBucket(row.priority as Priority | null);
+          priorityBreakdown[priorityBucket] += row._count._all;
+        }
+
+        const recentTickets: AnalysisRecentTicket[] = recentTicketsRaw.map((ticket) => ({
+          id: ticket.ticketId,
+          title: ticket.title,
+          department: ticket.department?.name ?? "Unassigned",
+          priority: toPriorityLevel(ticket.priority),
+          status: toTicketStatus(ticket.status),
+          created: dayjs(ticket.createdAt).fromNow(),
+        }));
+
+        const kpi: AnalysisKpi = {
+          totalTickets: statusTotals.open + statusTotals.closed + statusTotals.pending,
+          openTickets: statusTotals.open,
+          closedTickets: statusTotals.closed,
+          highPriorityTickets: priorityBreakdown.high,
+        };
 
         return {
-          department: department.name,
-          tickets: {
-            [STATUS_LABEL.open]: counts.open,
-            [STATUS_LABEL.closed]: counts.closed,
-            [STATUS_LABEL.pending]: counts.pending,
-          },
+          ticketData,
+          recentTickets,
+          priorityBreakdown,
+          kpi,
         };
-      });
+      },
+    );
 
-      const unassignedTotal =
-        unassignedTotals.open + unassignedTotals.closed + unassignedTotals.pending;
-
-      if (unassignedTotal > 0) {
-        ticketData.push({
-          department: "Unassigned",
-          tickets: {
-            [STATUS_LABEL.open]: unassignedTotals.open,
-            [STATUS_LABEL.closed]: unassignedTotals.closed,
-            [STATUS_LABEL.pending]: unassignedTotals.pending,
-          },
-        });
-      }
-
-      const priorityBreakdown: AnalysisPriorityBreakdown = {
-        high: 0,
-        medium: 0,
-        low: 0,
-      };
-
-      for (const row of priorityGroups) {
-        const priorityBucket = getPriorityBucket(row.priority as Priority | null);
-        priorityBreakdown[priorityBucket] += row._count._all;
-      }
-
-      const recentTickets: AnalysisRecentTicket[] = recentTicketsRaw.map((ticket) => ({
-        id: ticket.ticketId,
-        title: ticket.title,
-        department: ticket.department?.name ?? "Unassigned",
-        priority: toPriorityLevel(ticket.priority),
-        status: toTicketStatus(ticket.status),
-        created: dayjs(ticket.createdAt).fromNow(),
-      }));
-
-      const kpi: AnalysisKpi = {
-        totalTickets: statusTotals.open + statusTotals.closed + statusTotals.pending,
-        openTickets: statusTotals.open,
-        closedTickets: statusTotals.closed,
-        highPriorityTickets: priorityBreakdown.high,
-      };
-
-      return {
-        ticketData,
-        recentTickets,
-        priorityBreakdown,
-        kpi,
-      };
-    },
-  );
+    return { data: dashboardData };
+  } catch (error) {
+    console.error("[analysis] failed to load dashboard data", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return { error: "Failed to load analysis dashboard data." };
+  }
 }

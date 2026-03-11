@@ -109,15 +109,15 @@ type NormalizedWebhookContext = {
   internalPriority: Priority;
 };
 
-class RequestValidationError extends Error {
+type ValidationError = {
+  message: string;
   status: number;
+};
 
-  constructor(message: string, status = 400) {
-    super(message);
-    this.name = "RequestValidationError";
-    this.status = status;
-  }
-}
+type WebhookContextResult = {
+  data?: NormalizedWebhookContext;
+  error?: ValidationError;
+};
 
 /* -------------------------------------------------------------------------- */
 /*                         Generic normalization helpers                        */
@@ -231,19 +231,19 @@ function resolveProblemEventId(payload: WebhookPayload): string | null {
 // POST route တစ်လမ်းလုံးအသုံးပြုမယ့် "single source of truth" context ကိုတည်ဆောက်သည်။
 // ဒီ function မှာ validation/normalization ပြီးသွားတာကြောင့် နောက်ပိုင်း helper များတွင်
 // duplicate null-check မလိုတော့ဘဲ logic ရှင်းလင်းစေသည်။
-function buildWebhookContext(payload: WebhookPayload): NormalizedWebhookContext {
+function buildWebhookContext(payload: WebhookPayload): WebhookContextResult {
   const event = payload.event;
   const trigger = payload.trigger ?? {};
   const host = payload.host ?? {};
   const item = payload.item ?? {};
 
   if (!event?.id) {
-    throw new RequestValidationError("Missing event id");
+    return { error: { message: "Missing event id", status: 400 } };
   }
 
   const clock = parseWebhookDatetime(event.datetime);
   if (!clock) {
-    throw new RequestValidationError("Invalid event datetime");
+    return { error: { message: "Invalid event datetime", status: 400 } };
   }
 
   const normalizedTriggerId = normalizeRequiredText(trigger.id, `unknown-trigger-${event.id}`);
@@ -253,32 +253,36 @@ function buildWebhookContext(payload: WebhookPayload): NormalizedWebhookContext 
   const status: "0" | "1" = recoveryEvent ? "1" : "0";
   const problemEventId = resolveProblemEventId(payload);
   if (!problemEventId) {
-    throw new RequestValidationError(
-      "Missing event_recovery_id for resolved event. Configure webhook to send recovery link.",
-    );
+    return {
+      error: {
+        message: "Missing event_recovery_id for resolved event. Configure webhook to send recovery link.",
+        status: 400,
+      },
+    };
   }
 
   const tagsString = normalizeTags(payload.tags);
   const last5Values = item.value ? `1: ${item.value} (${item.name ?? ""})` : null;
 
   return {
-    event,
-    trigger,
-    host,
-    item,
-    normalizedTriggerId,
-    normalizedHostName,
-    clock,
-    status,
-    isRecoveryEvent: recoveryEvent,
-    problemEventId,
-    tagsString,
-    last5Values,
-    problemId: `zabbix-${problemEventId}`,
-    internalPriority: mapSeverityToPriority(trigger.severity),
+    data: {
+      event,
+      trigger,
+      host,
+      item,
+      normalizedTriggerId,
+      normalizedHostName,
+      clock,
+      status,
+      isRecoveryEvent: recoveryEvent,
+      problemEventId,
+      tagsString,
+      last5Values,
+      problemId: `zabbix-${problemEventId}`,
+      internalPriority: mapSeverityToPriority(trigger.severity),
+    },
   };
 }
-
 /* -------------------------------------------------------------------------- */
 /*                       DB sync helpers (Zabbix + Ticket)                      */
 /* -------------------------------------------------------------------------- */
@@ -388,7 +392,9 @@ function toTicketZabbixStatus(status: "0" | "1"): ZabbixStatus {
 
 // Application internal ticket table ကို zabbix problemId နဲ့ idempotent upsert လုပ်သည်။
 // requesterId ကို optional fallback strategy နဲ့ resolve လုပ်ပြီး required relation error မဖြစ်စေသည်။
-async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
+async function upsertInternalHelpdeskTicket(
+  context: NormalizedWebhookContext,
+): Promise<{ error?: string }> {
   const zabbixStatus = toTicketZabbixStatus(context.status);
   const title = context.trigger.name ?? `Zabbix Event ${context.event.id}`;
   const description = `Host: ${context.normalizedHostName}, Trigger: ${context.trigger.name ?? "unknown"}, Item: ${context.item.name ?? "unknown"}`;
@@ -425,7 +431,7 @@ async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
         triggerId: context.normalizedTriggerId,
         hostName: context.normalizedHostName,
       });
-      return;
+      return {};
     }
 
     const [ticketId, requesterId, sla] = await Promise.all([
@@ -436,7 +442,9 @@ async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
       }),
     ]);
 
-    if (!sla) throw new Error(`No SLA found for priority: ${priority}`);
+    if (!sla) {
+      return { error: `No SLA found for priority: ${priority}` };
+    }
 
     const now = new Date();
     const responseDue = dayjs(now).add(sla.responseTime, "minute").toDate();
@@ -467,8 +475,6 @@ async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
     });
   }
 
-  // Ticket data အသစ်တက်လာတာနဲ့ list/dashboard cache တွေကိုရှင်းထားမှ
-  // overview/tickets/analysis page တွေမှာ stale result မကျန်တော့ပါ။
   await invalidateCacheByPrefixes([
     HELPDESK_CACHE_PREFIXES.tickets,
     HELPDESK_CACHE_PREFIXES.overview,
@@ -476,10 +482,9 @@ async function upsertInternalHelpdeskTicket(context: NormalizedWebhookContext) {
     HELPDESK_CACHE_PREFIXES.analysis,
     HELPDESK_CACHE_PREFIXES.users,
   ]);
+
+  return {};
 }
-
-
-
 /* -------------------------------------------------------------------------- */
 /*                     create-ticket API integration helpers                    */
 /* -------------------------------------------------------------------------- */
@@ -526,48 +531,55 @@ function buildCreateTicketPayload(context: NormalizedWebhookContext) {
   };
 }
 
-async function callCreateTicket(url: string, payload: unknown): Promise<CreateTicketCallResult> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+async function callCreateTicket(
+  url: string,
+  payload: unknown,
+): Promise<{ data?: CreateTicketCallResult; error?: string }> {
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const responseText = await response.text();
-  const contentType = response.headers.get("content-type") ?? "";
+    const responseText = await response.text();
+    const contentType = response.headers.get("content-type") ?? "";
 
-  if (!contentType.includes("application/json")) {
-    throw new Error(
-      `create-ticket returned non-JSON from ${url} (status ${response.status}): ${responseText.slice(0, 160)}`,
-    );
+    if (!contentType.includes("application/json")) {
+      return {
+        error: `create-ticket returned non-JSON from ${url} (status ${response.status}): ${responseText.slice(0, 160)}`,
+      };
+    }
+
+    let parsed: CreateTicketResponse;
+    try {
+      parsed = JSON.parse(responseText) as CreateTicketResponse;
+    } catch (error) {
+      return { error: `create-ticket returned invalid JSON: ${String(error)}` };
+    }
+
+    return {
+      data: {
+        url,
+        status: response.status,
+        data: parsed,
+      },
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
-
-  return {
-    url,
-    status: response.status,
-    data: JSON.parse(responseText) as CreateTicketResponse,
-  };
 }
 
 function resolvePrimaryCreateTicketUrl(requestOrigin?: string): string {
-  if (!requestOrigin) {
-    return LOCAL_CREATE_TICKET_URL;
-  }
+  if (!requestOrigin) return LOCAL_CREATE_TICKET_URL;
 
   try {
-    const origin = new URL(requestOrigin);
-    const isLoopbackHost =
-      origin.hostname === "localhost" || origin.hostname === "127.0.0.1" || origin.hostname === "::1";
-
-    // Reverse proxy setups can report https://localhost as request origin even when
-    // the local Next.js server only serves HTTP, which causes fetch TLS failures.
-    if (isLoopbackHost && origin.protocol === "https:") {
-      return LOCAL_CREATE_TICKET_URL;
-    }
-
-    return new URL("/api/create-ticket", origin).toString();
+    const resolved = new URL("/api/create-ticket", requestOrigin);
+    return resolved.toString();
   } catch {
     return LOCAL_CREATE_TICKET_URL;
   }
@@ -576,25 +588,30 @@ function resolvePrimaryCreateTicketUrl(requestOrigin?: string): string {
 async function callCreateTicketWithFallback(
   payload: unknown,
   requestOrigin?: string,
-): Promise<CreateTicketCallResult> {
+): Promise<{ data?: CreateTicketCallResult; error?: string }> {
   const primaryCreateTicketUrl = resolvePrimaryCreateTicketUrl(requestOrigin);
 
-  try {
-    return await callCreateTicket(primaryCreateTicketUrl, payload);
-  } catch (primaryError) {
-    if (primaryCreateTicketUrl === LOCAL_CREATE_TICKET_URL) {
-      throw primaryError;
-    }
-
-    console.error("[zabbix] create-ticket primary call failed, retrying localhost", {
-      primaryCreateTicketUrl,
-      reason: primaryError instanceof Error ? primaryError.message : String(primaryError),
-    });
-
-    return callCreateTicket(LOCAL_CREATE_TICKET_URL, payload);
+  const primaryResult = await callCreateTicket(primaryCreateTicketUrl, payload);
+  if (!primaryResult.error) {
+    return primaryResult;
   }
-}
 
+  if (primaryCreateTicketUrl === LOCAL_CREATE_TICKET_URL) {
+    return { error: primaryResult.error };
+  }
+
+  console.error("[zabbix] create-ticket primary call failed, retrying localhost", {
+    primaryCreateTicketUrl,
+    reason: primaryResult.error,
+  });
+
+  const fallbackResult = await callCreateTicket(LOCAL_CREATE_TICKET_URL, payload);
+  if (fallbackResult.error) {
+    return { error: fallbackResult.error };
+  }
+
+  return fallbackResult;
+}
 function resolveCreateTicketError(ticketData: CreateTicketResponse, statusCode: number): string | null {
   return (
     ticketData.error ??
@@ -618,26 +635,47 @@ async function persistOtrsTicketId(context: NormalizedWebhookContext, otrsTicket
 async function syncOtrsTicket(
   context: NormalizedWebhookContext,
   requestOrigin?: string,
-): Promise<OtrsSyncResult> {
+): Promise<{ data?: OtrsSyncResult; error?: string }> {
   const createTicketPayload = buildCreateTicketPayload(context);
-  const createTicketResult = await callCreateTicketWithFallback(createTicketPayload, requestOrigin);
-  const ticketData = createTicketResult.data;
+  const createTicketResult = await callCreateTicketWithFallback(
+    createTicketPayload,
+    requestOrigin,
+  );
 
-  if (ticketData.action === "skipped") {
+  if (createTicketResult.error || !createTicketResult.data) {
     return {
-      action: "skipped",
-      reason: ticketData.reason ?? null,
+      error: createTicketResult.error ?? "create-ticket request failed",
     };
   }
 
-  const createTicketErrorMessage = resolveCreateTicketError(ticketData, createTicketResult.status);
+  const ticketData = createTicketResult.data.data;
+
+  if (ticketData.action === "skipped") {
+    return {
+      data: {
+        action: "skipped",
+        reason: ticketData.reason ?? null,
+      },
+    };
+  }
+
+  const createTicketErrorMessage = resolveCreateTicketError(
+    ticketData,
+    createTicketResult.data.status,
+  );
   if (createTicketErrorMessage) {
-    const errorCode = ticketData.otrsError?.code ?? ticketData.data?.Error?.ErrorCode;
-    throw new Error(errorCode ? `${createTicketErrorMessage} (${errorCode})` : createTicketErrorMessage);
+    const errorCode =
+      ticketData.otrsError?.code ?? ticketData.data?.Error?.ErrorCode;
+    return {
+      error: errorCode
+        ? `${createTicketErrorMessage} (${errorCode})`
+        : createTicketErrorMessage,
+    };
   }
 
   const otrsTicketId =
-    normalizeTicketId(ticketData.data?.TicketID) ?? normalizeTicketId(ticketData.ticketId);
+    normalizeTicketId(ticketData.data?.TicketID) ??
+    normalizeTicketId(ticketData.ticketId);
 
   if (otrsTicketId) {
     await persistOtrsTicketId(context, otrsTicketId);
@@ -648,9 +686,8 @@ async function syncOtrsTicket(
     });
   }
 
-  return { action: "ok" };
+  return { data: { action: "ok" } };
 }
-
 /* -------------------------------------------------------------------------- */
 /*                                 Route handler                               */
 /* -------------------------------------------------------------------------- */
@@ -660,33 +697,66 @@ export async function POST(req: NextRequest) {
 
   try {
     const payload = (await req.json()) as WebhookPayload;
-    const context = buildWebhookContext(payload);
+    const contextResult = buildWebhookContext(payload);
+    if (contextResult.error || !contextResult.data) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: contextResult.error?.message ?? "Invalid webhook payload",
+        },
+        { status: contextResult.error?.status ?? 400 },
+      );
+    }
+
+    const context = contextResult.data;
 
     // အဆင့် (1): Zabbix snapshot table ကို အရင် sync လုပ်ပြီး raw monitoring source ကိုညှိထားသည်။
     await upsertZabbixSnapshot(context);
 
     // အဆင့် (2): Internal ticket table ကို problemId အခြေခံ idempotent upsert လုပ်သည်။
-    await upsertInternalHelpdeskTicket(context);
+    const internalResult = await upsertInternalHelpdeskTicket(context);
+    if (internalResult.error) {
+      console.error("[zabbix] internal ticket sync failed", {
+        requestId,
+        message: internalResult.error,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: internalResult.error,
+          requestId,
+        },
+        { status: 500 },
+      );
+    }
 
     // အဆင့် (3): OTRS sync flow ကိုသီးခြား helper မှာချုပ်ပြီး POST ကို orchestration only ထားသည်။
     const otrsResult = await syncOtrsTicket(context, req.nextUrl.origin);
-    if (otrsResult.action === "skipped") {
+    if (otrsResult.error) {
+      console.error("[zabbix] OTRS sync failed", {
+        requestId,
+        message: otrsResult.error,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: otrsResult.error,
+          requestId,
+        },
+        { status: 502 },
+      );
+    }
+
+    if (otrsResult.data?.action === "skipped") {
       return NextResponse.json({
         success: true,
         action: "skipped",
-        reason: otrsResult.reason,
+        reason: otrsResult.data.reason,
       });
     }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    if (error instanceof RequestValidationError) {
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status: error.status },
-      );
-    }
-
     console.error("[zabbix] webhook processing failed", {
       requestId,
       message: error instanceof Error ? error.message : "Unknown error",
@@ -704,3 +774,7 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+
+
+

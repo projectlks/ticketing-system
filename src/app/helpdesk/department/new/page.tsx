@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeftIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import { z } from "zod";
@@ -9,6 +10,10 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { createDepartment } from "../action";
+import {
+  departmentsQueryOptions,
+  helpdeskQueryKeys,
+} from "../../queries/query-options";
 
 const DepartmentSchema = z.object({
   name: z
@@ -46,6 +51,7 @@ const textareaClass =
   "min-h-[96px] w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200";
 
 export default function DepartmentForm() {
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<FormType>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -75,10 +81,10 @@ export default function DepartmentForm() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const result = DepartmentSchema.safeParse(form);
-    if (!result.success) {
+    const parseResult = DepartmentSchema.safeParse(form);
+    if (!parseResult.success) {
       const fieldErrors: FormErrors = {};
-      result.error.issues.forEach((issue) => {
+      parseResult.error.issues.forEach((issue) => {
         const key = issue.path[0] as keyof FormType;
         fieldErrors[key] = issue.message;
       });
@@ -90,12 +96,24 @@ export default function DepartmentForm() {
     setServerErrorMessage(null);
     try {
       const formData = new FormData();
-      formData.append("name", result.data.name);
-      formData.append("email", result.data.email);
-      formData.append("description", result.data.description ?? "");
-      formData.append("contact", result.data.contact ?? "");
+      formData.append("name", parseResult.data.name);
+      formData.append("email", parseResult.data.email);
+      formData.append("description", parseResult.data.description ?? "");
+      formData.append("contact", parseResult.data.contact ?? "");
 
-      await createDepartment(formData);
+      const createResult = await createDepartment(formData);
+      if (createResult?.error) {
+        setServerErrorMessage(createResult.error);
+        toast.error(createResult.error);
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.departments }),
+        queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.departmentNames }),
+        queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.overview }),
+        queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.analysis.all }),
+      ]);
+      await queryClient.prefetchQuery(departmentsQueryOptions());
       toast.success("Department created.");
       handleReset();
       router.push("/helpdesk/department");

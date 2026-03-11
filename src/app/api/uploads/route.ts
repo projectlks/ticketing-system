@@ -19,7 +19,7 @@ function generateUniqueFileName(originalName: string) {
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   const uploadDir = path.join(process.cwd(), "uploads");
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   const files = formData.getAll("file");
   if (!files.length) {
     return NextResponse.json(
-      { success: false, message: "No file uploaded" },
+      { success: false, error: "No file uploaded" },
       { status: 400 },
     );
   }
@@ -44,14 +44,14 @@ export async function POST(req: Request) {
     if (file instanceof File) {
       if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
         return NextResponse.json(
-          { success: false, message: `${file.name} has unsupported file type.` },
+          { success: false, error: `${file.name} has unsupported file type.` },
           { status: 400 },
         );
       }
 
       if (file.size > MAX_UPLOAD_SIZE_BYTES) {
         return NextResponse.json(
-          { success: false, message: `${file.name} exceeds 1MB size limit.` },
+          { success: false, error: `${file.name} exceeds 1MB size limit.` },
           { status: 400 },
         );
       }

@@ -18,10 +18,22 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
 
   // Edit form render မတိုင်ခင် departments + user detail ကို parallel fetch ထားလို့
   // route enter time ကိုလျော့ပြီး form initial data ပြည့်ပြည့်စုံစုံပြန်ရနိုင်ပါတယ်။
-  const [departments, user] = await Promise.all([
+  const [departments, userResult] = await Promise.all([
     getDepartmentNames(),
     getUserById(id),
   ]);
 
-  return <EditUserForm user={user} departments={departments} />;
+  if (userResult.error || !userResult.data) {
+    if (userResult.error === "User not found") {
+      notFound();
+    }
+
+    return (
+      <div className="p-6 text-sm text-red-600">
+        {userResult.error ?? "Failed to load user."}
+      </div>
+    );
+  }
+
+  return <EditUserForm user={userResult.data} departments={departments} />;
 }

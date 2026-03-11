@@ -13,6 +13,17 @@ import { HELPDESK_CACHE_PREFIXES } from "../cache/redis-keys";
 
 const UPLOAD_API_PREFIX = "/api/uploads/";
 
+type ProfileActionResult<T> = {
+  data?: T;
+  error?: string;
+};
+
+const toErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return fallback;
+};
+
 const UpdateMyProfileSchema = z.object({
   name: z.string().trim().min(5, "Name must be at least 5 characters").max(100),
   profileUrl: z
@@ -35,10 +46,10 @@ export type MyAccountProfile = {
   updatedAt: Date;
 };
 
-async function requireCurrentUserId(): Promise<string> {
+async function requireCurrentUserId(): Promise<ProfileActionResult<string>> {
   const currentUserId = await getCurrentUserId();
-  if (!currentUserId) throw new Error("Unauthorized");
-  return currentUserId;
+  if (!currentUserId) return { error: "Unauthorized" };
+  return { data: currentUserId };
 }
 
 function extractUploadFileNameFromUrl(url: string): string | null {
@@ -52,29 +63,37 @@ function extractUploadFileNameFromUrl(url: string): string | null {
   return safeFileName;
 }
 
-async function deleteLocalUploadFileIfExists(url: string | null): Promise<void> {
-  if (!url) return;
+async function deleteLocalUploadFileIfExists(
+  url: string | null,
+): Promise<string | null> {
+  if (!url) return null;
 
   const safeFileName = extractUploadFileNameFromUrl(url);
-  if (!safeFileName) return;
+  if (!safeFileName) return null;
 
   const absolutePath = path.join(process.cwd(), "uploads", safeFileName);
 
   try {
     await fs.unlink(absolutePath);
   } catch (error) {
-    // File already deleted ဖြစ်နိုင်လို့ ENOENT ကို ignore လုပ်ပြီး process မပျက်စေပါ။
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
+      return toErrorMessage(error, "Failed to delete old upload.");
     }
   }
+
+  return null;
 }
 
-export async function getMyAccountProfile(): Promise<MyAccountProfile> {
-  const currentUserId = await requireCurrentUserId();
+export async function getMyAccountProfile(): Promise<
+  ProfileActionResult<MyAccountProfile>
+> {
+  const currentUserResult = await requireCurrentUserId();
+  if (currentUserResult.error || !currentUserResult.data) {
+    return { error: currentUserResult.error ?? "Unauthorized" };
+  }
 
   const user = await prisma.user.findUnique({
-    where: { id: currentUserId },
+    where: { id: currentUserResult.data },
     select: {
       id: true,
       name: true,
@@ -91,67 +110,94 @@ export async function getMyAccountProfile(): Promise<MyAccountProfile> {
     },
   });
 
-  if (!user) throw new Error("User not found");
+  if (!user) return { error: "User not found" };
 
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    profileUrl: user.profileUrl,
-    departmentName: user.department?.name ?? null,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    data: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profileUrl: user.profileUrl,
+      departmentName: user.department?.name ?? null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
   };
 }
 
-export async function updateMyAccountProfile(formData: FormData): Promise<{
-  id: string;
-  name: string;
-  email: string;
-  profileUrl: string | null;
-  updatedAt: Date;
-}> {
-  const currentUserId = await requireCurrentUserId();
+export async function updateMyAccountProfile(
+  formData: FormData,
+): Promise<
+  ProfileActionResult<{
+    id: string;
+    name: string;
+    email: string;
+    profileUrl: string | null;
+    updatedAt: Date;
+  }>
+> {
+  const currentUserResult = await requireCurrentUserId();
+  if (currentUserResult.error || !currentUserResult.data) {
+    return { error: currentUserResult.error ?? "Unauthorized" };
+  }
+  const currentUserId = currentUserResult.data;
+
   const existingUser = await prisma.user.findUnique({
     where: { id: currentUserId },
     select: { profileUrl: true },
   });
-  if (!existingUser) throw new Error("User not found");
+  if (!existingUser) return { error: "User not found" };
 
   const raw = {
     name: formData.get("name")?.toString() ?? "",
     profileUrl: formData.get("profileUrl")?.toString() ?? "",
   };
-  const parsed = UpdateMyProfileSchema.parse(raw);
-  const nextProfileUrl = parsed.profileUrl || null;
+  const parsed = UpdateMyProfileSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid profile data.",
+    };
+  }
+  const nextProfileUrl = parsed.data.profileUrl || null;
 
-  // Security: email/role fields များကို profile update payload ထဲမထည့်ထားသဖြင့်
-  // self-profile page က account identity/permission ကိုမပြောင်းနိုင်ပါ။
-  const updatedUser = await prisma.user.update({
-    where: { id: currentUserId },
-    data: {
-      name: parsed.name,
-      profileUrl: nextProfileUrl,
-      updaterId: currentUserId,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      profileUrl: true,
-      updatedAt: true,
-    },
-  });
+  // Security: email/role fields are locked in profile update
+  let updatedUser: {
+    id: string;
+    name: string;
+    email: string;
+    profileUrl: string | null;
+    updatedAt: Date;
+  };
 
-  // Profile image ပြောင်းသွားပြီဆိုရင် old uploaded file ကို filesystem မှာတကယ်ဖျက်ပေးသည်။
+  try {
+    updatedUser = await prisma.user.update({
+      where: { id: currentUserId },
+      data: {
+        name: parsed.data.name,
+        profileUrl: nextProfileUrl,
+        updaterId: currentUserId,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profileUrl: true,
+        updatedAt: true,
+      },
+    });
+  } catch (error) {
+    return { error: toErrorMessage(error, "Failed to update profile.") };
+  }
+
   if (existingUser.profileUrl !== nextProfileUrl) {
-    await deleteLocalUploadFileIfExists(existingUser.profileUrl).catch((error) => {
+    const deleteError = await deleteLocalUploadFileIfExists(existingUser.profileUrl);
+    if (deleteError) {
       console.error("[profile] failed to delete old upload file", {
         profileUrl: existingUser.profileUrl,
-        message: error instanceof Error ? error.message : String(error),
+        message: deleteError,
       });
-    });
+    }
   }
 
   await invalidateCacheByPrefixes([
@@ -163,5 +209,5 @@ export async function updateMyAccountProfile(formData: FormData): Promise<{
   revalidatePath("/helpdesk/profile");
   revalidatePath("/helpdesk");
 
-  return updatedUser;
+  return { data: updatedUser };
 }

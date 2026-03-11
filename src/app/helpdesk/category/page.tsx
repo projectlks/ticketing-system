@@ -143,13 +143,23 @@ export default function CategoryPage() {
       setLocalErrorMessage(null);
 
       if (selectedCategoryId) {
-        await updateCategoryMutation.mutateAsync({
+        const result = await updateCategoryMutation.mutateAsync({
           categoryId: selectedCategoryId,
           payload: parsed.data,
         });
+        if (result?.error) {
+          setLocalErrorMessage(result.error);
+          toast.error(result.error);
+          return;
+        }
         toast.success("Category updated.");
       } else {
-        await createCategoryMutation.mutateAsync(parsed.data);
+        const result = await createCategoryMutation.mutateAsync(parsed.data);
+        if (result?.error) {
+          setLocalErrorMessage(result.error);
+          toast.error(result.error);
+          return;
+        }
         toast.success("Category created.");
       }
 

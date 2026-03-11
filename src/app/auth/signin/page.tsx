@@ -209,9 +209,11 @@ export default function SignInPage() {
     setLoading(false);
 
     if (res?.error) {
+      const responseError =
+        res.error === "CredentialsSignin" ? "Invalid email or password." : res.error;
       setErrors((prev) => ({
         ...prev,
-        response: res.error,
+        response: responseError,
       }));
     } else if (res?.ok) {
       router.push(resolveSafePostSignInRoute(res.url) as Route);

@@ -34,7 +34,20 @@ const DepartmentFormSchema = z.object({
     .optional(),
 });
 
-export async function createDepartment(formData: FormData): Promise<void> {
+type DepartmentActionResult<T> = {
+  data?: T;
+  error?: string;
+};
+
+const toErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return fallback;
+};
+
+export async function createDepartment(
+  formData: FormData,
+): Promise<DepartmentActionResult<{ id: string }>> {
   const raw = {
     name: formData.get("name")?.toString() ?? "",
     description: formData.get("description")?.toString() ?? "",
@@ -42,48 +55,57 @@ export async function createDepartment(formData: FormData): Promise<void> {
     contact: formData.get("contact")?.toString() ?? "",
   };
 
-  const parsed = DepartmentFormSchema.parse(raw);
-  const normalizedName = parsed.name.trim();
-  const normalizedDescription = parsed.description?.trim() || null;
-  const normalizedContact = parsed.contact?.trim() || null;
-  const normalizedEmail = parsed.email.trim();
+  const parsed = DepartmentFormSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid department data.",
+    };
+  }
+  const normalizedName = parsed.data.name.trim();
+  const normalizedDescription = parsed.data.description?.trim() || null;
+  const normalizedContact = parsed.data.contact?.trim() || null;
+  const normalizedEmail = parsed.data.email.trim();
 
   const existing = await prisma.department.findFirst({
     where: { name: { equals: normalizedName, mode: "insensitive" } },
   });
-  if (existing) throw new Error("Department Name already exists");
+  if (existing) return { error: "Department Name already exists" };
 
   const userId = await getCurrentUserId();
   if (!userId) {
-    throw new Error("Unauthorized");
+    return { error: "Unauthorized" };
   }
 
-  const department = await prisma.department.create({
-    data: {
-      name: normalizedName,
-      description: normalizedDescription,
-      contact: normalizedContact,
-      email: normalizedEmail,
-      creatorId: userId,
-    },
-  });
+  try {
+    const department = await prisma.department.create({
+      data: {
+        name: normalizedName,
+        description: normalizedDescription,
+        contact: normalizedContact,
+        email: normalizedEmail,
+        creatorId: userId,
+      },
+    });
 
-  await prisma.audit.create({
-    data: {
-      entity: "Department",
-      entityId: department.id,
-      userId,
-      action: "CREATE",
-    },
-  });
+    await prisma.audit.create({
+      data: {
+        entity: "Department",
+        entityId: department.id,
+        userId,
+        action: "CREATE",
+      },
+    });
 
-  // Department master data ပြောင်းသွားတာနဲ့ related list/dashboard cache တွေရှင်းထားမှ
-  // UI က stale old list မပြဘဲ update မြန်မြန်ဖြစ်စေပါတယ်။
-  await invalidateCacheByPrefixes([
-    HELPDESK_CACHE_PREFIXES.departments,
-    HELPDESK_CACHE_PREFIXES.overview,
-    HELPDESK_CACHE_PREFIXES.analysis,
-  ]);
+    await invalidateCacheByPrefixes([
+      HELPDESK_CACHE_PREFIXES.departments,
+      HELPDESK_CACHE_PREFIXES.overview,
+      HELPDESK_CACHE_PREFIXES.analysis,
+    ]);
+
+    return { data: { id: department.id } };
+  } catch (error) {
+    return { error: toErrorMessage(error, "Failed to create department.") };
+  }
 }
 
 export async function getDepartmentNames(): Promise<{ name: string; id: string }[]> {
@@ -111,7 +133,7 @@ export async function getDepartments(): Promise<DepartmentTicketStats[]> {
     HELPDESK_CACHE_TTL_SECONDS.departments,
     async () => {
       const departments = await prisma.department.findMany({
-        orderBy: { name: "asc" },
+        orderBy: [{ createdAt: "desc" }, { name: "asc" }],
         select: {
           id: true,
           name: true,
@@ -177,3 +199,5 @@ export async function getDepartments(): Promise<DepartmentTicketStats[]> {
     },
   );
 }
+
+

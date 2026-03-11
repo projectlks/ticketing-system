@@ -15,45 +15,71 @@ const CommentSchema = z.object({
   parentId: z.string().nullable().optional(),
 });
 
+type ActionResult<T> = {
+  data?: T;
+  error?: string;
+};
+
+const toErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return fallback;
+};
+
 
 export async function uploadComment(input: {
   content?: string | null;
   imageUrl?: string | null;
   ticketId: string;
   parentId?: string
-}): Promise<{ success: boolean; data: CommentWithRelations }> {
-  const { content, imageUrl, ticketId, parentId } = CommentSchema.parse(input);
+}): Promise<{ success: boolean; data?: CommentWithRelations; error?: string }> {
+  const parsed = CommentSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid comment payload",
+    };
+  }
+
+  const { content, imageUrl, ticketId, parentId } = parsed.data;
 
   const currentUserId = await getCurrentUserId();
-  if (!currentUserId) throw new Error("No logged-in user found");
+  if (!currentUserId) {
+    return { success: false, error: "No logged-in user found" };
+  }
 
-  const comment = await prisma.comment.create({
-    data: {
-      content: content || "",
-      imageUrl: imageUrl || "",
-      ticketId,
-      parentId: parentId || null,
-      commenterId: currentUserId,
-    },
-    include: {
-      commenter: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
+  try {
+    const comment = await prisma.comment.create({
+      data: {
+        content: content || "",
+        imageUrl: imageUrl || "",
+        ticketId,
+        parentId: parentId || null,
+        commenterId: currentUserId,
       },
+      include: {
+        commenter: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        replies: true,
+      },
+    });
 
-      replies: true
-    },
-  });
-
-  return {
-    success: true,
-    data: comment,
-  };
+    return {
+      success: true,
+      data: comment,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to upload comment"),
+    };
+  }
 }
-
 
 interface LikeCommentParams {
   commentId: string;
@@ -63,21 +89,24 @@ interface LikeCommentParams {
 
 export async function likeComment({ commentId }: LikeCommentParams) {
   const userId = await getCurrentUserId();
-  if (!userId) throw new Error("User not authenticated");
+  if (!userId) return { error: "User not authenticated" };
 
-  const existingLike = await prisma.commentLike.findUnique({
-    where: { commentId_userId: { commentId, userId } },
-  });
+  try {
+    const existingLike = await prisma.commentLike.findUnique({
+      where: { commentId_userId: { commentId, userId } },
+    });
 
-  if (existingLike) {
-    await prisma.commentLike.delete({ where: { commentId_userId: { commentId, userId } } });
-    return { liked: false };
-  } else {
+    if (existingLike) {
+      await prisma.commentLike.delete({ where: { commentId_userId: { commentId, userId } } });
+      return { liked: false };
+    }
+
     await prisma.commentLike.create({ data: { commentId, userId } });
     return { liked: true };
+  } catch (error) {
+    return { error: toErrorMessage(error, "Failed to update like") };
   }
 }
-
 
 export async function getCommentWithTicketId(ticketId: string): Promise<CommentWithRelations[]> {
   // Get all comments for the ticket including commenter and likes
@@ -121,25 +150,23 @@ export async function getCurrentUserId(): Promise<string | undefined> {
 
 
 // Slim version (only basic info)
-export async function getBasicUserData(): Promise<BasicUserData> {
+export async function getBasicUserData(): Promise<ActionResult<BasicUserData>> {
   const userId = await getCurrentUserId();
-  if (!userId) throw new Error("No logged-in user found");
+  if (!userId) return { error: "No logged-in user found" };
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, name: true, email: true, profileUrl: true }
   });
 
-  if (!user) throw new Error("User not found");
+  if (!user) return { error: "User not found" };
 
-  return user;
+  return { data: user };
 }
 
-
-export async function getCurrentUserData() {
+export async function getCurrentUserData(): Promise<ActionResult<unknown>> {
   const userId = await getCurrentUserId();
-  if (!userId) throw new Error("No logged-in user found");
-
+  if (!userId) return { error: "No logged-in user found" };
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -183,12 +210,10 @@ export async function getCurrentUserData() {
     },
   });
 
-  if (!user) throw new Error("User not found");
+  if (!user) return { error: "User not found" };
 
-  return user;
+  return { data: user };
 }
-
-
 
 // ======================
 // Zabbix JSON-RPC helper
@@ -198,45 +223,64 @@ async function zabbixRequest<T>(
   params: Record<string, unknown>,
   token: string,
   url: string
-): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method,
-      params,
-      auth: token,
-      id: 1,
-    }),
-  });
+): Promise<ActionResult<T>> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method,
+        params,
+        auth: token,
+        id: 1,
+      }),
+    });
 
-  const data = await res.json();
-  if (data.error) throw new Error(`${data.error.message}: ${data.error.data}`);
-  return data.result;
+    const data = await res.json();
+    if (data?.error) {
+      return {
+        error: `${data.error.message}: ${data.error.data}`,
+      };
+    }
+
+    return { data: data.result as T };
+  } catch (error) {
+    return { error: toErrorMessage(error, "Zabbix request failed") };
+  }
 }
 
 // ======================
 // Check event status in Zabbix
 // ======================
-export async function checkEventStatus(eventId: string): Promise<{ exists: boolean; status?: string }> {
-  const url = process.env.ZABBIX_URL!;
-  const token = process.env.ZABBIX_API_TOKEN!;
+export async function checkEventStatus(
+  eventId: string,
+): Promise<ActionResult<{ exists: boolean; status?: string }>> {
+  const url = process.env.ZABBIX_URL;
+  const token = process.env.ZABBIX_API_TOKEN;
 
-  // Fetch active problems only
-  const problems = await zabbixRequest<ZabbixProblem[]>(
+  if (!url || !token) {
+    return { error: "ZABBIX_URL or ZABBIX_API_TOKEN is not configured" };
+  }
+
+  const problemsResult = await zabbixRequest<ZabbixProblem[]>(
     "problem.get",
     {
       output: ["eventid", "r_eventid"],
       eventids: [eventId],
     },
     token,
-    url
+    url,
   );
 
-  if (!problems || problems.length === 0) {
-    return { exists: false, status: "Resolved / Not active" };
+  if (problemsResult.error || !problemsResult.data) {
+    return { error: problemsResult.error ?? "Failed to fetch event status" };
   }
 
-  return { exists: true, status: problems[0].r_eventid };
+  const problems = problemsResult.data;
+  if (!problems || problems.length === 0) {
+    return { data: { exists: false, status: "Resolved / Not active" } };
+  }
+
+  return { data: { exists: true, status: problems[0].r_eventid } };
 }

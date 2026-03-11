@@ -372,7 +372,12 @@ export function useTicketForm({
             // Send request
             if (mode === "create") {
                 fd.append("images", JSON.stringify(uploaded));
-                const { id } = await createTicket(fd);
+                const createResult = await createTicket(fd);
+                if (createResult.error || !createResult.data) {
+                    toast.error(createResult.error ?? "Failed to create ticket");
+                    return;
+                }
+                const { id } = createResult.data;
                 toast.success("Ticket created successfully");
                 router.push(`/helpdesk/tickets/${id}`);
             } else if (ticket?.id) {
@@ -385,7 +390,12 @@ export function useTicketForm({
                     JSON.stringify(existingImages.map((i) => i.id)),
                 );
 
-                const { urlsToDelete } = await updateTicket(ticket.id, fd);
+                const updateResult = await updateTicket(ticket.id, fd);
+                if (updateResult.error || !updateResult.data) {
+                    toast.error(updateResult.error ?? "Failed to update ticket");
+                    return;
+                }
+                const { urlsToDelete } = updateResult.data;
 
                 await Promise.all(
                     urlsToDelete.map((url) => {

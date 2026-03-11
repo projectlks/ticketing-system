@@ -95,11 +95,11 @@ export default function UserForm() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const result = UserSchema.safeParse(form);
+    const parseResult = UserSchema.safeParse(form);
 
-    if (!result.success) {
+    if (!parseResult.success) {
       const fieldErrors: FormErrors = {};
-      result.error.issues.forEach((issue) => {
+      parseResult.error.issues.forEach((issue) => {
         const key = issue.path[0] as keyof FormType;
         fieldErrors[key] = issue.message;
       });
@@ -112,11 +112,16 @@ export default function UserForm() {
 
     try {
       const formData = new FormData();
-      Object.entries(result.data).forEach(([key, value]) => {
-        formData.append(key, value);
+      Object.entries(parseResult.data).forEach(([key, value]) => {
+        formData.append(key, String(value));
       });
 
-      await createUser(formData);
+      const createResult = await createUser(formData);
+      if (createResult?.error) {
+        toast.error(createResult.error);
+        setServerErrorMessage(createResult.error);
+        return;
+      }
 
       toast.success("User created.");
       handleReset();

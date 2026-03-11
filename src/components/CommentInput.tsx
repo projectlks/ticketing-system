@@ -101,16 +101,22 @@ export default function CommentInput({
         imageUrl = await uploadImage(imageFile);
       }
 
-      const { data, success } = await uploadComment({
+      const result = await uploadComment({
         content: commentText || null,
         imageUrl: imageUrl || null,
         ticketId,
         parentId,
       });
 
+      if (!result.success || !result.data) {
+        console.error("Comment upload failed:", result.error ?? "Unknown error");
+        return;
+      }
+
+      const { data } = result;
       socket.emit("send-comment", data);
 
-      if (success) {
+      if (result.success) {
         if (parentId && onReply) {
           await onReply(parentId, data);
         }

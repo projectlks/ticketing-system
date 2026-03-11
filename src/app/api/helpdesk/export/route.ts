@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json(
-      { success: false, message: "Unauthorized" },
+      { success: false, error: "Unauthorized" },
       { status: 401 },
     );
   }
@@ -71,19 +71,35 @@ export async function GET(req: NextRequest) {
       req.nextUrl.searchParams.get("departmentId"),
     );
 
-    const where = buildTicketDateWhere({ fromDate, toDate });
+    const { where, error } = buildTicketDateWhere({ fromDate, toDate });
+    if (error) {
+      return NextResponse.json(
+        { success: false, error },
+        { status: 400 },
+      );
+    }
 
     if (statusQuery) {
       if (!isValidStatus(statusQuery)) {
-        throw new Error(`Invalid status. Allowed values: ${STATUS_VALUES.join(", ")}.`);
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid status. Allowed values: ${STATUS_VALUES.join(", ")}.`,
+          },
+          { status: 400 },
+        );
       }
       where.status = statusQuery;
     }
 
     if (priorityQuery) {
       if (!isValidPriority(priorityQuery)) {
-        throw new Error(
-          `Invalid priority. Allowed values: ${PRIORITY_VALUES.join(", ")}.`,
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid priority. Allowed values: ${PRIORITY_VALUES.join(", ")}.`,
+          },
+          { status: 400 },
         );
       }
       where.priority = priorityQuery;
@@ -182,30 +198,14 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    // Invalid date/filter validation case တွေကို 400 ပြန်ပေးပြီး unexpected server issue တွေကို 500 ပြန်ပေးပါတယ်။
-    const message =
-      error instanceof Error ? error.message : "Failed to export tickets";
-    const lower = message.toLowerCase();
-    const isValidationError =
-      lower.includes("fromdate") ||
-      lower.includes("todate") ||
-      lower.includes("date") ||
-      lower.includes("status") ||
-      lower.includes("priority");
-
-    if (!isValidationError) {
-      console.error("[helpdesk-export] failed", {
-        message,
-        failedAt: new Date().toISOString(),
-      });
-    }
+    console.error("[helpdesk-export] failed", {
+      message: error instanceof Error ? error.message : String(error),
+      failedAt: new Date().toISOString(),
+    });
 
     return NextResponse.json(
-      {
-        success: false,
-        message: isValidationError ? message : "Failed to export tickets",
-      },
-      { status: isValidationError ? 400 : 500 },
+      { success: false, error: "Failed to export tickets" },
+      { status: 500 },
     );
   }
 }

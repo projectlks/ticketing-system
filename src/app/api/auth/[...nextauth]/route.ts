@@ -5,7 +5,6 @@ import { prisma } from "@/libs/prisma";
 import bcrypt from "bcrypt";
 
 type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
-const GENERIC_AUTH_ERROR = "Invalid email or password.";
 const DUMMY_PASSWORD_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8xjAnN0m4fP60Xj0R0hP5Kf6xk9bGa";
 
 
@@ -30,7 +29,7 @@ const handler = NextAuth({
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
 
-        if (!email || !password) throw new Error(GENERIC_AUTH_ERROR);
+        if (!email || !password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email },
@@ -41,7 +40,7 @@ const handler = NextAuth({
         const isValid = await bcrypt.compare(password, comparedHash);
         const isLoginAllowed = Boolean(user && !user.isArchived && isValid);
 
-        if (!isLoginAllowed) throw new Error(GENERIC_AUTH_ERROR);
+        if (!isLoginAllowed) return null;
 
 
 

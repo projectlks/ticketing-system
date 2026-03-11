@@ -58,9 +58,13 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
 
     async function fetchUserData() {
       try {
-        const data: BasicUserData = await getBasicUserData();
+        const result = await getBasicUserData();
+        if (result.error || !result.data) {
+          console.error("Failed to fetch user data:", result.error);
+          return;
+        }
         if (isActive) {
-          setUserData(data);
+          setUserData(result.data);
         }
       } catch (err) {
         console.error("Failed to fetch full user data:", err);

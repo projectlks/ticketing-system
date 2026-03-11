@@ -101,10 +101,10 @@ const defaultBaseUrl =
 
 // Mandatory env var တစ်ခုကိုဖတ်ပြီး မရှိရင် error ပစ်မယ်။
 // Integration credential မပြည့်စုံဘူးဆိုတာ early fail လုပ်ဖို့
-function getRequiredEnv(name: string): string {
+function getRequiredEnv(name: string): string | null {
     const value = process.env[name];
     if (!value || !value.trim()) {
-        throw new Error(`Missing required environment variable: ${name}`);
+        return null;
     }
     return value.trim();
 }
@@ -298,25 +298,43 @@ function buildArticleBody(
 
 // Environment ကနေ config ဖတ်မယ်။
 // secret values တွေကို code မှာ hardcode မထားဘဲ env မှာထားစေဖို့
-function loadConfig(): OtrsConfig {
+function loadConfig(): { config?: OtrsConfig; error?: string } {
     const defaultQueueId = normalizeQueueId(process.env.OTRS_DEFAULT_QUEUE_ID);
     const rawPassword = getRequiredEnv("OTRS_PASSWORD");
+    if (!rawPassword) {
+        return { error: "Missing required environment variable: OTRS_PASSWORD" };
+    }
     const recoveredPassword = recoverComposedPassword(rawPassword);
 
     if (rawPassword !== recoveredPassword) {
         console.warn("[create-ticket] OTRS password interpolation artifact detected and recovered");
     }
 
+    const userLogin = getRequiredEnv("OTRS_USER_LOGIN");
+    if (!userLogin) {
+        return { error: "Missing required environment variable: OTRS_USER_LOGIN" };
+    }
+    const fromEmail = getRequiredEnv("OTRS_FROM_EMAIL");
+    if (!fromEmail) {
+        return { error: "Missing required environment variable: OTRS_FROM_EMAIL" };
+    }
+    const pfxPassphrase = getRequiredEnv("OTRS_PFX_PASSPHRASE");
+    if (!pfxPassphrase) {
+        return { error: "Missing required environment variable: OTRS_PFX_PASSPHRASE" };
+    }
+
     return {
-        baseUrl: process.env.OTRS_BASE_URL?.trim() || defaultBaseUrl,
-        userLogin: getRequiredEnv("OTRS_USER_LOGIN"),
-        password: recoveredPassword,
-        fromEmail: getRequiredEnv("OTRS_FROM_EMAIL"),
-        pfxPath: process.env.OTRS_PFX_PATH?.trim() || defaultPfxPath,
-        pfxPassphrase: getRequiredEnv("OTRS_PFX_PASSPHRASE"),
-        rejectUnauthorized: process.env.OTRS_REJECT_UNAUTHORIZED !== "false",
-        caPath: process.env.OTRS_CA_PATH?.trim(),
-        defaultQueueId: defaultQueueId ?? undefined,
+        config: {
+            baseUrl: process.env.OTRS_BASE_URL?.trim() || defaultBaseUrl,
+            userLogin,
+            password: recoveredPassword,
+            fromEmail,
+            pfxPath: process.env.OTRS_PFX_PATH?.trim() || defaultPfxPath,
+            pfxPassphrase,
+            rejectUnauthorized: process.env.OTRS_REJECT_UNAUTHORIZED !== "false",
+            caPath: process.env.OTRS_CA_PATH?.trim(),
+            defaultQueueId: defaultQueueId ?? undefined,
+        },
     };
 }
 
@@ -371,39 +389,46 @@ function buildHttpsAgent(config: OtrsConfig): https.Agent {
 
 
 // retry helper
-async function retryAxios<T>(fn: () => Promise<T>, maxRetries: number = 5, delayMs: number = 1000): Promise<T> {
+async function retryAxios<T>(
+    fn: () => Promise<{ data?: T; error?: unknown }>,
+    maxRetries: number = 5,
+    delayMs: number = 1000,
+): Promise<{ data?: T; error?: unknown }> {
     let lastError: unknown;
     for (let i = 0; i < maxRetries; i++) {
-        try { return await fn(); }
-        catch (e) { lastError = e; await new Promise(r => setTimeout(r, delayMs)); }
+        const result = await fn();
+        if (!result.error) {
+            return { data: result.data };
+        }
+        lastError = result.error;
+        await new Promise((r) => setTimeout(r, delayMs));
     }
-    throw lastError;
+    return { error: lastError };
 }
-
 
 async function sendTicketUpdate(
     url: string,
     payload: Record<string, unknown>,
     requestConfig: AxiosRequestConfig
-): Promise<{ method: "PUT" | "POST"; response: AxiosResponse }> {
+): Promise<{ data?: { method: "PUT" | "POST"; response: AxiosResponse }; error?: unknown }> {
 
-    return await retryAxios(async () => {
-
-        // Try PUT first
+    return retryAxios(async () => {
         try {
             const response = await axios.post(url, payload, requestConfig);
-            return { method: "POST", response };
+            return { data: { method: "POST", response } };
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 const status = error.response?.status;
                 if (status === 404 || status === 405 || status === 501) {
-                    // fallback to POST
-                    const response = await axios.post(url, payload, requestConfig);
-                    return { method: "POST", response };
+                    try {
+                        const response = await axios.post(url, payload, requestConfig);
+                        return { data: { method: "POST", response } };
+                    } catch (fallbackError) {
+                        return { error: fallbackError };
+                    }
                 }
             }
-            // Any other error -> retry
-            throw error;
+            return { error };
         }
     });
 }
@@ -476,7 +501,16 @@ export async function POST(req: Request) {
 
         // Step 5: config + queue id ပြင်ဆင်
         // Ticket.QueueID မပို့ရင် env default queue ကို fallback သုံးမယ်
-        const config = loadConfig();
+        const configResult = loadConfig();
+        if (!configResult.config) {
+            const message = configResult.error ?? "Missing OTRS configuration.";
+            console.error("[create-ticket] config error", { requestId, message });
+            return NextResponse.json(
+                { error: message, requestId },
+                { status: 500 }
+            );
+        }
+        const config = configResult.config;
         const queueId = normalizeQueueId(ticket.QueueID) ?? config.defaultQueueId ?? null;
         // console.log("[create-ticket] config resolved", {
         //     requestId,
@@ -604,6 +638,26 @@ export async function POST(req: Request) {
                 updatePayload,
                 requestConfig
             );
+            if (updateResult.error || !updateResult.data) {
+                console.error("[create-ticket] Ticket update call failed", {
+                    requestId,
+                    existingTicketId,
+                    message: updateResult.error instanceof Error
+                        ? updateResult.error.message
+                        : String(updateResult.error),
+                });
+                return NextResponse.json(
+                    {
+                        action: "failed",
+                        error: "OTRS Ticket update failed.",
+                        ticketId: existingTicketId,
+                        requestId,
+                    },
+                    { status: 502 }
+                );
+            }
+
+            const { method, response } = updateResult.data;
             // console.log("[create-ticket] Ticket update response", {
             //     requestId,
             //     method: updateResult.method,
@@ -611,7 +665,7 @@ export async function POST(req: Request) {
             //     existingTicketId,
             // });
 
-            const updateApiError = extractOtrsApiError(updateResult.response.data);
+            const updateApiError = extractOtrsApiError(response.data);
             if (updateApiError) {
                 console.error("[create-ticket] Ticket update API error", {
                     requestId,
@@ -638,9 +692,9 @@ export async function POST(req: Request) {
             // });
             return NextResponse.json({
                 action: "updated",
-                method: updateResult.method,
+                method,
                 ticketId: existingTicketId,
-                data: updateResult.response.data,
+                data: response.data,
             });
         }
 

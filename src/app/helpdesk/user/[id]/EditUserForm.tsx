@@ -136,7 +136,12 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
           formData.append(key, String(value));
         });
 
-      await updateUser(formData);
+      const result = await updateUser(formData);
+      if (result?.error) {
+        toast.error(result.error);
+        setServerErrorMessage(result.error);
+        return;
+      }
       toast.success("User updated.");
       setForm((previous) => ({ ...previous, password: "" }));
     } catch (error) {

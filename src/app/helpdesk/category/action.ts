@@ -17,6 +17,17 @@ import {
   type CategoryFormValues,
 } from "./types";
 
+type CategoryActionResult<T> = {
+  data?: T;
+  error?: string;
+};
+
+const toErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return fallback;
+};
+
 export async function getCategories(): Promise<CategoryEntity[]> {
   const cacheKey = helpdeskRedisKeys.categories();
 
@@ -43,15 +54,22 @@ export async function getCategories(): Promise<CategoryEntity[]> {
   );
 }
 
-export async function createCategory(data: CategoryFormValues) {
-  const parsed = CategoryFormSchema.parse(data);
+export async function createCategory(
+  data: CategoryFormValues,
+): Promise<CategoryActionResult<CategoryEntity>> {
+  const parsed = CategoryFormSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid category data.",
+    };
+  }
 
   // Department တူတူထဲ name တူ category မဖြစ်အောင် create မတိုင်ခင် check လုပ်ထားပါတယ်။
   const existingCategory = await prisma.category.findFirst({
     where: {
-      departmentId: parsed.departmentId,
+      departmentId: parsed.data.departmentId,
       name: {
-        equals: parsed.name,
+        equals: parsed.data.name,
         mode: "insensitive",
       },
     },
@@ -59,34 +77,48 @@ export async function createCategory(data: CategoryFormValues) {
   });
 
   if (existingCategory) {
-    throw new Error("Category name already exists in this department.");
+    return {
+      error: "Category name already exists in this department.",
+    };
   }
 
-  const created = await prisma.category.create({
-    data: parsed,
-  });
+  try {
+    const created = await prisma.category.create({
+      data: parsed.data,
+    });
 
-  await invalidateCacheByPrefixes([
-    HELPDESK_CACHE_PREFIXES.categories,
-    HELPDESK_CACHE_PREFIXES.tickets,
-  ]);
+    await invalidateCacheByPrefixes([
+      HELPDESK_CACHE_PREFIXES.categories,
+      HELPDESK_CACHE_PREFIXES.tickets,
+    ]);
 
-  return created;
+    return { data: { ...created, departmentName: "" } };
+  } catch (error) {
+    return { error: toErrorMessage(error, "Failed to create category.") };
+  }
 }
 
-export async function updateCategory(id: string, data: CategoryFormValues) {
+export async function updateCategory(
+  id: string,
+  data: CategoryFormValues,
+): Promise<CategoryActionResult<CategoryEntity>> {
   if (!id) {
-    throw new Error("Category id is required.");
+    return { error: "Category id is required." };
   }
 
-  const parsed = CategoryFormSchema.parse(data);
+  const parsed = CategoryFormSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid category data.",
+    };
+  }
 
   // Update လုပ်တဲ့အချိန်မှာလည်း current row ကိုချန်ပြီး duplicate name ကိုစစ်ပေးထားပါတယ်။
   const duplicatedCategory = await prisma.category.findFirst({
     where: {
-      departmentId: parsed.departmentId,
+      departmentId: parsed.data.departmentId,
       name: {
-        equals: parsed.name,
+        equals: parsed.data.name,
         mode: "insensitive",
       },
       NOT: { id },
@@ -95,21 +127,27 @@ export async function updateCategory(id: string, data: CategoryFormValues) {
   });
 
   if (duplicatedCategory) {
-    throw new Error("Category name already exists in this department.");
+    return {
+      error: "Category name already exists in this department.",
+    };
   }
 
-  const updated = await prisma.category.update({
-    where: { id },
-    data: parsed,
-  });
+  try {
+    const updated = await prisma.category.update({
+      where: { id },
+      data: parsed.data,
+    });
 
-  await invalidateCacheByPrefixes([
-    HELPDESK_CACHE_PREFIXES.categories,
-    HELPDESK_CACHE_PREFIXES.tickets,
-    HELPDESK_CACHE_PREFIXES.analysis,
-  ]);
+    await invalidateCacheByPrefixes([
+      HELPDESK_CACHE_PREFIXES.categories,
+      HELPDESK_CACHE_PREFIXES.tickets,
+      HELPDESK_CACHE_PREFIXES.analysis,
+    ]);
 
-  return updated;
+    return { data: { ...updated, departmentName: "" } };
+  } catch (error) {
+    return { error: toErrorMessage(error, "Failed to update category.") };
+  }
 }
 
 export async function getCategoriesNames(): Promise<

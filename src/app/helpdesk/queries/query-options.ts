@@ -112,7 +112,7 @@ export const helpdeskQueryKeys = {
 
 export type OverviewQueryData = {
   departments: Awaited<ReturnType<typeof getDepartments>>;
-  ticketStats: Awaited<ReturnType<typeof getMyTickets>>;
+  ticketStats: NonNullable<Awaited<ReturnType<typeof getMyTickets>>["data"]>;
 };
 
 export type TicketsListQueryInput = {
@@ -148,12 +148,16 @@ export const overviewQueryOptions = () =>
   queryOptions({
     queryKey: helpdeskQueryKeys.overview,
     queryFn: async (): Promise<OverviewQueryData> => {
-      const [departments, ticketStats] = await Promise.all([
+      const [departments, ticketStatsResult] = await Promise.all([
         getDepartments(),
         getMyTickets(),
       ]);
 
-      return { departments, ticketStats };
+      if (ticketStatsResult.error || !ticketStatsResult.data) {
+        throw new Error(ticketStatsResult.error ?? "Failed to load ticket stats.");
+      }
+
+      return { departments, ticketStats: ticketStatsResult.data };
     },
     placeholderData: keepPreviousData,
   });
@@ -199,7 +203,15 @@ export const analysisDashboardQueryOptions = (
 ) =>
   queryOptions({
     queryKey: helpdeskQueryKeys.analysis.dashboard(filter),
-    queryFn: () => getAnalysisDashboardData(filter),
+    queryFn: async () => {
+      const result = await getAnalysisDashboardData(filter);
+      if (result.error || !result.data) {
+        throw new Error(
+          result.error ?? "Failed to load analysis dashboard data.",
+        );
+      }
+      return result.data;
+    },
     placeholderData: keepPreviousData,
   });
 
