@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -10,10 +10,12 @@ import { Ticket } from "@/generated/prisma/client";
 import { usePriorityColor } from "@/hooks/usePriorityColor";
 import { useStatusColor } from "@/hooks/useStatusColor";
 import { useCreationModeColor } from "@/hooks/useCreationModeColor";
+import { getSocket } from "@/libs/socket-client";
 import TableFooter from "./TableFooter";
 import TableTopBar from "./TableTopBar";
 import { renderCell, RenderCellHelpers } from "./renderCell";
 import {
+  helpdeskQueryKeys,
   ticketsListQueryOptions,
   toTicketsListQueryInput,
 } from "../queries/query-options";
@@ -111,6 +113,7 @@ export default function Page() {
   const getStatusColor = useStatusColor;
   const getPriorityColor = usePriorityColor;
   const getCreationModeColor = useCreationModeColor;
+  const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -238,6 +241,20 @@ export default function Page() {
       setCurrentPage(safeTotalPages);
     }
   }, [totalPages, currentPage]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    const handleTicketsChanged = () => {
+      void queryClient.invalidateQueries({
+        queryKey: helpdeskQueryKeys.tickets.all,
+      });
+    };
+
+    socket.on("tickets-changed", handleTicketsChanged);
+    return () => {
+      socket.off("tickets-changed", handleTicketsChanged);
+    };
+  }, [queryClient]);
 
   const toggleColumn = (key: string) => {
     setVisibleColumns((previous) => ({ ...previous, [key]: !previous[key] }));

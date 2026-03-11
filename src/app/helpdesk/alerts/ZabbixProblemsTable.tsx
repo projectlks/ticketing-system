@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import TableHead from "@/components/TableHead";
 import { useFetchZabbix } from "@/hooks/useFetchZabbix";
+import { getSocket } from "@/libs/socket-client";
 
 import TableFooter from "../tickets/TableFooter";
 import Body from "./Body";
 import { ColumnPicker } from "./ColumnPicker";
+import { helpdeskQueryKeys } from "../queries/query-options";
 
 type ColumnKey =
   | "eventid"
@@ -63,6 +66,7 @@ const formatUnixTimestamp = (timestamp: string) => {
 
 export default function ZabbixProblemsTable() {
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const filter = getFilterFromQuery(searchParams.get("filter"));
 
@@ -95,6 +99,20 @@ export default function ZabbixProblemsTable() {
     filter === "All Alerts"
       ? "Showing alerts synchronized from backend storage."
       : "Showing live alerts fetched from Zabbix API.";
+
+  useEffect(() => {
+    const socket = getSocket();
+    const handleAlertsChanged = () => {
+      void queryClient.invalidateQueries({
+        queryKey: helpdeskQueryKeys.alerts.all,
+      });
+    };
+
+    socket.on("alerts-changed", handleAlertsChanged);
+    return () => {
+      socket.off("alerts-changed", handleAlertsChanged);
+    };
+  }, [queryClient]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">

@@ -15,6 +15,7 @@ import {
     HELPDESK_CACHE_TTL_SECONDS,
     helpdeskRedisKeys,
 } from "../cache/redis-keys";
+import { emitTicketsChanged } from "@/libs/socket-emitter";
 // import { Priority } from "@/generated/prisma/enums";
 // ======================
 // Zod Schemas
@@ -286,6 +287,13 @@ export async function createTicket(
             HELPDESK_CACHE_PREFIXES.users,
         ]);
 
+        emitTicketsChanged({
+            action: "created",
+            ticketId: ticket.id,
+            status: ticket.status,
+            at: new Date().toISOString(),
+        });
+
         return { data: ticket };
     } catch (error) {
         return { error: toErrorMessage(error, "Failed to create ticket.") };
@@ -509,6 +517,13 @@ export async function updateTicket(
             HELPDESK_CACHE_PREFIXES.analysis,
             HELPDESK_CACHE_PREFIXES.users,
         ]);
+
+        emitTicketsChanged({
+            action: "updated",
+            ticketId: updated.id,
+            status: updated.status,
+            at: new Date().toISOString(),
+        });
 
         return { data: { updated, urlsToDelete } };
     } catch (error) {

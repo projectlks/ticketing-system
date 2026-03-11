@@ -8,6 +8,7 @@ import { Audit } from "@/generated/prisma/client";
 
 let socket: Socket | null = null;
 const SOCKET_PATH = process.env.NEXT_PUBLIC_WEB_SOCKET_PATH || "/socket.io";
+const SOCKET_TOKEN = process.env.NEXT_PUBLIC_WEB_SOCKET_TOKEN;
 
 function resolveSocketUrl() {
     const configuredUrl = process.env.NEXT_PUBLIC_WEB_SOCKET_URL?.trim();
@@ -31,6 +32,7 @@ export function getSocket(): Socket {
             path: SOCKET_PATH,
             autoConnect: false, // we will connect manually
             transports: ["websocket", "polling"],
+            auth: SOCKET_TOKEN ? { token: SOCKET_TOKEN } : undefined,
         };
 
         socket = url ? io(url, options) : io(options);

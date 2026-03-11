@@ -1,4 +1,4 @@
-import {
+﻿import {
   keepPreviousData,
   queryOptions,
   type QueryClient,
@@ -64,8 +64,8 @@ const normalizeAlertsQueryInput = (input: AlertsListQueryInput): AlertsListQuery
   pageSize: normalizeAlertsPageSize(input.pageSize),
 });
 
-// Query key ကိုတစ်နေရာတည်းမှာပေါင်းထားမှ invalidation/prefetch သုံးချိန်မှာ typo မဖြစ်ဘဲ
-// module တစ်ခုလုံး consistency ရှိနေစေပါတယ်။
+// Query key á€€á€­á€¯á€á€…á€ºá€”á€±á€›á€¬á€á€Šá€ºá€¸á€™á€¾á€¬á€•á€±á€«á€„á€ºá€¸á€‘á€¬á€¸á€™á€¾ invalidation/prefetch á€žá€¯á€¶á€¸á€á€»á€­á€”á€ºá€™á€¾á€¬ typo á€™á€–á€¼á€…á€ºá€˜á€²
+// module á€á€…á€ºá€á€¯á€œá€¯á€¶á€¸ consistency á€›á€¾á€­á€”á€±á€…á€±á€•á€«á€á€šá€ºá‹
 export const helpdeskQueryKeys = {
   overview: ["helpdesk", "overview"] as const,
   departments: ["helpdesk", "departments"] as const,
@@ -194,8 +194,10 @@ export const ticketsListQueryOptions = (input: TicketsListQueryInput) =>
   queryOptions({
     queryKey: helpdeskQueryKeys.tickets.list(input),
     queryFn: () => getAllTickets(input),
-    // Page/filter ပြောင်းချိန်မှာ old table data ကိုခဏထိန်းထားလို့ flicker လျော့ပြီး UX တည်ငြိမ်ပါတယ်။
+    // Page/filter á€•á€¼á€±á€¬á€„á€ºá€¸á€á€»á€­á€”á€ºá€™á€¾á€¬ old table data á€€á€­á€¯á€á€á€‘á€­á€”á€ºá€¸á€‘á€¬á€¸á€œá€­á€¯á€· flicker á€œá€»á€±á€¬á€·á€•á€¼á€®á€¸ UX á€á€Šá€ºá€„á€¼á€­á€™á€ºá€•á€«á€á€šá€ºá‹
     placeholderData: keepPreviousData,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
   });
 
 export const analysisDashboardQueryOptions = (
@@ -320,18 +322,18 @@ export const alertsProblemsQueryOptions = (
         pageSize: payload.pageSize ?? normalizedInput.pageSize,
       };
     },
-    // page/pageSize ပြောင်းချိန် old page data ကိုခဏထိန်းထားလို့ table jump/flicker မဖြစ်စေပါ။
+    // page/pageSize á€•á€¼á€±á€¬á€„á€ºá€¸á€á€»á€­á€”á€º old page data á€€á€­á€¯á€á€á€‘á€­á€”á€ºá€¸á€‘á€¬á€¸á€œá€­á€¯á€· table jump/flicker á€™á€–á€¼á€…á€ºá€…á€±á€•á€«á‹
     placeholderData: keepPreviousData,
-    refetchInterval: input.filter === "All Alerts" ? false : 60_000,
-    refetchIntervalInBackground: true,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
   });
 
 export async function prefetchHelpdeskRouteData(
   queryClient: QueryClient,
   pathname: string,
 ) {
-  // Navigation hover/focus prefetch အတွက် route-to-query mapping တစ်နေရာတည်းထားပြီး
-  // duplicated logic မဖြစ်အောင် maintainability မြှင့်ထားပါတယ်။
+  // Navigation hover/focus prefetch á€¡á€á€½á€€á€º route-to-query mapping á€á€…á€ºá€”á€±á€›á€¬á€á€Šá€ºá€¸á€‘á€¬á€¸á€•á€¼á€®á€¸
+  // duplicated logic á€™á€–á€¼á€…á€ºá€¡á€±á€¬á€„á€º maintainability á€™á€¼á€¾á€„á€·á€ºá€‘á€¬á€¸á€•á€«á€á€šá€ºá‹
   if (pathname === "/helpdesk") {
     await queryClient.prefetchQuery(overviewQueryOptions());
     return;
@@ -374,3 +376,4 @@ export async function prefetchHelpdeskRouteData(
     return;
   }
 }
+

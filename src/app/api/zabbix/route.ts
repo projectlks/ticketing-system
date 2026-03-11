@@ -4,6 +4,7 @@ import { prisma } from "@/libs/prisma";
 import dayjs from "@/libs/dayjs";
 import { HELPDESK_CACHE_PREFIXES } from "@/app/helpdesk/cache/redis-keys";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
+import { emitAlertsChanged, emitTicketsChanged } from "@/libs/socket-emitter";
 
 const DEFAULT_CUSTOMER_EMAIL = "support@eastwindmyanmar.com.mm";
 const APP_PORT = process.env.PORT?.trim() || "4000";
@@ -712,6 +713,12 @@ export async function POST(req: NextRequest) {
 
     // အဆင့် (1): Zabbix snapshot table ကို အရင် sync လုပ်ပြီး raw monitoring source ကိုညှိထားသည်။
     await upsertZabbixSnapshot(context);
+    emitAlertsChanged({
+      eventId: context.event.id,
+      problemId: context.problemId,
+      status: context.status,
+      at: new Date().toISOString(),
+    });
 
     // အဆင့် (2): Internal ticket table ကို problemId အခြေခံ idempotent upsert လုပ်သည်။
     const internalResult = await upsertInternalHelpdeskTicket(context);
@@ -729,6 +736,12 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
+    emitTicketsChanged({
+      eventId: context.event.id,
+      problemId: context.problemId,
+      status: context.status,
+      at: new Date().toISOString(),
+    });
 
     // အဆင့် (3): OTRS sync flow ကိုသီးခြား helper မှာချုပ်ပြီး POST ကို orchestration only ထားသည်။
     const otrsResult = await syncOtrsTicket(context, req.nextUrl.origin);
