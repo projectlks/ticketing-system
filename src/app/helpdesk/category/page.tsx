@@ -5,8 +5,10 @@ import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useSession } from "next-auth/react";
 
-import { createCategory, updateCategory } from "./action";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { createCategory, deleteCategory, updateCategory } from "./action";
 import CategoryFormPanel from "./components/CategoryFormPanel";
 import CategoryListPanel from "./components/CategoryListPanel";
 import CategoryToolbar from "./components/CategoryToolbar";
@@ -28,11 +30,15 @@ const initialFormValues: CategoryFormValues = {
 };
 
 export default function CategoryPage() {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<CategoryFormValues>(initialFormValues);
   const [errors, setErrors] = useState<CategoryFormErrors>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+  const [confirmCategory, setConfirmCategory] = useState<CategoryEntity | null>(
     null,
   );
   const [localErrorMessage, setLocalErrorMessage] = useState<string | null>(
@@ -82,6 +88,10 @@ export default function CategoryPage() {
       categoryId: string;
       payload: CategoryFormValues;
     }) => updateCategory(categoryId, payload),
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (categoryId: string) => deleteCategory(categoryId),
   });
 
   const filteredCategories = useMemo(() => {
@@ -194,10 +204,65 @@ export default function CategoryPage() {
 
   const submitPending =
     createCategoryMutation.isPending || updateCategoryMutation.isPending;
+  const canDelete = session?.user.role === "SUPER_ADMIN";
+
+  const handleDeleteRequest = () => {
+    if (!selectedCategoryId) return;
+    const category = categories.find((item) => item.id === selectedCategoryId);
+    if (!category) return;
+    setConfirmCategory(category);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmCategory) return;
+
+    try {
+      setLocalErrorMessage(null);
+      const result = await deleteCategoryMutation.mutateAsync(confirmCategory.id);
+      if (result?.error) {
+        setLocalErrorMessage(result.error);
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Category archived.");
+      setSelectedCategoryId(null);
+      setForm(initialFormValues);
+      setConfirmCategory(null);
+
+      await queryClient.invalidateQueries({
+        queryKey: helpdeskQueryKeys.categories,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: helpdeskQueryKeys.departmentNames,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete category.";
+      setLocalErrorMessage(message);
+      toast.error(message);
+    }
+  };
 
   return (
     <section className="min-h-screen bg-[#F8FAFC] text-zinc-900">
       <ToastContainer position="top-right" autoClose={2500} />
+      <ConfirmDialog
+        open={Boolean(confirmCategory)}
+        title={
+          confirmCategory
+            ? `Delete category "${confirmCategory.name}"?`
+            : "Delete category?"
+        }
+        contextLabel="Danger Action"
+        description="This action cannot be undone."
+        confirmLabel="Delete Category"
+        cancelLabel="Cancel"
+        tone="danger"
+        isLoading={deleteCategoryMutation.isPending}
+        onCancel={() => setConfirmCategory(null)}
+        onConfirm={handleConfirmDelete}
+      />
 
       <CategoryToolbar
         searchQuery={searchQuery}
@@ -243,6 +308,9 @@ export default function CategoryPage() {
               onFieldChange={handleFieldChange}
               onReset={handleStartCreate}
               onSubmit={handleSubmit}
+              onDelete={handleDeleteRequest}
+              canDelete={canDelete}
+              isDeleting={deleteCategoryMutation.isPending}
             />
 
             <article className="rounded-2xl border border-zinc-200 bg-white p-4">

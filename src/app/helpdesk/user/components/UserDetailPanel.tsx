@@ -70,6 +70,7 @@ export default function UserDetailPanel({
   const assignedTotal = sumStatus(user.assigned);
   const openedTotal = sumStatus(user.created);
   const maxSectionLoad = Math.max(assignedTotal, openedTotal, 1);
+  const disabled = user.isArchived;
 
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
@@ -82,6 +83,11 @@ export default function UserDetailPanel({
             </h2>
             <p className="truncate text-xs text-zinc-500">{user.email}</p>
           </div>
+          {disabled && (
+            <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+              Disabled
+            </span>
+          )}
         </div>
 
         <button

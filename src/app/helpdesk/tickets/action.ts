@@ -16,6 +16,7 @@ import {
     helpdeskRedisKeys,
 } from "../cache/redis-keys";
 import { emitTicketsChanged } from "@/libs/socket-emitter";
+import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
 // import { Priority } from "@/generated/prisma/enums";
 // ======================
 // Zod Schemas
@@ -196,7 +197,7 @@ export async function createTicket(
 
     if (parsed.data.categoryId) {
         const categoryExists = await prisma.category.findUnique({
-            where: { id: parsed.data.categoryId },
+            where: { id: parsed.data.categoryId, isArchived: false },
         });
         if (!categoryExists) {
             return { error: "Selected category does not exist" };
@@ -205,7 +206,7 @@ export async function createTicket(
 
     if (parsed.data.departmentId) {
         const departmentExists = await prisma.department.findUnique({
-            where: { id: parsed.data.departmentId },
+            where: { id: parsed.data.departmentId, isArchived: false },
         });
         if (!departmentExists) {
             return { error: "Selected department does not exist" };
@@ -324,6 +325,24 @@ export async function updateTicket(
         return {
             error: parsed.error.issues[0]?.message ?? "Invalid ticket data.",
         };
+    }
+
+    if (parsed.data.categoryId) {
+        const categoryExists = await prisma.category.findUnique({
+            where: { id: parsed.data.categoryId, isArchived: false },
+        });
+        if (!categoryExists) {
+            return { error: "Selected category does not exist" };
+        }
+    }
+
+    if (parsed.data.departmentId) {
+        const departmentExists = await prisma.department.findUnique({
+            where: { id: parsed.data.departmentId, isArchived: false },
+        });
+        if (!departmentExists) {
+            return { error: "Selected department does not exist" };
+        }
     }
 
     const normalizedAssignedToId = normalizeOptionalRelationId(parsed.data.assignedToId);
@@ -862,6 +881,70 @@ export async function getTicketAuditLogs(ticketId: string) {
                 },
             }),
     );
+}
+
+export async function deleteTickets(
+    ticketIds: string[],
+): Promise<TicketActionResult<{ ids: string[] }>> {
+    if (!ticketIds.length) return { error: "No ticket ids provided." };
+
+    const adminResult = await requireSuperAdminAndEmail();
+    if ("error" in adminResult) {
+        return { error: adminResult.error };
+    }
+
+    const tickets = await prisma.ticket.findMany({
+        where: { id: { in: ticketIds } },
+        select: { id: true, isArchived: true },
+    });
+
+    if (!tickets.length) return { error: "No matching tickets found." };
+
+    const idsToArchive = tickets.filter((ticket) => !ticket.isArchived).map((ticket) => ticket.id);
+    if (!idsToArchive.length) {
+        return { data: { ids: ticketIds } };
+    }
+
+    try {
+        await prisma.ticket.updateMany({
+            where: { id: { in: idsToArchive } },
+            data: { isArchived: true },
+        });
+
+        const auditEntries = idsToArchive.map((id) => ({
+            entity: "Ticket",
+            entityId: id,
+            userId: adminResult.data.id,
+            action: "UPDATE" as const,
+            changes: [
+                {
+                    field: "isArchived",
+                    oldValue: "false",
+                    newValue: "true",
+                },
+            ],
+        }));
+
+        await prisma.audit.createMany({ data: auditEntries });
+
+        await invalidateCacheByPrefixes([
+            HELPDESK_CACHE_PREFIXES.tickets,
+            HELPDESK_CACHE_PREFIXES.overview,
+            HELPDESK_CACHE_PREFIXES.departments,
+            HELPDESK_CACHE_PREFIXES.analysis,
+            HELPDESK_CACHE_PREFIXES.users,
+        ]);
+
+        emitTicketsChanged({
+            action: "deleted",
+            ids: idsToArchive,
+            at: new Date().toISOString(),
+        });
+
+        return { data: { ids: idsToArchive } };
+    } catch (error) {
+        return { error: toErrorMessage(error, "Failed to delete tickets.") };
+    }
 }
 
 

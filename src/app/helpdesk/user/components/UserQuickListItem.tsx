@@ -18,6 +18,7 @@ export default function UserQuickListItem({
 }: UserQuickListItemProps) {
   const assignedTotal = sumStatus(user.assigned);
   const openedTotal = sumStatus(user.created);
+  const disabled = user.isArchived;
 
   return (
     <button
@@ -25,12 +26,19 @@ export default function UserQuickListItem({
       onClick={onSelect}
       className={`w-full px-3 py-3 text-left transition-colors ${
         isActive ? "bg-zinc-100" : "hover:bg-zinc-50"
-      }`}
+      } ${disabled ? "opacity-70" : ""}`}
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <Avatar name={user.name} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-zinc-900">{user.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-medium text-zinc-900">{user.name}</p>
+            {disabled && (
+              <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                Disabled
+              </span>
+            )}
+          </div>
           <p className="truncate text-xs text-zinc-500">{user.email}</p>
         </div>
       </div>

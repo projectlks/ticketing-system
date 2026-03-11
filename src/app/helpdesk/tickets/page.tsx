@@ -3,6 +3,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useSession } from "next-auth/react";
 
 import TableBody from "@/components/TableBody";
 import TableHead from "@/components/TableHead";
@@ -11,6 +14,7 @@ import { usePriorityColor } from "@/hooks/usePriorityColor";
 import { useStatusColor } from "@/hooks/useStatusColor";
 import { useCreationModeColor } from "@/hooks/useCreationModeColor";
 import { getSocket } from "@/libs/socket-client";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import TableFooter from "./TableFooter";
 import TableTopBar from "./TableTopBar";
 import { renderCell, RenderCellHelpers } from "./renderCell";
@@ -19,6 +23,7 @@ import {
   ticketsListQueryOptions,
   toTicketsListQueryInput,
 } from "../queries/query-options";
+import { deleteTickets } from "./action";
 
 export type TicketWithRelations = Ticket & {
   requester?: { name: string; email: string } | null;
@@ -109,11 +114,15 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const getStatusColor = useStatusColor;
   const getPriorityColor = usePriorityColor;
   const getCreationModeColor = useCreationModeColor;
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const canDelete = session?.user.role === "SUPER_ADMIN";
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -243,6 +252,12 @@ export default function Page() {
   }, [totalPages, currentPage]);
 
   useEffect(() => {
+    if (showDeleteConfirm && selectedTickets.length === 0) {
+      setShowDeleteConfirm(false);
+    }
+  }, [showDeleteConfirm, selectedTickets.length]);
+
+  useEffect(() => {
     const socket = getSocket();
     const handleTicketsChanged = () => {
       void queryClient.invalidateQueries({
@@ -340,6 +355,37 @@ export default function Page() {
     getCreationModeColor,
   };
 
+  const handleDeleteRequest = () => {
+    if (!canDelete || selectedTickets.length === 0) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!canDelete || selectedTickets.length === 0) return;
+
+    try {
+      setIsDeleting(true);
+      const result = await deleteTickets(selectedTickets);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Tickets archived.");
+      setSelectedTickets([]);
+      setShowDeleteConfirm(false);
+      await queryClient.invalidateQueries({
+        queryKey: helpdeskQueryKeys.tickets.all,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete tickets.";
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const visibleColumnKeys = useMemo(
     () => columns.filter((column) => visibleColumns[column.key]),
     [visibleColumns],
@@ -347,6 +393,19 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">
+      <ToastContainer position="top-right" autoClose={2500} />
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title={`Delete ${selectedTickets.length} ticket(s)?`}
+        contextLabel="Danger Action"
+        description="This will archive the selected tickets."
+        confirmLabel={`Archive ${selectedTickets.length} Ticket(s)`}
+        cancelLabel="Cancel"
+        tone="danger"
+        isLoading={isDeleting}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+      />
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         <TableTopBar
           title="Tickets"
@@ -390,6 +449,11 @@ export default function Page() {
           toggleColumn={toggleColumn}
           onDownload={handleExcelDownload}
           downloadDisabled={selectedTickets.length === 0}
+          onDelete={canDelete ? handleDeleteRequest : undefined}
+          deleteDisabled={!canDelete || selectedTickets.length === 0 || isDeleting}
+          deleteLabel={
+            isDeleting ? "Deleting..." : `Delete (${selectedTickets.length})`
+          }
         />
 
         {departmentPresetContext && (

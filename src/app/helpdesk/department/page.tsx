@@ -1,13 +1,18 @@
 "use client";
 
 import { MagnifyingGlassIcon, PlusIcon } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import DepartmentCard from "@/components/DepartmentCard";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
-import { departmentsQueryOptions } from "../queries/query-options";
+import { deleteDepartment } from "./action";
+import { departmentsQueryOptions, helpdeskQueryKeys } from "../queries/query-options";
 
 export type DepartmentTicketStats = {
   id: string;
@@ -24,8 +29,14 @@ export type DepartmentTicketStats = {
 };
 
 export default function DepartmentPage() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
+  const [confirmDepartment, setConfirmDepartment] =
+    useState<DepartmentTicketStats | null>(null);
   const departmentsQuery = useQuery(departmentsQueryOptions());
+  const deleteMutation = useMutation({ mutationFn: deleteDepartment });
+  const canDelete = session?.user.role === "SUPER_ADMIN";
 
   const departments = useMemo(
     () => ((departmentsQuery.data ?? []) as DepartmentTicketStats[]),
@@ -55,8 +66,49 @@ export default function DepartmentPage() {
     ? new Date(departmentsQuery.dataUpdatedAt).toLocaleString()
     : "";
 
+  const handleDeleteRequest = (department: DepartmentTicketStats) => {
+    if (!canDelete) return;
+    setConfirmDepartment(department);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDepartment) return;
+
+    const result = await deleteMutation.mutateAsync(confirmDepartment.id);
+    if (result?.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    await queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.departments });
+    await queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.departmentNames });
+    await queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.overview });
+    await queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.analysis.all });
+    await queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.tickets.all });
+
+    toast.success("Department archived.");
+    setConfirmDepartment(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">
+      <ToastContainer position="top-right" autoClose={2500} />
+      <ConfirmDialog
+        open={Boolean(confirmDepartment)}
+        title={
+          confirmDepartment
+            ? `Delete department "${confirmDepartment.name}"?`
+            : "Delete department?"
+        }
+        contextLabel="Danger Action"
+        description="This action cannot be undone."
+        confirmLabel="Delete Department"
+        cancelLabel="Cancel"
+        tone="danger"
+        isLoading={deleteMutation.isPending}
+        onCancel={() => setConfirmDepartment(null)}
+        onConfirm={handleConfirmDelete}
+      />
       <div className="mx-auto w-full max-w-[1480px]">
         <header className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -137,7 +189,12 @@ export default function DepartmentPage() {
         {!isLoading && !errorMessage && filteredDepartments.length > 0 && (
           <section className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredDepartments.map((department) => (
-              <DepartmentCard dept={department} key={department.id} />
+              <DepartmentCard
+                dept={department}
+                key={department.id}
+                onDelete={canDelete ? handleDeleteRequest : undefined}
+                isDeleting={deleteMutation.isPending}
+              />
             ))}
           </section>
         )}

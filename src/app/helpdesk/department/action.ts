@@ -6,6 +6,7 @@ import {
   getOrSetCache,
   invalidateCacheByPrefixes,
 } from "@/libs/redis-cache";
+import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
 import z from "zod";
 
 import {
@@ -68,7 +69,11 @@ export async function createDepartment(
 
   const existing = await prisma.department.findFirst({
     where: { name: { equals: normalizedName, mode: "insensitive" } },
+    select: { id: true, isArchived: true },
   });
+  if (existing?.isArchived) {
+    return { error: "Department name exists but is archived." };
+  }
   if (existing) return { error: "Department Name already exists" };
 
   const userId = await getCurrentUserId();
@@ -108,6 +113,177 @@ export async function createDepartment(
   }
 }
 
+export async function deleteDepartment(
+  departmentId: string,
+): Promise<DepartmentActionResult<{ id: string; action: "archived" }>> {
+  if (!departmentId) {
+    return { error: "Department id is required." };
+  }
+
+  const adminResult = await requireSuperAdminAndEmail();
+  if ("error" in adminResult) {
+    return { error: adminResult.error };
+  }
+
+  const department = await prisma.department.findUnique({
+    where: { id: departmentId },
+    select: { id: true, name: true, isArchived: true },
+  });
+
+  if (!department) {
+    return { error: "Department not found." };
+  }
+
+  try {
+    const usersCount = await prisma.user.count({ where: { departmentId } });
+    if (usersCount > 0) {
+      return {
+        error: "Department has users. Move users to another department first.",
+      };
+    }
+
+    const categories = await prisma.category.findMany({
+      where: { departmentId },
+      select: { id: true, name: true, isArchived: true },
+    });
+    const categoryIds = categories.map((category) => category.id);
+    const categoryNameMap = new Map(
+      categories.map((category) => [category.id, category.name]),
+    );
+
+    const ticketsToUpdate = await prisma.ticket.findMany({
+      where: {
+        OR: [
+          { departmentId },
+          ...(categoryIds.length > 0 ? [{ categoryId: { in: categoryIds } }] : []),
+        ],
+      },
+      select: { id: true, departmentId: true, categoryId: true },
+    });
+
+    if (categoryIds.length > 0) {
+      await prisma.ticket.updateMany({
+        where: { categoryId: { in: categoryIds } },
+        data: { categoryId: null },
+      });
+    }
+
+    await prisma.ticket.updateMany({
+      where: { departmentId },
+      data: { departmentId: null },
+    });
+
+    if (ticketsToUpdate.length > 0) {
+      const ticketAuditData = ticketsToUpdate
+        .map((ticket) => {
+          const changes: Array<{ field: string; oldValue: string; newValue: string }> = [];
+
+          if (ticket.departmentId === departmentId) {
+            changes.push({
+              field: "departmentId",
+              oldValue: department.name,
+              newValue: "UNASSIGNED",
+            });
+          }
+
+          if (ticket.categoryId && categoryNameMap.has(ticket.categoryId)) {
+            changes.push({
+              field: "categoryId",
+              oldValue: categoryNameMap.get(ticket.categoryId) ?? ticket.categoryId,
+              newValue: "UNASSIGNED",
+            });
+          }
+
+          if (changes.length === 0) return null;
+
+          return {
+            entity: "Ticket",
+            entityId: ticket.id,
+            userId: adminResult.data.id,
+            action: "UPDATE" as const,
+            changes,
+          };
+        })
+        .filter(
+          (
+            entry,
+          ): entry is {
+            entity: string;
+            entityId: string;
+            userId: string;
+            action: "UPDATE";
+            changes: Array<{ field: string; oldValue: string; newValue: string }>;
+          } => Boolean(entry),
+        );
+
+      if (ticketAuditData.length > 0) {
+        await prisma.audit.createMany({ data: ticketAuditData });
+      }
+    }
+
+    if (categoryIds.length > 0) {
+      await prisma.category.updateMany({
+        where: { id: { in: categoryIds }, isArchived: false },
+        data: { isArchived: true },
+      });
+
+      const categoriesToAudit = categories.filter((category) => !category.isArchived);
+      if (categoriesToAudit.length > 0) {
+        await prisma.audit.createMany({
+          data: categoriesToAudit.map((category) => ({
+            entity: "Category",
+            entityId: category.id,
+            userId: adminResult.data.id,
+            action: "UPDATE" as const,
+            changes: [
+              {
+                field: "isArchived",
+                oldValue: "false",
+                newValue: "true",
+              },
+            ],
+          })),
+        });
+      }
+    }
+
+    if (!department.isArchived) {
+      await prisma.department.update({
+        where: { id: departmentId },
+        data: { isArchived: true, updaterId: adminResult.data.id },
+      });
+
+      await prisma.audit.create({
+        data: {
+          entity: "Department",
+          entityId: departmentId,
+          userId: adminResult.data.id,
+          action: "UPDATE",
+          changes: [
+            {
+              field: "isArchived",
+              oldValue: "false",
+              newValue: "true",
+            },
+          ],
+        },
+      });
+    }
+
+    await invalidateCacheByPrefixes([
+      HELPDESK_CACHE_PREFIXES.departments,
+      HELPDESK_CACHE_PREFIXES.categories,
+      HELPDESK_CACHE_PREFIXES.tickets,
+      HELPDESK_CACHE_PREFIXES.overview,
+      HELPDESK_CACHE_PREFIXES.analysis,
+    ]);
+
+    return { data: { id: departmentId, action: "archived" } };
+  } catch (error) {
+    return { error: toErrorMessage(error, "Failed to archive department.") };
+  }
+}
+
 export async function getDepartmentNames(): Promise<{ name: string; id: string }[]> {
   const cacheKey = helpdeskRedisKeys.departmentNames();
 
@@ -116,6 +292,7 @@ export async function getDepartmentNames(): Promise<{ name: string; id: string }
     HELPDESK_CACHE_TTL_SECONDS.departmentNames,
     async () =>
       prisma.department.findMany({
+        where: { isArchived: false },
         select: {
           name: true,
           id: true,
@@ -133,6 +310,7 @@ export async function getDepartments(): Promise<DepartmentTicketStats[]> {
     HELPDESK_CACHE_TTL_SECONDS.departments,
     async () => {
       const departments = await prisma.department.findMany({
+        where: { isArchived: false },
         orderBy: [{ createdAt: "desc" }, { name: "asc" }],
         select: {
           id: true,

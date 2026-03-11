@@ -22,6 +22,9 @@ type CategoryFormPanelProps = {
   onFieldChange: (field: keyof CategoryFormValues, value: string) => void;
   onReset: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onDelete?: () => void;
+  canDelete?: boolean;
+  isDeleting?: boolean;
 };
 
 const inputClass =
@@ -39,6 +42,9 @@ export default function CategoryFormPanel({
   onFieldChange,
   onReset,
   onSubmit,
+  onDelete,
+  canDelete,
+  isDeleting,
 }: CategoryFormPanelProps) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
@@ -94,7 +100,17 @@ export default function CategoryFormPanel({
 
         {/* Action bar ကို sticky မလုပ်ဘဲ compact footer အဖြစ်ထားလို့
             form short ဖြစ်တဲ့ဒီ layout မှာ cursor movement နည်းစေပါတယ်။ */}
-        <div className="flex items-center justify-end gap-2 pt-3">
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-3">
+          {mode === "edit" && canDelete && onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={isSubmitting || isDeleting}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
           <button
             type="button"
             onClick={onReset}

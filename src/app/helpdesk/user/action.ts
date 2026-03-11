@@ -7,6 +7,7 @@ import {
   getOrSetCache,
   invalidateCacheByPrefixes,
 } from "@/libs/redis-cache";
+import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -142,7 +143,7 @@ export async function createUser(
   }
 
   const department = await prisma.department.findUnique({
-    where: { id: parsed.data.department },
+    where: { id: parsed.data.department, isArchived: false },
   });
 
   if (!department) {
@@ -279,6 +280,7 @@ export async function getUserById(id: string): Promise<
     email: string;
     departmentId: string | null;
     role: Role;
+    isArchived: boolean;
   }>
 > {
   if (!id) return { error: "User ID is required" };
@@ -295,6 +297,7 @@ export async function getUserById(id: string): Promise<
           email: true,
           departmentId: true,
           role: true,
+          isArchived: true,
         },
       }),
   );
@@ -313,6 +316,7 @@ export async function getUserToAssign(): Promise<
     HELPDESK_CACHE_TTL_SECONDS.userAssign,
     async () =>
       prisma.user.findMany({
+        where: { isArchived: false },
         select: {
           id: true,
           name: true,
@@ -337,6 +341,7 @@ export async function getUsers(): Promise<TicketStats[]> {
           id: true,
           name: true,
           email: true,
+          isArchived: true,
         },
       });
 
@@ -399,6 +404,7 @@ export async function getUsers(): Promise<TicketStats[]> {
             id: user.id,
             name: user.name,
             email: user.email,
+            isArchived: user.isArchived,
             assigned: {
               new: newAssigned,
               open: openAssigned,
@@ -416,4 +422,172 @@ export async function getUsers(): Promise<TicketStats[]> {
       );
     },
   );
+}
+
+export async function setUserDisabled(
+  userId: string,
+  disabled: boolean,
+): Promise<UserActionResult<{ id: string; isArchived: boolean }>> {
+  if (!userId) return { error: "User ID is required" };
+
+  const adminResult = await requireSuperAdminAndEmail();
+  if ("error" in adminResult) {
+    return { error: adminResult.error };
+  }
+
+  if (adminResult.data.id === userId) {
+    return { error: "You cannot disable your own account." };
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, isArchived: true },
+  });
+
+  if (!targetUser) return { error: "User not found" };
+
+  if (targetUser.isArchived === disabled) {
+    return { data: { id: userId, isArchived: targetUser.isArchived } };
+  }
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { isArchived: disabled, updaterId: adminResult.data.id },
+    });
+
+    await prisma.audit.create({
+      data: {
+        entity: "User",
+        entityId: userId,
+        userId: adminResult.data.id,
+        action: "UPDATE",
+        changes: [{ field: "isArchived", oldValue: String(!disabled), newValue: String(disabled) }],
+      },
+    });
+
+    await invalidateCacheByPrefixes([
+      HELPDESK_CACHE_PREFIXES.users,
+      HELPDESK_CACHE_PREFIXES.tickets,
+      HELPDESK_CACHE_PREFIXES.overview,
+    ]);
+
+    return { data: { id: updated.id, isArchived: updated.isArchived } };
+  } catch (error) {
+    return { error: toUserMutationErrorMessage(error) };
+  }
+}
+
+export async function deleteUser(
+  userId: string,
+): Promise<UserActionResult<{ id: string; action: "deleted" | "disabled" }>> {
+  if (!userId) return { error: "User ID is required" };
+
+  const adminResult = await requireSuperAdminAndEmail();
+  if ("error" in adminResult) {
+    return { error: adminResult.error };
+  }
+
+  if (adminResult.data.id === userId) {
+    return { error: "You cannot delete your own account." };
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, isArchived: true },
+  });
+  if (!targetUser) return { error: "User not found" };
+
+  const [
+    assignedTickets,
+    requestedTickets,
+    commentsCount,
+    auditsCount,
+    viewsCount,
+    likesCount,
+    createdUsersCount,
+    updatedUsersCount,
+    createdDepartmentsCount,
+    updatedDepartmentsCount,
+  ] = await Promise.all([
+    prisma.ticket.count({ where: { assignedToId: userId } }),
+    prisma.ticket.count({ where: { requesterId: userId } }),
+    prisma.comment.count({ where: { commenterId: userId } }),
+    prisma.audit.count({ where: { userId } }),
+    prisma.ticketView.count({ where: { userId } }),
+    prisma.commentLike.count({ where: { userId } }),
+    prisma.user.count({ where: { creatorId: userId } }),
+    prisma.user.count({ where: { updaterId: userId } }),
+    prisma.department.count({ where: { creatorId: userId } }),
+    prisma.department.count({ where: { updaterId: userId } }),
+  ]);
+
+  const hasRelations =
+    assignedTickets +
+      requestedTickets +
+      commentsCount +
+      auditsCount +
+      viewsCount +
+      likesCount +
+      createdUsersCount +
+      updatedUsersCount +
+      createdDepartmentsCount +
+      updatedDepartmentsCount >
+    0;
+
+  if (hasRelations) {
+    if (!targetUser.isArchived) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isArchived: true, updaterId: adminResult.data.id },
+      });
+
+      await prisma.audit.create({
+        data: {
+          entity: "User",
+          entityId: userId,
+          userId: adminResult.data.id,
+          action: "UPDATE",
+          changes: [
+            {
+              field: "isArchived",
+              oldValue: "false",
+              newValue: "true",
+            },
+          ],
+        },
+      });
+
+      await invalidateCacheByPrefixes([
+        HELPDESK_CACHE_PREFIXES.users,
+        HELPDESK_CACHE_PREFIXES.tickets,
+        HELPDESK_CACHE_PREFIXES.overview,
+      ]);
+    }
+
+    return { data: { id: userId, action: "disabled" } };
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: userId } });
+
+    await prisma.audit.create({
+      data: {
+        entity: "User",
+        entityId: userId,
+        userId: adminResult.data.id,
+        action: "DELETE",
+      },
+    });
+
+    await invalidateCacheByPrefixes([
+      HELPDESK_CACHE_PREFIXES.users,
+      HELPDESK_CACHE_PREFIXES.tickets,
+      HELPDESK_CACHE_PREFIXES.overview,
+    ]);
+
+    return { data: { id: userId, action: "deleted" } };
+  } catch (error) {
+    return { error: toUserMutationErrorMessage(error) };
+  }
 }

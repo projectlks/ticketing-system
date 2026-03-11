@@ -7,6 +7,8 @@ import DepartmentMetricLink from "./department-card/DepartmentMetricLink";
 
 type DepartmentCardProps = {
   dept: DepartmentTicketStats;
+  onDelete?: (department: DepartmentTicketStats) => void;
+  isDeleting?: boolean;
 };
 
 const normalizePhoneForTel = (value: string) => value.replace(/[^\d+]/g, "");
@@ -60,7 +62,7 @@ function TopStatBadge({ label, value, href }: TopStatBadgeProps) {
   );
 }
 
-export default function DepartmentCard({ dept }: DepartmentCardProps) {
+export default function DepartmentCard({ dept, onDelete, isDeleting }: DepartmentCardProps) {
   const activeTotal = dept.count.new + dept.count.open;
   const email = dept.email?.trim() || "";
   const contact = dept.contact?.trim() || "";
@@ -214,6 +216,17 @@ export default function DepartmentCard({ dept }: DepartmentCardProps) {
           className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
           View Queue
         </Link>
+
+        {onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(dept)}
+            disabled={isDeleting}
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Delete
+          </button>
+        )}
       </footer>
     </article>
   );

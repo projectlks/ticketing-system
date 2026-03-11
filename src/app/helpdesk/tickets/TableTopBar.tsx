@@ -41,6 +41,10 @@ interface TableTopBarProps {
 
   onDownload: () => void;
   downloadDisabled: boolean;
+
+  onDelete?: () => void;
+  deleteDisabled?: boolean;
+  deleteLabel?: string;
 }
 
 export default function TableTopBar({
@@ -58,6 +62,9 @@ export default function TableTopBar({
   toggleColumn,
   onDownload,
   downloadDisabled,
+  onDelete,
+  deleteDisabled = true,
+  deleteLabel = "Delete",
 }: TableTopBarProps) {
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const columnMenuRef = useRef<HTMLDivElement | null>(null);
@@ -113,6 +120,16 @@ export default function TableTopBar({
         </div>
 
         <div className="flex items-center gap-2 self-end lg:self-auto">
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={deleteDisabled}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-sm text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deleteLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={onDownload}

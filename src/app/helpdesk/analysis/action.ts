@@ -122,6 +122,7 @@ export async function getAnalysisDashboardData(
         const [departments, statusGroups, priorityGroups, recentTicketsRaw] =
           await Promise.all([
             prisma.department.findMany({
+              where: { isArchived: false },
               orderBy: { name: "asc" },
               select: { id: true, name: true },
             }),

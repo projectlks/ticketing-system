@@ -142,7 +142,16 @@ export async function getCommentWithTicketId(ticketId: string): Promise<CommentW
 
 export async function getCurrentUserId(): Promise<string | undefined> {
   const session = await getServerSession(authOptions);
-  return session?.user?.id;
+  const userId = session?.user?.id;
+  if (!userId) return undefined;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isArchived: true },
+  });
+
+  if (!user || user.isArchived) return undefined;
+  return userId;
 }
 
 

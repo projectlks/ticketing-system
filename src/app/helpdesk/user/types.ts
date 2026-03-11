@@ -8,6 +8,7 @@ export type TicketStats = {
   id: string;
   name: string;
   email: string;
+  isArchived: boolean;
   assigned: UserTicketStatus;
   created: UserTicketStatus;
 };
