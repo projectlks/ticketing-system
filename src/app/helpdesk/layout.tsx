@@ -144,6 +144,7 @@ import {
 } from "./components/layout/nav-utils";
 import TopbarDesktopNav from "./components/layout/TopbarDesktopNav";
 import TopbarMobileNav from "./components/layout/TopbarMobileNav";
+import SlaViolationNotification from "./components/layout/SlaViolationNotification";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -209,7 +210,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               activeItemKey={activeItemKey}
             />
 
-            <div className="ml-auto shrink-0">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <SlaViolationNotification />
               <UserProfile />
             </div>
           </div>

@@ -1,8 +1,11 @@
 import cron from "node-cron";
 import dotenv from "dotenv";
 import { prisma } from "./prisma.js";
+import { emitSlaViolationsChanged, emitTicketsChanged } from "./socket-emitter.js";
 
-dotenv.config();
+const envPath =
+    process.env.NODE_ENV === "production" ? ".env.production" : ".env";
+dotenv.config({ path: envPath });
 // Load .env first
 
 
@@ -61,6 +64,19 @@ cron.schedule(
                 // console.log(`SLA violated → Ticket: ${ticket.ticketId}`);
 
          
+            }
+
+            if (violatedTickets.length > 0) {
+                emitTicketsChanged({
+                    action: "sla-violated",
+                    count: violatedTickets.length,
+                    at: new Date().toISOString(),
+                });
+
+                emitSlaViolationsChanged({
+                    count: violatedTickets.length,
+                    at: new Date().toISOString(),
+                });
             }
 
             console.log(`[CRON] Checked ${violatedTickets.length} tickets.`);

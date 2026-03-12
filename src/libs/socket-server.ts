@@ -5,7 +5,9 @@ import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 
-dotenv.config();
+const envPath =
+    process.env.NODE_ENV === "production" ? ".env.production" : ".env";
+dotenv.config({ path: envPath });
 
 process.on("warning", (warning) => {
     const { code } = warning as NodeJS.ErrnoException;
@@ -71,6 +73,10 @@ io.on("connection", (socket) => {
 
     socket.on("alerts-changed", (payload) => {
         io.emit("alerts-changed", payload);
+    });
+
+    socket.on("sla-violations", (payload) => {
+        io.emit("sla-violations", payload);
     });
 
 

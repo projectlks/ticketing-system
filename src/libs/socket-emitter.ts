@@ -68,3 +68,7 @@ export function emitTicketsChanged(payload: Record<string, unknown>) {
 export function emitAlertsChanged(payload: Record<string, unknown>) {
   emitEvent("alerts-changed", payload);
 }
+
+export function emitSlaViolationsChanged(payload: Record<string, unknown>) {
+  emitEvent("sla-violations", payload);
+}

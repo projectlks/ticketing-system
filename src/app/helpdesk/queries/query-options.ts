@@ -12,6 +12,7 @@ import { getPaginatedZabbixTickets } from "../alerts/action";
 import { getCategories } from "../category/action";
 import { getDepartmentNames, getDepartments } from "../department/action";
 import { getAllTickets, getMyTickets, type GetTicketsOptions } from "../tickets/action";
+import { getSlaViolationCount } from "../tickets/action";
 import { getUsers } from "../user/action";
 import type { ZabbixProblem } from "@/types/zabbix";
 
@@ -108,6 +109,7 @@ export const helpdeskQueryKeys = {
       ] as const;
     },
   },
+  slaViolations: ["helpdesk", "sla-violations"] as const,
 };
 
 export type OverviewQueryData = {
@@ -198,6 +200,19 @@ export const ticketsListQueryOptions = (input: TicketsListQueryInput) =>
     placeholderData: keepPreviousData,
     refetchInterval: false,
     refetchIntervalInBackground: false,
+  });
+
+export const slaViolationsQueryOptions = () =>
+  queryOptions({
+    queryKey: helpdeskQueryKeys.slaViolations,
+    queryFn: async () => {
+      const result = await getSlaViolationCount();
+      if (!result.data || result.error) {
+        return { count: 0 };
+      }
+      return result.data;
+    },
+    placeholderData: keepPreviousData,
   });
 
 export const analysisDashboardQueryOptions = (

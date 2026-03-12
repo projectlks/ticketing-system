@@ -883,6 +883,27 @@ export async function getTicketAuditLogs(ticketId: string) {
     );
 }
 
+export async function getSlaViolationCount(): Promise<
+    TicketActionResult<{ count: number }>
+> {
+    const userId = await getCurrentUserId();
+    if (!userId) return { error: "Unauthorized" };
+
+    try {
+        const count = await prisma.ticket.count({
+            where: {
+                isArchived: false,
+                isSlaViolated: true,
+                status: { notIn: CLOSED_LIKE_STATUSES },
+            },
+        });
+
+        return { data: { count } };
+    } catch (error) {
+        return { error: toErrorMessage(error, "Failed to load SLA violations.") };
+    }
+}
+
 export async function deleteTickets(
     ticketIds: string[],
 ): Promise<TicketActionResult<{ ids: string[] }>> {

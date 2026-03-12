@@ -157,6 +157,7 @@ export default function Page() {
     const ownershipParam = searchParams.get("ownership");
     const priorityParam = searchParams.get("priority");
     const archivedParam = searchParams.get("archived");
+    const slaParam = searchParams.get("sla");
     const legacyFilterParam = searchParams.get("filter");
 
     const statusValues = parseEnumList(statusParam, STATUS_OPTIONS);
@@ -179,6 +180,15 @@ export default function Page() {
       (archivedParam === "Archived" || archivedParam === "UnArchived")
     ) {
       newFilters.Archived = [archivedParam];
+    }
+
+    if (slaParam) {
+      const normalized = slaParam.trim().toLowerCase();
+      if (normalized === "violated") {
+        newFilters.SLA = ["Violated"];
+      } else if (normalized === "not violated") {
+        newFilters.SLA = ["Not Violated"];
+      }
     }
 
     const newSearchFilters: Record<string, string[]> = {};

@@ -14,6 +14,7 @@ export const HELPDESK_CACHE_TTL_SECONDS = {
   myTickets: 60,
   singleTicket: 45,
   ticketAudits: 30,
+  slaViolations: 30,
   zabbixTickets: 60,
   currentAlerts: 45,
 } as const;
@@ -46,6 +47,7 @@ export const helpdeskRedisKeys = {
   myTickets: (userId: string) => `${HELPDESK_CACHE_PREFIXES.tickets}:my:${userId}`,
   singleTicket: (ticketId: string) => `${HELPDESK_CACHE_PREFIXES.tickets}:detail:${ticketId}`,
   ticketAudits: (ticketId: string) => `${HELPDESK_CACHE_PREFIXES.tickets}:audits:${ticketId}`,
+  slaViolations: () => `${HELPDESK_CACHE_PREFIXES.tickets}:sla-violations`,
   zabbixTickets: () => `${HELPDESK_CACHE_PREFIXES.alerts}:zabbix:list`,
   zabbixTicketsPage: (page: number, pageSize: number) =>
     `${HELPDESK_CACHE_PREFIXES.alerts}:zabbix:page:${page}:size:${pageSize}`,
