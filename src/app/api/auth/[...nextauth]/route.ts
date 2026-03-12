@@ -7,6 +7,12 @@ import bcrypt from "bcrypt";
 type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
 const DUMMY_PASSWORD_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8xjAnN0m4fP60Xj0R0hP5Kf6xk9bGa";
 
+const AUTH_BASE_URL =
+  process.env.NEXTAUTH_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.BASE_URL ||
+  "";
+const USE_SECURE_COOKIES = AUTH_BASE_URL.startsWith("https://");
 
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -16,6 +22,7 @@ const handler = NextAuth({
     maxAge: 60 * 60 * 24, // 1 day
     updateAge: 60 * 15,   // 15 minutes
   },
+  useSecureCookies: USE_SECURE_COOKIES,
 
   providers: [
     CredentialsProvider({

@@ -7,7 +7,9 @@ import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// Terms modal ထဲမှာ အဓိကပြမယ့် စည်းကမ်းချက်များ
+const MAIN_AGREEMENT_CHECKBOX_ID = "signin-terms-agreement";
+const DEFAULT_HELPDESK_CALLBACK_URL = "/helpdesk";
+
 const TERMS_ITEMS = [
   "This ticketing system, including all source code, UI designs, workflows, settings, and documents, is confidential and the exclusive property of East Wind Myanmar Co., Ltd.",
   "Access is permitted only for authorized internal business operations.",
@@ -16,7 +18,6 @@ const TERMS_ITEMS = [
   "Violations may result in account suspension, disciplinary action, termination, and legal action under applicable laws and company policy.",
 ];
 
-// Terms modal ထဲမှာ အထူးတားမြစ်ထားတဲ့ လုပ်ဆောင်ချက်များ
 const PROHIBITED_ACTIONS = [
   "Copying source code or logic",
   "Copying or recreating UI screens/components",
@@ -24,16 +25,6 @@ const PROHIBITED_ACTIONS = [
   "Sharing credentials or internal information",
   "Publishing company materials to third parties",
 ];
-
-const TERMS_AGREEMENT_STORAGE_KEY = "ticketing_terms_agreed";
-const MAIN_AGREEMENT_CHECKBOX_ID = "signin-terms-agreement";
-const MODAL_AGREEMENT_CHECKBOX_ID = "terms-modal-agreement";
-const DEFAULT_HELPDESK_CALLBACK_URL = "/helpdesk";
-
-function getInitialAgreementState(): boolean {
-  if (typeof window === "undefined") return false;
-  return sessionStorage.getItem(TERMS_AGREEMENT_STORAGE_KEY) === "true";
-}
 
 function resolveSafeCallbackUrl(rawCallbackUrl: string | null): string {
   if (!rawCallbackUrl) return DEFAULT_HELPDESK_CALLBACK_URL;
@@ -62,13 +53,10 @@ function resolveSafePostSignInRoute(rawUrl: string | null | undefined): string {
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Terms popup ဖွင့်/ပိတ် နှင့် popup ထဲက agreement checkbox state
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [modalAgreementChecked, setModalAgreementChecked] = useState(false);
 
   // Sign in page ပေါ်က main agreement state (submit enable/disable အတွက်သုံး)
-  const [hasAgreed, setHasAgreed] = useState(getInitialAgreementState);
+  const [hasAgreed, setHasAgreed] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -109,56 +97,25 @@ export default function SignInPage() {
       response: null,
     }));
   };
-
-  // Terms link/checkbox click လုပ်ချိန် popup ဖွင့်
-  const openTermsModal = () => {
-    setModalAgreementChecked(hasAgreed);
-    setErrors((prev) => ({
-      ...prev,
-      agreement: "",
-    }));
-    setShowTermsModal(true);
-  };
-
-  // Main checkbox ကို tick/un-tick လုပ်ချိန် behavior
-  // tick = modal ဖွင့်, untick = agreement remove
-  const handleMainAgreementToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Agreement checkbox toggle
+  const handleAgreementToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const isChecked = e.target.checked;
-
-    if (!isChecked) {
-      setHasAgreed(false);
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem(TERMS_AGREEMENT_STORAGE_KEY);
-      }
-      setErrors((prev) => ({
-        ...prev,
-        agreement: "",
-      }));
-      return;
-    }
-
-    openTermsModal();
-  };
-
-  // Popup ထဲက "I Agree and Continue" နှိပ်ချိန် main agreement ကို confirm လုပ်
-  const handleAgreeAndContinue = () => {
-    if (!modalAgreementChecked) return;
-
-    setHasAgreed(true);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(TERMS_AGREEMENT_STORAGE_KEY, "true");
-    }
-
+    setHasAgreed(isChecked);
     setErrors((prev) => ({
       ...prev,
       agreement: "",
       response: null,
     }));
+  };
 
+  const openTermsModal = () => {
+    setShowTermsModal(true);
+  };
+
+  const closeTermsModal = () => {
     setShowTermsModal(false);
   };
 
-  // Sign in submit flow + validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -315,8 +272,9 @@ export default function SignInPage() {
                       id={MAIN_AGREEMENT_CHECKBOX_ID}
                       type="checkbox"
                       checked={hasAgreed}
-                      onChange={handleMainAgreementToggle}
+                      onChange={handleAgreementToggle}
                       disabled={loading}
+                      required
                       className="mt-0.5 accent-zinc-900"
                     />
                     <div>
@@ -333,6 +291,10 @@ export default function SignInPage() {
                       >
                         Terms and Conditions
                       </button>
+                      <span className="text-zinc-700">.</span>
+                      <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+                        This is an internal system. Access is restricted to authorized staff.
+                      </p>
                     </div>
                   </div>
                   {errors.agreement && (
@@ -373,18 +335,24 @@ export default function SignInPage() {
       </main>
 
       {showTermsModal && (
-        // Terms popup overlay + background blur
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/45 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/45 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target !== event.currentTarget) return;
+            closeTermsModal();
+          }}
+        >
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="terms-modal-title"
+            onClick={(event) => event.stopPropagation()}
             className="w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.6)]"
           >
             <header className="flex items-start justify-between gap-3 border-b border-zinc-200 px-6 py-4">
               <div>
                 <p className="text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
-                  Agreement Required
+                  Agreement
                 </p>
                 <h3
                   id="terms-modal-title"
@@ -395,18 +363,16 @@ export default function SignInPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowTermsModal(false)}
+                onClick={closeTermsModal}
                 className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100"
               >
                 Close
               </button>
             </header>
 
-            {/* Terms content area (scrollable) */}
             <div className="max-h-[62vh] space-y-4 overflow-y-auto px-6 py-5">
               <p className="text-sm leading-6 text-zinc-700">
                 Please review the following legal and confidentiality terms carefully.
-                You must accept these terms before accessing the system.
               </p>
 
               <ol className="list-decimal space-y-3 pl-5 text-sm leading-6 text-zinc-700">
@@ -427,37 +393,14 @@ export default function SignInPage() {
               </div>
             </div>
 
-            {/* Modal footer: agreement checkbox + action buttons */}
             <footer className="border-t border-zinc-200 px-6 py-4">
-              <label
-                htmlFor={MODAL_AGREEMENT_CHECKBOX_ID}
-                className="flex cursor-pointer items-start gap-2 text-sm text-zinc-700"
-              >
-                <input
-                  id={MODAL_AGREEMENT_CHECKBOX_ID}
-                  type="checkbox"
-                  checked={modalAgreementChecked}
-                  onChange={(e) => setModalAgreementChecked(e.target.checked)}
-                  className="mt-0.5 accent-zinc-900"
-                />
-                <span>I have read and agree to all Terms and Conditions above.</span>
-              </label>
-
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => setShowTermsModal(false)}
+                  onClick={closeTermsModal}
                   className="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-3.5 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAgreeAndContinue}
-                  disabled={!modalAgreementChecked}
-                  className="inline-flex items-center justify-center rounded-lg bg-linear-to-r from-zinc-800 to-[#18181B] px-3.5 py-2 text-sm font-semibold text-white transition hover:from-zinc-900 hover:to-black disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  I Agree and Continue
+                  Close
                 </button>
               </div>
             </footer>
@@ -467,3 +410,11 @@ export default function SignInPage() {
     </>
   );
 }
+
+
+
+
+
+
+
+

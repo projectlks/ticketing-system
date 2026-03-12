@@ -35,8 +35,8 @@ export default function SlaViolationNotification() {
       aria-label={
         hasViolations ? `${count} new SLA violation(s)` : "SLA notifications"
       }>
-      <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600">
-        <BellIcon className="h-6 w-6" aria-hidden="true" />
+      <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-gray-500">
+        <BellIcon className="size-5" aria-hidden="true" />
         {hasViolations && (
           <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500" />
         )}

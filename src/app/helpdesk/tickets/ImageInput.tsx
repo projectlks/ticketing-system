@@ -17,6 +17,7 @@ interface ImageUploaderProps {
   setExistingImages: React.Dispatch<
     React.SetStateAction<{ id: string; url: string }[]>
   >;
+  onRemoveExistingImage?: (id: string) => void;
 }
 
 export default function ImageUploader({
@@ -24,6 +25,7 @@ export default function ImageUploader({
   setImages,
   existingImages,
   setExistingImages,
+  onRemoveExistingImage,
 }: ImageUploaderProps) {
   const [previews, setPreviews] = useState<Array<{ file: File; url: string }>>(
     [],
@@ -155,6 +157,7 @@ export default function ImageUploader({
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
+                      onRemoveExistingImage?.(image.id);
                       setExistingImages((previous) =>
                         previous.filter((item) => item.id !== image.id),
                       );

@@ -2,11 +2,15 @@
 import { TicketFormData } from "@/app/helpdesk/tickets/ticket.schema";
 import { Audit } from "@/generated/prisma/client";
 import dotenv from "dotenv";
+import fs from "fs";
 import http from "http";
 import { Server } from "socket.io";
 
+const isProduction =
+    process.env.NODE_ENV === "production" ||
+    (process.env.npm_lifecycle_event ?? "").startsWith("start");
 const envPath =
-    process.env.NODE_ENV === "production" ? ".env.production" : ".env";
+    isProduction && fs.existsSync(".env.production") ? ".env.production" : ".env";
 dotenv.config({ path: envPath });
 
 process.on("warning", (warning) => {

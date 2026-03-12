@@ -61,11 +61,19 @@ export default function ConfirmDialog({
       : "bg-zinc-900 hover:bg-zinc-800 text-white";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/45 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/45 p-4 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (isLoading) return;
+        onCancel();
+      }}
+    >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
+        onClick={(event) => event.stopPropagation()}
         className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.35)]"
       >
         <div className="relative px-6 pb-5 pt-6">

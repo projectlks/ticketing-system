@@ -66,14 +66,19 @@ import { prisma } from "./prisma";
 
 type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
 
-
-
+const AUTH_BASE_URL =
+  process.env.NEXTAUTH_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.BASE_URL ||
+  "";
+const USE_SECURE_COOKIES = AUTH_BASE_URL.startsWith("https://");
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
   },
+  useSecureCookies: USE_SECURE_COOKIES,
   providers: [
     CredentialsProvider({
       name: "Credentials",

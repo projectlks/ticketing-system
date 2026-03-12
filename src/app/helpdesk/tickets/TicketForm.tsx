@@ -168,6 +168,7 @@ export default function TicketForm(props: TicketFormProps) {
     setImages,
     existingImages,
     setExistingImages,
+    handleRemoveExistingImage,
     ticketId,
   } = useTicketForm(props);
 
@@ -272,6 +273,7 @@ export default function TicketForm(props: TicketFormProps) {
                 setImages={setImages}
                 existingImages={existingImages}
                 setExistingImages={setExistingImages}
+                onRemoveExistingImage={handleRemoveExistingImage}
               />
 
               <SubmitSection submitting={submitting} mode={props.mode} />

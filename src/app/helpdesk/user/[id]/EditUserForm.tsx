@@ -13,9 +13,11 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { deleteUser, setUserDisabled, updateUser } from "../action";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { helpdeskQueryKeys } from "../../queries/query-options";
 
 const RoleEnum = z.enum(["LEVEL_1", "LEVEL_2", "LEVEL_3", "SUPER_ADMIN"]);
 
@@ -67,6 +69,7 @@ const selectClass = `${inputClass} appearance-none pr-10`;
 export default function EditUserForm({ user, departments }: EditUserFormProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const initialForm = useMemo<FormValues>(
     () => ({
       id: user.id,
@@ -182,6 +185,26 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
     setConfirmAction("delete");
   };
 
+  const updateUserStatusInCache = (id: string, isArchived: boolean) => {
+    queryClient.setQueryData(helpdeskQueryKeys.users, (current) => {
+      const users = current as Array<{ id: string; isArchived: boolean }> | undefined;
+      if (!users) return current;
+      return users.map((user) => (user.id === id ? { ...user, isArchived } : user));
+    });
+  };
+
+  const removeUserFromCache = (id: string) => {
+    queryClient.setQueryData(helpdeskQueryKeys.users, (current) => {
+      const users = current as Array<{ id: string }> | undefined;
+      if (!users) return current;
+      return users.filter((user) => user.id !== id);
+    });
+  };
+
+  const invalidateUsersQuery = async () => {
+    await queryClient.invalidateQueries({ queryKey: helpdeskQueryKeys.users });
+  };
+
   const performToggleDisable = async (nextDisabled: boolean) => {
     try {
       setDangerAction("disable");
@@ -192,6 +215,8 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
         return;
       }
       setIsDisabled(result.data?.isArchived ?? nextDisabled);
+      updateUserStatusInCache(user.id, result.data?.isArchived ?? nextDisabled);
+      await invalidateUsersQuery();
       toast.success(nextDisabled ? "User disabled." : "User enabled.");
     } catch (error) {
       const message =
@@ -214,11 +239,15 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
       }
       if (result?.data?.action === "disabled") {
         setIsDisabled(true);
+        updateUserStatusInCache(user.id, true);
+        await invalidateUsersQuery();
         toast.success("User disabled.");
         return;
       }
 
       toast.success("User deleted.");
+      removeUserFromCache(user.id);
+      await invalidateUsersQuery();
       router.push("/helpdesk/user");
     } catch (error) {
       const message =

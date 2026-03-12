@@ -229,6 +229,7 @@ export function useTicketForm({
     const [existingImages, setExistingImages] = useState<TicketImage[]>(
         ticket?.images ?? []
     );
+    const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
 
     const [errors, setErrors] = useState<FormErrors>({});
     const [submitting, setSubmitting] = useState(false);
@@ -389,6 +390,9 @@ export function useTicketForm({
                     "existingImageIds",
                     JSON.stringify(existingImages.map((i) => i.id)),
                 );
+                if (deletedImageIds.length) {
+                    fd.append("deletedImageIds", JSON.stringify(deletedImageIds));
+                }
 
                 const updateResult = await updateTicket(ticket.id, fd);
                 if (updateResult.error || !updateResult.data) {
@@ -432,6 +436,10 @@ export function useTicketForm({
         }
     };
 
+    const handleRemoveExistingImage = (id: string) => {
+        setDeletedImageIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    };
+
     return {
         ticketId: ticket?.id,
         form,
@@ -447,6 +455,8 @@ export function useTicketForm({
         setImages,
         existingImages,
         setExistingImages,
+        deletedImageIds,
+        handleRemoveExistingImage,
         handleSubmit,
     };
 }

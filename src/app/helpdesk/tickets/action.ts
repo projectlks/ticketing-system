@@ -376,6 +376,7 @@ export async function updateTicket(
     if (!currentUserId) return { error: "Ticket not found" };
 
     let existingImageIds: string[] = [];
+    const hasExistingImageIdsField = formData.has("existingImageIds");
     try {
         const parsedIds = JSON.parse(
             (formData.get("existingImageIds") as string) || "[]",
@@ -401,20 +402,45 @@ export async function updateTicket(
         return { error: "Invalid newImages payload." };
     }
 
+    let deletedImageIds: string[] | null = null;
+    if (formData.has("deletedImageIds")) {
+        const rawDeletedIds = formData.get("deletedImageIds");
+        if (typeof rawDeletedIds === "string" && rawDeletedIds.trim()) {
+            try {
+                const parsedDeleted = JSON.parse(rawDeletedIds);
+                if (!Array.isArray(parsedDeleted)) {
+                    return { error: "Invalid deletedImageIds payload." };
+                }
+                deletedImageIds = parsedDeleted as string[];
+            } catch {
+                return { error: "Invalid deletedImageIds payload." };
+            }
+        } else {
+            deletedImageIds = [];
+        }
+    }
+
     try {
         const imagesInDb = await prisma.ticketImage.findMany({
             where: { ticketId },
             select: { id: true, url: true },
         });
         const imagesInDbIds = imagesInDb.map((img) => img.id);
-        const imagesInDbUrls = imagesInDb.map((img) => img.url);
+        const imagesInDbIdSet = new Set(imagesInDbIds);
 
-        const idsToDelete = imagesInDbIds.filter(
-            (dbId) => !existingImageIds.includes(dbId),
-        );
-        const urlsToDelete = imagesInDbUrls.filter(
-            (dbUrl) => !newImageUrls.includes(dbUrl),
-        );
+        let idsToDelete: string[] = [];
+        if (deletedImageIds && deletedImageIds.length) {
+            idsToDelete = deletedImageIds.filter((id) => imagesInDbIdSet.has(id));
+        } else if (hasExistingImageIdsField) {
+            idsToDelete = imagesInDbIds.filter(
+                (dbId) => !existingImageIds.includes(dbId),
+            );
+        }
+
+        const idsToDeleteSet = new Set(idsToDelete);
+        const urlsToDelete = imagesInDb
+            .filter((img) => idsToDeleteSet.has(img.id))
+            .map((img) => img.url);
 
         if (idsToDelete.length > 0) {
             await prisma.ticketImage.deleteMany({
