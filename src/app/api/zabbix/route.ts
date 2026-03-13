@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Priority, ZabbixStatus } from "@/generated/prisma/client";
+import { Priority, Status, ZabbixStatus } from "@/generated/prisma/client";
 import { prisma } from "@/libs/prisma";
 import dayjs from "@/libs/dayjs";
 import { HELPDESK_CACHE_PREFIXES } from "@/app/helpdesk/cache/redis-keys";
@@ -144,6 +144,12 @@ function normalizeOptionalText(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function parseNumericId(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 // Zabbix datetime format (`YYYY.MM.DD HH:mm:ss`) နဲ့ ISO format နှစ်မျိုးလုံးကို လက်ခံပြီး
 // DB Date column အတွက် canonical Date object ပြောင်းပေးသည်။
 function parseWebhookDatetime(value: string | undefined): Date | null {
@@ -217,12 +223,29 @@ function resolveProblemEventId(payload: WebhookPayload): string | null {
     payload.recoveryEventId,
   ];
 
+  let recoveryId: string | null = null;
   for (const candidate of recoveryCandidates) {
     const normalized = normalizeOptionalText(candidate);
-    if (normalized) return normalized;
+    if (normalized) {
+      recoveryId = normalized;
+      break;
+    }
   }
 
-  return null;
+  if (recoveryId) {
+    const eventIdNum = parseNumericId(event.id);
+    const recoveryIdNum = parseNumericId(recoveryId);
+
+    // Heuristic: if recoveryId looks newer than event.id, treat event.id as the problem id
+    // (covers recovery operations where {EVENT.ID} points to the problem event).
+    if (eventIdNum !== null && recoveryIdNum !== null && recoveryIdNum > eventIdNum) {
+      return event.id;
+    }
+
+    return recoveryId;
+  }
+
+  return event.id;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -251,7 +274,7 @@ function buildWebhookContext(payload: WebhookPayload): WebhookContextResult {
   const normalizedHostName = normalizeRequiredText(host.name, "unknown-host");
 
   const recoveryEvent = isResolvedEvent(event);
-  const status: "0" | "1" = recoveryEvent ? "1" : "0";
+  const status: "0" | "1" = recoveryEvent ? "1" : "0"; // 0 = PROBLEM, 1 = RESOLVED
   const problemEventId = resolveProblemEventId(payload);
   if (!problemEventId) {
     return {
@@ -378,6 +401,54 @@ type InternalTicketUpsertResult = {
   error?: string;
 };
 
+type AuditChange = {
+  field: string;
+  oldValue: string;
+  newValue: string;
+};
+
+type RecoveryFallbackTicket = {
+  id: string;
+  problemId: string | null;
+};
+
+const AUTO_AUDIT_SOURCE = "Zabbix";
+
+function toAuditChange(field: string, oldValue: unknown, newValue: unknown): AuditChange | null {
+  const from = oldValue === undefined || oldValue === null ? "" : String(oldValue);
+  const to = newValue === undefined || newValue === null ? "" : String(newValue);
+  if (from === to) return null;
+  return { field, oldValue: from, newValue: to };
+}
+
+async function resolveFallbackTicketForRecovery(
+  context: NormalizedWebhookContext,
+): Promise<RecoveryFallbackTicket | null> {
+  const latestProblemEvent = await prisma.zabbixTicket.findFirst({
+    where: {
+      triggerId: context.normalizedTriggerId,
+      hostName: context.normalizedHostName,
+      status: "0",
+      clock: { lte: context.clock },
+    },
+    orderBy: { clock: "desc" },
+    select: { eventid: true },
+  });
+
+  if (!latestProblemEvent?.eventid) {
+    return null;
+  }
+
+  return prisma.ticket.findFirst({
+    where: {
+      problemId: `zabbix-${latestProblemEvent.eventid}`,
+      zabbixStatus: "PROBLEM",
+      status: { in: [Status.NEW, Status.OPEN, Status.IN_PROGRESS] },
+    },
+    select: { id: true, problemId: true },
+  });
+}
+
 async function upsertInternalHelpdeskTicket(
   context: NormalizedWebhookContext,
 ): Promise<InternalTicketUpsertResult> {
@@ -388,27 +459,81 @@ async function upsertInternalHelpdeskTicket(
 
   const existingTicket = await prisma.ticket.findUnique({
     where: { problemId: context.problemId },
-    select: { id: true },
+    select: { id: true, status: true, zabbixStatus: true, title: true, description: true },
   });
 
-  if (existingTicket) {
+  let ticketToUpdate: { id: string } | null = existingTicket;
+  let ticketSnapshot = existingTicket;
+
+  if (!ticketToUpdate && context.isRecoveryEvent) {
+    const fallbackTicket = await resolveFallbackTicketForRecovery(context);
+    if (fallbackTicket) {
+      ticketToUpdate = { id: fallbackTicket.id };
+      ticketSnapshot = null;
+      console.warn("[zabbix] Recovery event matched via fallback ticket lookup", {
+        eventId: context.event.id,
+        problemEventId: context.problemEventId,
+        triggerId: context.normalizedTriggerId,
+        hostName: context.normalizedHostName,
+        fallbackProblemId: fallbackTicket.problemId,
+      });
+    }
+  }
+
+  let updatedTicketId: string | null = null;
+  const nextStatus = zabbixStatus === "PROBLEM" ? "OPEN" : "RESOLVED";
+
+  if (ticketToUpdate) {
+    if (!ticketSnapshot) {
+      ticketSnapshot = await prisma.ticket.findUnique({
+        where: { id: ticketToUpdate.id },
+        select: { id: true, status: true, zabbixStatus: true, title: true, description: true },
+      });
+    }
+
+    const changes: AuditChange[] = [];
+    const statusChange = toAuditChange("status", ticketSnapshot?.status, nextStatus);
+    const zabbixChange = toAuditChange("zabbixStatus", ticketSnapshot?.zabbixStatus, zabbixStatus);
+    const titleChange = toAuditChange("title", ticketSnapshot?.title, title);
+    const descriptionChange = toAuditChange(
+      "description",
+      ticketSnapshot?.description,
+      description,
+    );
+
+    if (statusChange) changes.push(statusChange);
+    if (zabbixChange) changes.push(zabbixChange);
+    if (titleChange) changes.push(titleChange);
+    if (descriptionChange) changes.push(descriptionChange);
+
     await prisma.ticket.update({
-      where: { id: existingTicket.id },
+      where: { id: ticketToUpdate.id },
       data: {
         title,
         description,
         zabbixStatus,
-        status: zabbixStatus === "PROBLEM" ? "OPEN" : "RESOLVED",
+        status: nextStatus,
       },
     });
 
-    await prisma.audit.create({
-      data: {
-        entity: "Ticket",
-        entityId: existingTicket.id,
-        action: "UPDATE",
-      },
-    });
+    if (changes.length > 0) {
+      changes.push({
+        field: "source",
+        oldValue: "",
+        newValue: AUTO_AUDIT_SOURCE,
+      });
+
+      await prisma.audit.create({
+        data: {
+          entity: "Ticket",
+          entityId: ticketToUpdate.id,
+          action: "UPDATE",
+          changes,
+        },
+      });
+    }
+
+    updatedTicketId = ticketToUpdate.id;
   } else {
     if (context.isRecoveryEvent) {
       console.warn("[zabbix] Recovery event received without matching problem ticket", {
@@ -455,6 +580,12 @@ async function upsertInternalHelpdeskTicket(
         entity: "Ticket",
         entityId: createdTicket.id,
         action: "CREATE",
+        changes: [
+          { field: "source", oldValue: "", newValue: AUTO_AUDIT_SOURCE },
+          { field: "creationMode", oldValue: "", newValue: "AUTOMATIC" },
+          { field: "status", oldValue: "", newValue: "OPEN" },
+          { field: "zabbixStatus", oldValue: "", newValue: zabbixStatus },
+        ],
       },
     });
     await invalidateCacheByPrefixes([
@@ -476,7 +607,9 @@ async function upsertInternalHelpdeskTicket(
     HELPDESK_CACHE_PREFIXES.users,
   ]);
 
-  return { action: "updated", ticketId: existingTicket.id };
+  return updatedTicketId
+    ? { action: "updated", ticketId: updatedTicketId }
+    : { action: "skipped" };
 }
 /* -------------------------------------------------------------------------- */
 /*                     create-ticket API integration helpers                    */
@@ -785,7 +918,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-
-
-

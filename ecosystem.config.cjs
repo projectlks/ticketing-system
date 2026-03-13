@@ -1,4 +1,4 @@
-const cwd = "/var/www/ticketing-system";
+const cwd = "/usr/local/openresty/nginx/conf/ticketing-system";
 
 const baseApp = {
   cwd,

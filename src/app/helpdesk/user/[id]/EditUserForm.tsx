@@ -22,22 +22,86 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { helpdeskQueryKeys } from "../../queries/query-options";
 
 const RoleEnum = z.enum(["LEVEL_1", "LEVEL_2", "LEVEL_3", "SUPER_ADMIN"]);
+const PASSWORD_MIN_LENGTH = 8;
 
-const UserSchema = z.object({
-  id: z.string(),
-  name: z.string().min(5, "Name must be at least 5 characters"),
-  email: z.string().email(),
-  password: z
-    .string()
-    .optional()
-    .refine((value) => !value || value.length >= 8, {
-      message: "Password must be at least 8 characters",
-    }),
-  departmentId: z.string().min(1, "Department is required"),
-  role: RoleEnum,
-});
+const buildUserSchema = (isSelf: boolean) =>
+  z
+    .object({
+      id: z.string(),
+      name: z.string().min(5, "Name must be at least 5 characters"),
+      email: z.string().email(),
+      password: z.string().trim().optional(),
+      confirmPassword: z.string().trim().optional(),
+      currentPassword: z.string().trim().optional(),
+      departmentId: z.string().min(1, "Department is required"),
+      role: RoleEnum,
+    })
+    .superRefine((data, ctx) => {
+      const password = data.password?.trim() ?? "";
+      const confirmPassword = data.confirmPassword?.trim() ?? "";
+      const currentPassword = data.currentPassword?.trim() ?? "";
+      const wantsPasswordChange =
+        Boolean(password) || Boolean(confirmPassword) || Boolean(currentPassword);
 
-type FormValues = z.infer<typeof UserSchema>;
+      if (!wantsPasswordChange) return;
+
+      if (!password) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["password"],
+          message: "New password is required.",
+        });
+        return;
+      }
+
+      if (password.length < PASSWORD_MIN_LENGTH) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["password"],
+          message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+        });
+      }
+
+      if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["password"],
+          message: "Password must include at least one letter and one number.",
+        });
+      }
+
+      if (!confirmPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["confirmPassword"],
+          message: "Please confirm the new password.",
+        });
+      } else if (confirmPassword !== password) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["confirmPassword"],
+          message: "Passwords do not match.",
+        });
+      }
+
+      if (isSelf) {
+        if (!currentPassword) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["currentPassword"],
+            message: "Current password is required.",
+          });
+        } else if (currentPassword === password) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["password"],
+            message: "New password must be different from current password.",
+          });
+        }
+      }
+    });
+
+type FormValues = z.infer<ReturnType<typeof buildUserSchema>>;
 type FormErrors = Partial<Record<keyof FormValues, string>>;
 
 type EditUserFormProps = {
@@ -72,13 +136,19 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
   const initialForm = useMemo<FormValues>(
     () => ({
       id: user.id,
       name: user.name,
       email: user.email,
       password: "",
+      confirmPassword: "",
+      currentPassword: "",
       departmentId: user.departmentId ?? "",
       role: user.role,
     }),
@@ -97,6 +167,7 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
   const canManageSuperAdminRole = session?.user.role === "SUPER_ADMIN";
   const canManageUsers = session?.user.role === "SUPER_ADMIN";
   const isSelf = session?.user.id === user.id;
+  const validationSchema = useMemo(() => buildUserSchema(isSelf), [isSelf]);
 
   const visibleRoleOptions = useMemo(() => {
     // SUPER_ADMIN role manage UI ကို SUPER_ADMIN user ကပဲမြင်ပြီး ပြင်နိုင်အောင် ခွဲထားပါတယ်။
@@ -130,7 +201,7 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
     event.preventDefault();
     setServerErrorMessage(null);
 
-    const parsed = UserSchema.safeParse(form);
+    const parsed = validationSchema.safeParse(form);
 
     if (!parsed.success) {
       const fieldErrors: FormErrors = {};
@@ -146,10 +217,17 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
       setSubmitting(true);
       const formData = new FormData();
 
+      const shouldSendPassword = Boolean(parsed.data.password);
       (Object.entries(parsed.data) as Array<[keyof FormValues, FormValues[keyof FormValues]]>)
         .forEach(([key, value]) => {
+          const isPasswordField =
+            key === "password" ||
+            key === "confirmPassword" ||
+            key === "currentPassword";
+
           // Password ကို edit မှာမပြောင်းချင်ရင် empty string မပို့ဘဲ skip လုပ်ပေးထားပါတယ်။
-          if (key === "password" && !value) return;
+          if (isPasswordField && !shouldSendPassword) return;
+          if (isPasswordField && !value) return;
           formData.append(key, String(value));
         });
 
@@ -160,7 +238,12 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
         return;
       }
       toast.success("User updated.");
-      setForm((previous) => ({ ...previous, password: "" }));
+      setForm((previous) => ({
+        ...previous,
+        password: "",
+        confirmPassword: "",
+        currentPassword: "",
+      }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update user.";
       toast.error(message);
@@ -396,49 +479,6 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
 
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
-                New Password
-              </span>
-              <div className="relative">
-                <input
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={form.password ?? ""}
-                  onChange={handleChange}
-                  className={`${inputClass} pr-10 ${errors.password ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
-                  placeholder="Leave empty to keep current password"
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onPointerDown={() => setShowPassword(true)}
-                  onPointerUp={() => setShowPassword(false)}
-                  onPointerLeave={() => setShowPassword(false)}
-                  onPointerCancel={() => setShowPassword(false)}
-                  onKeyDown={(event) => {
-                    if (event.key === " " || event.key === "Enter") {
-                      event.preventDefault();
-                      setShowPassword(true);
-                    }
-                  }}
-                  onKeyUp={() => setShowPassword(false)}
-                  onBlur={() => setShowPassword(false)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
-                  aria-label="Hold to reveal password"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-4 w-4" />
-                  ) : (
-                    <EyeIcon className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-xs text-red-600">{errors.password}</p>
-              )}
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
                 Department
               </span>
               <div className="relative">
@@ -496,6 +536,238 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
               )}
               {errors.role && <p className="text-xs text-red-600">{errors.role}</p>}
             </label>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50/70 p-3">
+            <div className="mb-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-600">
+                Password & Security
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                {isSelf
+                  ? "Enter your current password to set a new one."
+                  : "Resetting a password will immediately replace the existing one."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {isSelf && (
+                <label className="space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+                    Current Password
+                  </span>
+                  <div className="relative">
+                    <input
+                      name="currentPassword"
+                      type={showPasswords.current ? "text" : "password"}
+                      value={form.currentPassword ?? ""}
+                      onChange={handleChange}
+                      className={`${inputClass} pr-10 ${errors.currentPassword ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+                      placeholder="Enter current password"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onPointerDown={() =>
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          current: true,
+                        }))
+                      }
+                      onPointerUp={() =>
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          current: false,
+                        }))
+                      }
+                      onPointerLeave={() =>
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          current: false,
+                        }))
+                      }
+                      onPointerCancel={() =>
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          current: false,
+                        }))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === " " || event.key === "Enter") {
+                          event.preventDefault();
+                          setShowPasswords((previous) => ({
+                            ...previous,
+                            current: true,
+                          }));
+                        }
+                      }}
+                      onKeyUp={() =>
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          current: false,
+                        }))
+                      }
+                      onBlur={() =>
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          current: false,
+                        }))
+                      }
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                      aria-label="Hold to reveal password"
+                    >
+                      {showPasswords.current ? (
+                        <EyeSlashIcon className="h-4 w-4" />
+                      ) : (
+                        <EyeIcon className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.currentPassword && (
+                    <p className="text-xs text-red-600">{errors.currentPassword}</p>
+                  )}
+                </label>
+              )}
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+                  New Password
+                </span>
+                <div className="relative">
+                  <input
+                    name="password"
+                    type={showPasswords.next ? "text" : "password"}
+                    value={form.password ?? ""}
+                    onChange={handleChange}
+                    className={`${inputClass} pr-10 ${errors.password ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+                    placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onPointerDown={() =>
+                      setShowPasswords((previous) => ({ ...previous, next: true }))
+                    }
+                    onPointerUp={() =>
+                      setShowPasswords((previous) => ({ ...previous, next: false }))
+                    }
+                    onPointerLeave={() =>
+                      setShowPasswords((previous) => ({ ...previous, next: false }))
+                    }
+                    onPointerCancel={() =>
+                      setShowPasswords((previous) => ({ ...previous, next: false }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === " " || event.key === "Enter") {
+                        event.preventDefault();
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          next: true,
+                        }));
+                      }
+                    }}
+                    onKeyUp={() =>
+                      setShowPasswords((previous) => ({ ...previous, next: false }))
+                    }
+                    onBlur={() =>
+                      setShowPasswords((previous) => ({ ...previous, next: false }))
+                    }
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                    aria-label="Hold to reveal password"
+                  >
+                    {showPasswords.next ? (
+                      <EyeSlashIcon className="h-4 w-4" />
+                    ) : (
+                      <EyeIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-xs text-red-600">{errors.password}</p>
+                )}
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+                  Confirm Password
+                </span>
+                <div className="relative">
+                  <input
+                    name="confirmPassword"
+                    type={showPasswords.confirm ? "text" : "password"}
+                    value={form.confirmPassword ?? ""}
+                    onChange={handleChange}
+                    className={`${inputClass} pr-10 ${errors.confirmPassword ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+                    placeholder="Re-enter new password"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onPointerDown={() =>
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        confirm: true,
+                      }))
+                    }
+                    onPointerUp={() =>
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        confirm: false,
+                      }))
+                    }
+                    onPointerLeave={() =>
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        confirm: false,
+                      }))
+                    }
+                    onPointerCancel={() =>
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        confirm: false,
+                      }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === " " || event.key === "Enter") {
+                        event.preventDefault();
+                        setShowPasswords((previous) => ({
+                          ...previous,
+                          confirm: true,
+                        }));
+                      }
+                    }}
+                    onKeyUp={() =>
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        confirm: false,
+                      }))
+                    }
+                    onBlur={() =>
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        confirm: false,
+                      }))
+                    }
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                    aria-label="Hold to reveal password"
+                  >
+                    {showPasswords.confirm ? (
+                      <EyeSlashIcon className="h-4 w-4" />
+                    ) : (
+                      <EyeIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="text-xs text-red-600">{errors.confirmPassword}</p>
+                )}
+              </label>
+            </div>
+
+            <p className="mt-2 text-xs text-zinc-500">
+              Password must be at least {PASSWORD_MIN_LENGTH} characters and include
+              both letters and numbers.
+            </p>
           </div>
 
           <div className="mt-4 flex flex-col gap-2 border-t border-zinc-200 pt-3 sm:flex-row sm:items-center sm:justify-between">

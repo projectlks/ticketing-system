@@ -604,13 +604,24 @@ export default function Page() {
                   </tr>
                 )}
 
-                {tickets.map((ticket, index) => (
-                  <tr
-                    key={ticket.id}
-                    className={`cursor-pointer border-b border-zinc-100 transition-colors  ${ticket.isSlaViolated ? "bg-red-50 hover:bg-red-100" : "hover:bg-zinc-50"} `}
-                    onClick={() =>
-                      router.push(`/helpdesk/tickets/${ticket.id}`)
-                    }>
+                {tickets.map((ticket, index) => {
+                  const changeType = recentChanges[ticket.id];
+                  const rowHighlightClass =
+                    changeType === "new"
+                      ? "bg-emerald-50/70 hover:bg-emerald-100/60"
+                      : changeType === "updated"
+                        ? "bg-amber-50/70 hover:bg-amber-100/60"
+                        : ticket.isSlaViolated
+                          ? "bg-red-50 hover:bg-red-100"
+                          : "hover:bg-zinc-50";
+
+                  return (
+                    <tr
+                      key={ticket.id}
+                      className={`cursor-pointer border-b border-zinc-100 transition-colors ${rowHighlightClass}`}
+                      onClick={() =>
+                        router.push(`/helpdesk/tickets/${ticket.id}`)
+                      }>
                     <td
                       className="px-3 py-3"
                       onClick={(event) => {
@@ -630,7 +641,6 @@ export default function Page() {
                     <TableBody data={String(index + 1 + ((currentPage - 1) * pageSize))} />
 
                     {visibleColumnKeys.map((column) => {
-                      const changeType = recentChanges[ticket.id];
                       const cellContent = renderCell(
                         ticket,
                         column.key,
@@ -650,7 +660,8 @@ export default function Page() {
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

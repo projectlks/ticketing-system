@@ -94,7 +94,7 @@ model ZabbixTicket {
   // emailSent Boolean @default(false)
 
   // ✅ OTRS Ticket ID column added
-  otrsTicketId String? @unique
+  otrsTicketId String?
 
   createdAt DateTime @default(now())
 

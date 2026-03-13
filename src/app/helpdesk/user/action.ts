@@ -198,6 +198,8 @@ const UpdateUserSchema = z.object({
   name: z.string().min(5),
   email: z.string().email(),
   password: z.string().min(8).optional(),
+  confirmPassword: z.string().optional(),
+  currentPassword: z.string().optional(),
   departmentId: z.string(),
   role: z.enum(ROLE_VALUES),
 });
@@ -219,6 +221,11 @@ export async function updateUser(
   }
   const currentUser = currentUserResult.data;
 
+  const wantsPasswordChange =
+    Boolean(parsed.data.password) ||
+    Boolean(parsed.data.confirmPassword) ||
+    Boolean(parsed.data.currentPassword);
+
   const oldUser = await prisma.user.findUnique({
     where: { id: parsed.data.id },
     include: { department: true },
@@ -232,6 +239,49 @@ export async function updateUser(
   });
   if (permissionError) {
     return { error: permissionError };
+  }
+
+  if (wantsPasswordChange) {
+    if (!parsed.data.password) {
+      return { error: "New password is required." };
+    }
+
+    const password = parsed.data.password;
+    const confirmPassword = parsed.data.confirmPassword ?? "";
+    const currentPassword = parsed.data.currentPassword ?? "";
+
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      return {
+        error: "Password must include at least one letter and one number.",
+      };
+    }
+
+    if (!confirmPassword) {
+      return { error: "Please confirm the new password." };
+    }
+
+    if (password !== confirmPassword) {
+      return { error: "Passwords do not match." };
+    }
+
+    if (currentUser.id === parsed.data.id) {
+      if (!currentPassword) {
+        return { error: "Current password is required." };
+      }
+
+      if (!oldUser.password) {
+        return { error: "Password is not set for this account." };
+      }
+
+      const isValid = await bcrypt.compare(currentPassword, oldUser.password);
+      if (!isValid) {
+        return { error: "Current password is incorrect." };
+      }
+
+      if (currentPassword === password) {
+        return { error: "New password must be different from current password." };
+      }
+    }
   }
 
   const updateData: {
