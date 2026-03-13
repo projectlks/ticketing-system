@@ -521,7 +521,7 @@ export default function Page() {
               title: "Priority",
               options: ["REQUEST", "MINOR", "MAJOR", "CRITICAL"],
             },
-            { title: "Creation Mode", options: ["MANUAL", "AUTOMATIC"] },
+            { title: "Ticket Creation Mode", options: ["MANUAL", "AUTOMATIC"] },
             { title: "SLA", options: ["Violated", "Not Violated"] },
           ]}
           selectedFilters={selectedFilters}
