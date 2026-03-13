@@ -3,6 +3,8 @@
 import {
   ArrowPathIcon,
   ArrowUpTrayIcon,
+  EyeIcon,
+  EyeSlashIcon,
   ExclamationTriangleIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
@@ -15,7 +17,7 @@ import Avatar from "@/components/Avatar";
 import { useUserData } from "@/context/UserProfileContext";
 
 import type { MyAccountProfile } from "./action";
-import { updateMyAccountProfile } from "./action";
+import { updateMyAccountPassword, updateMyAccountProfile } from "./action";
 
 const MAX_PROFILE_IMAGE_SIZE_BYTES = 1024 * 1024; // 1MB
 const ACCEPTED_PROFILE_IMAGE_MIME_TYPES = [
@@ -37,6 +39,23 @@ const ProfileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof ProfileFormSchema>;
 type ProfileFormErrors = Partial<Record<keyof ProfileFormValues, string>>;
 
+const PasswordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Please confirm your new password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+  });
+
+type PasswordFormValues = z.infer<typeof PasswordFormSchema>;
+type PasswordFormErrors = Partial<Record<keyof PasswordFormValues, string>>;
 type ProfileFormProps = {
   initialProfile: MyAccountProfile;
 };
@@ -122,6 +141,20 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
   const [errors, setErrors] = useState<ProfileFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
+
+  const [passwordForm, setPasswordForm] = useState<PasswordFormValues>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordErrors, setPasswordErrors] = useState<PasswordFormErrors>({});
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [passwordErrorMessage, setPasswordErrorMessage] = useState<string | null>(null);
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
 
   const createdAtLabel = useMemo(
     () => new Date(initialProfile.createdAt).toLocaleString(),
@@ -297,6 +330,54 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
       toast.error(message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    setPasswordErrorMessage(null);
+
+    const parsed = PasswordFormSchema.safeParse(passwordForm);
+    if (!parsed.success) {
+      const fieldErrors: PasswordFormErrors = {};
+      parsed.error.issues.forEach((issue) => {
+        const field = issue.path[0] as keyof PasswordFormValues;
+        fieldErrors[field] = issue.message;
+      });
+      setPasswordErrors(fieldErrors);
+      return;
+    }
+
+    try {
+      setPasswordSubmitting(true);
+      const formData = new FormData();
+      formData.append("currentPassword", parsed.data.currentPassword);
+      formData.append("newPassword", parsed.data.newPassword);
+      formData.append("confirmPassword", parsed.data.confirmPassword);
+
+      const result = await updateMyAccountPassword(formData);
+      if (result?.error) {
+        setPasswordErrorMessage(result.error);
+        toast.error(result.error);
+        return;
+      }
+
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordErrors({});
+      toast.success("Password updated successfully.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update password.";
+      setPasswordErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setPasswordSubmitting(false);
     }
   };
 
@@ -498,6 +579,298 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
                 {submitting ? "Saving..." : "Save Profile"}
               </button>
             </div>
+          </div>
+        </form>
+
+        <form
+          onSubmit={handlePasswordSubmit}
+          className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5"
+        >
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+              Change Password
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Use your current password and set a new one to keep your account secure.
+            </p>
+          </div>
+
+          {passwordErrorMessage && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{passwordErrorMessage}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+                Current Password
+              </span>
+              <div className="relative">
+                <input
+                  name="currentPassword"
+                  type={showPasswords.current ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={passwordForm.currentPassword}
+                  onChange={(event) => {
+                    setPasswordForm((previous) => ({
+                      ...previous,
+                      currentPassword: event.target.value,
+                    }));
+                    setPasswordErrors((previous) => ({ ...previous, currentPassword: "" }));
+                    setPasswordErrorMessage(null);
+                  }}
+                  className={`${inputClass} pr-10 ${passwordErrors.currentPassword ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+                  placeholder="Enter current password"
+                  disabled={passwordSubmitting}
+                />
+                <button
+                  type="button"
+                  onPointerDown={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      current: true,
+                    }))
+                  }
+                  onPointerUp={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      current: false,
+                    }))
+                  }
+                  onPointerLeave={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      current: false,
+                    }))
+                  }
+                  onPointerCancel={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      current: false,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === " " || event.key === "Enter") {
+                      event.preventDefault();
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        current: true,
+                      }));
+                    }
+                  }}
+                  onKeyUp={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      current: false,
+                    }))
+                  }
+                  onBlur={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      current: false,
+                    }))
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                  aria-label="Hold to reveal password"
+                  disabled={passwordSubmitting}
+                >
+                  {showPasswords.current ? (
+                    <EyeSlashIcon className="h-4 w-4" />
+                  ) : (
+                    <EyeIcon className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {passwordErrors.currentPassword && (
+                <p className="text-xs text-red-600">
+                  {passwordErrors.currentPassword}
+                </p>
+              )}
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+                New Password
+              </span>
+              <div className="relative">
+                <input
+                  name="newPassword"
+                  type={showPasswords.next ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={passwordForm.newPassword}
+                  onChange={(event) => {
+                    setPasswordForm((previous) => ({
+                      ...previous,
+                      newPassword: event.target.value,
+                    }));
+                    setPasswordErrors((previous) => ({ ...previous, newPassword: "" }));
+                    setPasswordErrorMessage(null);
+                  }}
+                  className={`${inputClass} pr-10 ${passwordErrors.newPassword ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+                  placeholder="Enter new password"
+                  disabled={passwordSubmitting}
+                />
+                <button
+                  type="button"
+                  onPointerDown={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      next: true,
+                    }))
+                  }
+                  onPointerUp={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      next: false,
+                    }))
+                  }
+                  onPointerLeave={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      next: false,
+                    }))
+                  }
+                  onPointerCancel={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      next: false,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === " " || event.key === "Enter") {
+                      event.preventDefault();
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        next: true,
+                      }));
+                    }
+                  }}
+                  onKeyUp={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      next: false,
+                    }))
+                  }
+                  onBlur={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      next: false,
+                    }))
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                  aria-label="Hold to reveal password"
+                  disabled={passwordSubmitting}
+                >
+                  {showPasswords.next ? (
+                    <EyeSlashIcon className="h-4 w-4" />
+                  ) : (
+                    <EyeIcon className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {passwordErrors.newPassword && (
+                <p className="text-xs text-red-600">{passwordErrors.newPassword}</p>
+              )}
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
+                Confirm Password
+              </span>
+              <div className="relative">
+                <input
+                  name="confirmPassword"
+                  type={showPasswords.confirm ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(event) => {
+                    setPasswordForm((previous) => ({
+                      ...previous,
+                      confirmPassword: event.target.value,
+                    }));
+                    setPasswordErrors((previous) => ({ ...previous, confirmPassword: "" }));
+                    setPasswordErrorMessage(null);
+                  }}
+                  className={`${inputClass} pr-10 ${passwordErrors.confirmPassword ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+                  placeholder="Re-enter new password"
+                  disabled={passwordSubmitting}
+                />
+                <button
+                  type="button"
+                  onPointerDown={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      confirm: true,
+                    }))
+                  }
+                  onPointerUp={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      confirm: false,
+                    }))
+                  }
+                  onPointerLeave={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      confirm: false,
+                    }))
+                  }
+                  onPointerCancel={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      confirm: false,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === " " || event.key === "Enter") {
+                      event.preventDefault();
+                      setShowPasswords((previous) => ({
+                        ...previous,
+                        confirm: true,
+                      }));
+                    }
+                  }}
+                  onKeyUp={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      confirm: false,
+                    }))
+                  }
+                  onBlur={() =>
+                    setShowPasswords((previous) => ({
+                      ...previous,
+                      confirm: false,
+                    }))
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                  aria-label="Hold to reveal password"
+                  disabled={passwordSubmitting}
+                >
+                  {showPasswords.confirm ? (
+                    <EyeSlashIcon className="h-4 w-4" />
+                  ) : (
+                    <EyeIcon className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {passwordErrors.confirmPassword && (
+                <p className="text-xs text-red-600">
+                  {passwordErrors.confirmPassword}
+                </p>
+              )}
+            </label>
+          </div>
+
+          <div className="mt-4 flex items-center justify-end">
+            <button
+              type="submit"
+              disabled={passwordSubmitting}
+              className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {passwordSubmitting ? "Updating..." : "Update Password"}
+            </button>
           </div>
         </form>
       </div>

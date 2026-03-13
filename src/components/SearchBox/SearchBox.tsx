@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   MagnifyingGlassIcon,
   ChevronDownIcon,
@@ -45,6 +45,32 @@ const SearchBox: React.FC<Props> = ({
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showForm) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setShowForm(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowForm(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showForm]);
 
   const toggleFilter = (group: string, option: string) => {
     setSelectedFilters((previous) => {
@@ -95,6 +121,7 @@ const SearchBox: React.FC<Props> = ({
 
   return (
     <div
+      ref={containerRef}
       className={`relative flex min-h-10 w-full flex-wrap items-center rounded-xl border border-zinc-200 bg-white ${className}`}
     >
       {(Object.keys(selectedFilters).length > 0 ||

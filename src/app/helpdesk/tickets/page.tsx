@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useSession } from "next-auth/react";
@@ -39,6 +39,13 @@ type DepartmentPreset =
   | "new"
   | "open"
   | "closed";
+
+type TicketChangeType = "new" | "updated";
+type TicketsChangedPayload = {
+  action?: string;
+  ticketId?: string;
+  ids?: string[];
+};
 
 const columns = [
   { key: "ticketId", label: "Ticket ID" },
@@ -100,6 +107,8 @@ const PRESET_LABELS: Record<DepartmentPreset, string> = {
   closed: "Closed",
 };
 
+const TICKET_HIGHLIGHT_MS = 12_000;
+
 export default function Page() {
   const [visibleColumns, setVisibleColumns] = useState(
     Object.fromEntries(columns.map((column) => [column.key, true])),
@@ -115,6 +124,10 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [recentChanges, setRecentChanges] = useState<
+    Record<string, TicketChangeType>
+  >({});
+  const changeTimeoutsRef = useRef<Record<string, number>>({});
 
   const getStatusColor = useStatusColor;
   const getPriorityColor = usePriorityColor;
@@ -267,9 +280,70 @@ export default function Page() {
     }
   }, [showDeleteConfirm, selectedTickets.length]);
 
+  const markTicketChange = useCallback(
+    (ticketId: string, type: TicketChangeType) => {
+      if (!ticketId) return;
+
+      setRecentChanges((previous) => ({
+        ...previous,
+        [ticketId]: type,
+      }));
+
+      const existingTimeout = changeTimeoutsRef.current[ticketId];
+      if (existingTimeout) {
+        window.clearTimeout(existingTimeout);
+      }
+
+      changeTimeoutsRef.current[ticketId] = window.setTimeout(() => {
+        setRecentChanges((previous) => {
+          if (!previous[ticketId]) return previous;
+          const next = { ...previous };
+          delete next[ticketId];
+          return next;
+        });
+
+        delete changeTimeoutsRef.current[ticketId];
+      }, TICKET_HIGHLIGHT_MS);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      Object.values(changeTimeoutsRef.current).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      changeTimeoutsRef.current = {};
+    };
+  }, []);
+
   useEffect(() => {
     const socket = getSocket();
-    const handleTicketsChanged = () => {
+    const handleTicketsChanged = (payload?: TicketsChangedPayload) => {
+      if (payload?.action === "created" && payload.ticketId) {
+        markTicketChange(payload.ticketId, "new");
+      }
+
+      if (payload?.action === "updated" && payload.ticketId) {
+        markTicketChange(payload.ticketId, "updated");
+      }
+
+      if (payload?.action === "deleted" && Array.isArray(payload.ids)) {
+        setRecentChanges((previous) => {
+          if (!payload.ids?.length) return previous;
+          const next = { ...previous };
+          for (const id of payload.ids) {
+            delete next[id];
+            const timeoutId = changeTimeoutsRef.current[id];
+            if (timeoutId) {
+              window.clearTimeout(timeoutId);
+              delete changeTimeoutsRef.current[id];
+            }
+          }
+          return next;
+        });
+      }
+
       void queryClient.invalidateQueries({
         queryKey: helpdeskQueryKeys.tickets.all,
       });
@@ -279,7 +353,7 @@ export default function Page() {
     return () => {
       socket.off("tickets-changed", handleTicketsChanged);
     };
-  }, [queryClient]);
+  }, [markTicketChange, queryClient]);
 
   const toggleColumn = (key: string) => {
     setVisibleColumns((previous) => ({ ...previous, [key]: !previous[key] }));
@@ -447,7 +521,7 @@ export default function Page() {
               title: "Priority",
               options: ["REQUEST", "MINOR", "MAJOR", "CRITICAL"],
             },
-            { title: "Archived", options: ["Archived", "UnArchived"] },
+            { title: "Creation Mode", options: ["MANUAL", "AUTOMATIC"] },
             { title: "SLA", options: ["Violated", "Not Violated"] },
           ]}
           selectedFilters={selectedFilters}
@@ -556,10 +630,12 @@ export default function Page() {
                     <TableBody data={String(index + 1 + ((currentPage - 1) * pageSize))} />
 
                     {visibleColumnKeys.map((column) => {
+                      const changeType = recentChanges[ticket.id];
                       const cellContent = renderCell(
                         ticket,
                         column.key,
                         helpers,
+                        changeType,
                       );
 
                       return React.isValidElement(cellContent) ? (

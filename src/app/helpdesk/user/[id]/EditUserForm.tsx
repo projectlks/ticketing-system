@@ -3,6 +3,8 @@
 import {
   ArrowLeftIcon,
   ChevronUpDownIcon,
+  EyeIcon,
+  EyeSlashIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import type { Role } from "@/generated/prisma/client";
@@ -70,6 +72,7 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [showPassword, setShowPassword] = useState(false);
   const initialForm = useMemo<FormValues>(
     () => ({
       id: user.id,
@@ -395,15 +398,40 @@ export default function EditUserForm({ user, departments }: EditUserFormProps) {
               <span className="text-xs font-medium uppercase tracking-[0.08em] text-zinc-500">
                 New Password
               </span>
-              <input
-                name="password"
-                type="password"
-                value={form.password ?? ""}
-                onChange={handleChange}
-                className={`${inputClass} ${errors.password ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
-                placeholder="Leave empty to keep current password"
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password ?? ""}
+                  onChange={handleChange}
+                  className={`${inputClass} pr-10 ${errors.password ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+                  placeholder="Leave empty to keep current password"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onPointerDown={() => setShowPassword(true)}
+                  onPointerUp={() => setShowPassword(false)}
+                  onPointerLeave={() => setShowPassword(false)}
+                  onPointerCancel={() => setShowPassword(false)}
+                  onKeyDown={(event) => {
+                    if (event.key === " " || event.key === "Enter") {
+                      event.preventDefault();
+                      setShowPassword(true);
+                    }
+                  }}
+                  onKeyUp={() => setShowPassword(false)}
+                  onBlur={() => setShowPassword(false)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                  aria-label="Hold to reveal password"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-4 w-4" />
+                  ) : (
+                    <EyeIcon className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-red-600">{errors.password}</p>
               )}

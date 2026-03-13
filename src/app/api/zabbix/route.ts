@@ -290,38 +290,6 @@ function buildWebhookContext(payload: WebhookPayload): WebhookContextResult {
 
 // Webhook ကနေ auto-create ဖြစ်လာတဲ့ ticket တွေကို ဘယ် user အောက်မှာပိုင်မလဲဆိုတာ
 // သတ်မှတ်ပေးသည့် policy function ဖြစ်သည်။
-async function resolveAutomationRequesterId(): Promise<string | null> {
-  // Resolution order is explicit so future maintainers can reason about
-  // who owns auto-generated tickets without reading several files.
-  const configuredEmail = process.env.AUTOMATION_REQUESTER_EMAIL?.trim().toLowerCase();
-  const candidateEmails = [configuredEmail, DEFAULT_CUSTOMER_EMAIL].filter(
-    (value): value is string => Boolean(value),
-  );
-
-  for (const email of candidateEmails) {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, isArchived: true },
-    });
-
-    if (user && !user.isArchived) return user.id;
-  }
-
-  const activeSuperAdmin = await prisma.user.findFirst({
-    where: { role: "SUPER_ADMIN", isArchived: false },
-    select: { id: true },
-  });
-  if (activeSuperAdmin) return activeSuperAdmin.id;
-
-  const firstActiveUser = await prisma.user.findFirst({
-    where: { isArchived: false },
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-  });
-
-  return firstActiveUser?.id ?? null;
-}
-
 async function generateTicketIdForWebhook(): Promise<string> {
   // Local generator keeps webhook route independent from server action modules.
   const now = new Date();
@@ -342,7 +310,16 @@ async function generateTicketIdForWebhook(): Promise<string> {
 }
 
 // Zabbix raw events ကို event_id အလိုက် idempotent upsert လုပ်ပြီး event history မပျောက်အောင်ထားသည်။
-async function upsertZabbixSnapshot(context: NormalizedWebhookContext) {
+type ZabbixUpsertAction = "created" | "updated";
+
+async function upsertZabbixSnapshot(
+  context: NormalizedWebhookContext,
+): Promise<ZabbixUpsertAction> {
+  const existing = await prisma.zabbixTicket.findUnique({
+    where: { eventid: context.event.id },
+    select: { eventid: true },
+  });
+
   await prisma.zabbixTicket.upsert({
     where: {
       eventid: context.event.id,
@@ -385,6 +362,8 @@ async function upsertZabbixSnapshot(context: NormalizedWebhookContext) {
       tags: context.tagsString,
     },
   });
+
+  return existing ? "updated" : "created";
 }
 
 function toTicketZabbixStatus(status: "0" | "1"): ZabbixStatus {
@@ -393,9 +372,15 @@ function toTicketZabbixStatus(status: "0" | "1"): ZabbixStatus {
 
 // Application internal ticket table ကို zabbix problemId နဲ့ idempotent upsert လုပ်သည်။
 // requesterId ကို optional fallback strategy နဲ့ resolve လုပ်ပြီး required relation error မဖြစ်စေသည်။
+type InternalTicketUpsertResult = {
+  action: "created" | "updated" | "skipped";
+  ticketId?: string;
+  error?: string;
+};
+
 async function upsertInternalHelpdeskTicket(
   context: NormalizedWebhookContext,
-): Promise<{ error?: string }> {
+): Promise<InternalTicketUpsertResult> {
   const zabbixStatus = toTicketZabbixStatus(context.status);
   const title = context.trigger.name ?? `Zabbix Event ${context.event.id}`;
   const description = `Host: ${context.normalizedHostName}, Trigger: ${context.trigger.name ?? "unknown"}, Item: ${context.item.name ?? "unknown"}`;
@@ -432,19 +417,18 @@ async function upsertInternalHelpdeskTicket(
         triggerId: context.normalizedTriggerId,
         hostName: context.normalizedHostName,
       });
-      return {};
+      return { action: "skipped" };
     }
 
-    const [ticketId, requesterId, sla] = await Promise.all([
+    const [ticketId, sla] = await Promise.all([
       generateTicketIdForWebhook(),
-      resolveAutomationRequesterId(),
       prisma.sLA.findUnique({
         where: { priority },
       }),
     ]);
 
     if (!sla) {
-      return { error: `No SLA found for priority: ${priority}` };
+      return { action: "skipped", error: `No SLA found for priority: ${priority}` };
     }
 
     const now = new Date();
@@ -457,7 +441,6 @@ async function upsertInternalHelpdeskTicket(
         problemId: context.problemId,
         title,
         description,
-        ...(requesterId ? { requesterId } : {}),
         zabbixStatus,
         priority,
         resolutionDue,
@@ -474,6 +457,15 @@ async function upsertInternalHelpdeskTicket(
         action: "CREATE",
       },
     });
+    await invalidateCacheByPrefixes([
+      HELPDESK_CACHE_PREFIXES.tickets,
+      HELPDESK_CACHE_PREFIXES.overview,
+      HELPDESK_CACHE_PREFIXES.departments,
+      HELPDESK_CACHE_PREFIXES.analysis,
+      HELPDESK_CACHE_PREFIXES.users,
+    ]);
+
+    return { action: "created", ticketId: createdTicket.id };
   }
 
   await invalidateCacheByPrefixes([
@@ -484,7 +476,7 @@ async function upsertInternalHelpdeskTicket(
     HELPDESK_CACHE_PREFIXES.users,
   ]);
 
-  return {};
+  return { action: "updated", ticketId: existingTicket.id };
 }
 /* -------------------------------------------------------------------------- */
 /*                     create-ticket API integration helpers                    */
@@ -712,8 +704,10 @@ export async function POST(req: NextRequest) {
     const context = contextResult.data;
 
     // အဆင့် (1): Zabbix snapshot table ကို အရင် sync လုပ်ပြီး raw monitoring source ကိုညှိထားသည်။
-    await upsertZabbixSnapshot(context);
+    const alertsAction = await upsertZabbixSnapshot(context);
+    await invalidateCacheByPrefixes([HELPDESK_CACHE_PREFIXES.alerts]);
     emitAlertsChanged({
+      action: alertsAction,
       eventId: context.event.id,
       problemId: context.problemId,
       status: context.status,
@@ -736,12 +730,16 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
-    emitTicketsChanged({
-      eventId: context.event.id,
-      problemId: context.problemId,
-      status: context.status,
-      at: new Date().toISOString(),
-    });
+    if (internalResult.action !== "skipped" && internalResult.ticketId) {
+      emitTicketsChanged({
+        action: internalResult.action,
+        ticketId: internalResult.ticketId,
+        eventId: context.event.id,
+        problemId: context.problemId,
+        status: context.status,
+        at: new Date().toISOString(),
+      });
+    }
 
     // အဆင့် (3): OTRS sync flow ကိုသီးခြား helper မှာချုပ်ပြီး POST ကို orchestration only ထားသည်။
     const otrsResult = await syncOtrsTicket(context, req.nextUrl.origin);

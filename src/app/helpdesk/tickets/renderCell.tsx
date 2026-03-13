@@ -13,12 +13,31 @@ export const renderCell = (
   ticket: TicketWithRelations,
   columnKey: string,
   helpers: RenderCellHelpers,
+  changeType?: "new" | "updated",
 ) => {
   const { getStatusColor, getPriorityColor, getCreationModeColor } = helpers;
 
   switch (columnKey) {
     case "ticketId":
-      return ticket.ticketId;
+      return (
+        <td className="max-w-[420px] px-4 py-3">
+          <div className="relative pr-16">
+            <div className="truncate text-sm text-zinc-700">
+              {ticket.ticketId}
+            </div>
+            {changeType && (
+              <span
+                className={`absolute right-0 top-1/2 -translate-y-1/2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  changeType === "new"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}>
+                {changeType === "new" ? "New" : "Updated"}
+              </span>
+            )}
+          </div>
+        </td>
+      );
 
     case "title":
       return ticket.title;

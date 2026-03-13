@@ -8,6 +8,7 @@ import { getCurrentUserId } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 import { HELPDESK_CACHE_PREFIXES } from "../cache/redis-keys";
 
@@ -34,6 +35,21 @@ const UpdateMyProfileSchema = z.object({
       message: "Invalid profile image URL",
     }),
 });
+
+const UpdateMyPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Please confirm your new password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+  });
 
 export type MyAccountProfile = {
   id: string;
@@ -210,4 +226,63 @@ export async function updateMyAccountProfile(
   revalidatePath("/helpdesk");
 
   return { data: updatedUser };
+}
+
+export async function updateMyAccountPassword(
+  formData: FormData,
+): Promise<ProfileActionResult<null>> {
+  const currentUserResult = await requireCurrentUserId();
+  if (currentUserResult.error || !currentUserResult.data) {
+    return { error: currentUserResult.error ?? "Unauthorized" };
+  }
+  const currentUserId = currentUserResult.data;
+
+  const raw = {
+    currentPassword: formData.get("currentPassword")?.toString() ?? "",
+    newPassword: formData.get("newPassword")?.toString() ?? "",
+    confirmPassword: formData.get("confirmPassword")?.toString() ?? "",
+  };
+  const parsed = UpdateMyPasswordSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid password data.",
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: currentUserId },
+    select: { password: true },
+  });
+  if (!user || !user.password) {
+    return { error: "Password is not set for this account." };
+  }
+
+  const isValid = await bcrypt.compare(parsed.data.currentPassword, user.password);
+  if (!isValid) {
+    return { error: "Current password is incorrect." };
+  }
+
+  const hashedPassword = await bcrypt.hash(parsed.data.newPassword, 10);
+
+  try {
+    await prisma.user.update({
+      where: { id: currentUserId },
+      data: {
+        password: hashedPassword,
+        updaterId: currentUserId,
+      },
+      select: { id: true },
+    });
+  } catch (error) {
+    return { error: toErrorMessage(error, "Failed to update password.") };
+  }
+
+  await invalidateCacheByPrefixes([
+    HELPDESK_CACHE_PREFIXES.users,
+    HELPDESK_CACHE_PREFIXES.overview,
+  ]);
+
+  revalidatePath("/helpdesk/profile");
+
+  return { data: null };
 }

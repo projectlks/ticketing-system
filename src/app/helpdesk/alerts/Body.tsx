@@ -26,6 +26,7 @@ interface BodyProps {
   columns: { key: ColumnKey; label: string }[];
   visibleColumns: Record<ColumnKey, boolean>;
   formatDate: (timestamp: string) => string;
+  changeMap?: Record<string, "new" | "updated">;
 }
 
 export default function Body({
@@ -33,6 +34,7 @@ export default function Body({
   columns,
   visibleColumns,
   formatDate,
+  changeMap,
 }: BodyProps) {
   if (!problems?.length) return null;
 
@@ -45,8 +47,29 @@ export default function Body({
   return (
     <>
       {problems.map((problem) => {
+        const changeType = changeMap?.[problem.eventid];
+        const rowHighlightClass =
+          changeType === "new"
+            ? "bg-emerald-50/70 hover:bg-emerald-100/60"
+            : changeType === "updated"
+              ? "bg-amber-50/70 hover:bg-amber-100/60"
+              : "hover:bg-zinc-50";
+        const changeBadgeClass =
+          changeType === "new"
+            ? "bg-emerald-100 text-emerald-700"
+            : "bg-amber-100 text-amber-700";
         const rendered: Record<ColumnKey, React.ReactNode> = {
-          eventid: problem.eventid,
+          eventid: (
+            <div className="relative pr-16">
+              <span className="block truncate">{problem.eventid}</span>
+              {changeType && (
+                <span
+                  className={`absolute right-0 top-1/2 -translate-y-1/2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${changeBadgeClass}`}>
+                  {changeType === "new" ? "New" : "Updated"}
+                </span>
+              )}
+            </div>
+          ),
           name: problem.name,
           severity: <SeverityBadge value={problem.severity} />,
           status: <StatusBadge status={problem.r_eventid} />,
@@ -68,7 +91,7 @@ export default function Body({
         return (
           <tr
             key={problem.eventid}
-            className="border-b border-zinc-100 transition-colors hover:bg-zinc-50">
+            className={`border-b border-zinc-100 transition-colors ${rowHighlightClass}`}>
             {columns.map((column) => {
               if (!visibleColumns[column.key]) return null;
 

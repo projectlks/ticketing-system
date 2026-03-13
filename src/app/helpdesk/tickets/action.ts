@@ -2,7 +2,7 @@
 
 import { getCurrentUserId } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
-import { Priority, Prisma, Status, Ticket } from "@/generated/prisma/client";
+import { CreationMode, Priority, Prisma, Status, Ticket } from "@/generated/prisma/client";
 import {
     getOrSetCache,
     hashKeyPayload,
@@ -49,6 +49,9 @@ const VALID_STATUS_SET = new Set<Status>(
 );
 const VALID_PRIORITY_SET = new Set<Priority>(
     Object.values(Priority) as Priority[],
+);
+const VALID_CREATION_MODE_SET = new Set<CreationMode>(
+    Object.values(CreationMode) as CreationMode[],
 );
 
 const ACTIVE_WORK_STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "NEW" ];
@@ -714,6 +717,14 @@ export async function getAllTickets(
                         );
                         if (priorityValues.length) {
                             where.priority = { in: priorityValues };
+                        }
+                    }
+                    if (group === "Creation Mode") {
+                        const modeValues = values.filter((item): item is CreationMode =>
+                            VALID_CREATION_MODE_SET.has(item as CreationMode),
+                        );
+                        if (modeValues.length) {
+                            where.creationMode = { in: modeValues };
                         }
                     }
                     if (group === "SLA") {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -30,6 +30,11 @@ type ColumnKey =
   | "suppression_data";
 
 type AlertFilter = "Zabbix" | "All Alerts";
+type AlertChangeType = "new" | "updated";
+type AlertsChangedPayload = {
+  action?: string;
+  eventId?: string;
+};
 
 const columns: { key: ColumnKey; label: string }[] = [
   { key: "eventid", label: "Problem ID" },
@@ -47,6 +52,8 @@ const columns: { key: ColumnKey; label: string }[] = [
   { key: "suppressed", label: "Suppressed" },
   { key: "suppression_data", label: "Suppression Data" },
 ];
+
+const ALERT_HIGHLIGHT_MS = 12_000;
 
 const defaultVisible: Record<ColumnKey, boolean> = Object.fromEntries(
   columns.map((column) => [column.key, true]),
@@ -73,6 +80,10 @@ export default function ZabbixProblemsTable() {
   const [currentPage, setCurrentPageState] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [visibleColumns, setVisibleColumns] = useState(defaultVisible);
+  const [recentChanges, setRecentChanges] = useState<
+    Record<string, AlertChangeType>
+  >({});
+  const changeTimeoutsRef = useRef<Record<string, number>>({});
 
   const {
     data: problems = [],
@@ -100,9 +111,51 @@ export default function ZabbixProblemsTable() {
       ? "Showing alerts synchronized from backend storage."
       : "Showing live alerts fetched from Zabbix API.";
 
+  const markAlertChange = useCallback((eventId: string, type: AlertChangeType) => {
+    if (!eventId) return;
+
+    setRecentChanges((previous) => ({
+      ...previous,
+      [eventId]: type,
+    }));
+
+    const existingTimeout = changeTimeoutsRef.current[eventId];
+    if (existingTimeout) {
+      window.clearTimeout(existingTimeout);
+    }
+
+    changeTimeoutsRef.current[eventId] = window.setTimeout(() => {
+      setRecentChanges((previous) => {
+        if (!previous[eventId]) return previous;
+        const next = { ...previous };
+        delete next[eventId];
+        return next;
+      });
+
+      delete changeTimeoutsRef.current[eventId];
+    }, ALERT_HIGHLIGHT_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      Object.values(changeTimeoutsRef.current).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      changeTimeoutsRef.current = {};
+    };
+  }, []);
+
   useEffect(() => {
     const socket = getSocket();
-    const handleAlertsChanged = () => {
+    const handleAlertsChanged = (payload?: AlertsChangedPayload) => {
+      if (payload?.action === "created" && payload.eventId) {
+        markAlertChange(payload.eventId, "new");
+      }
+
+      if (payload?.action === "updated" && payload.eventId) {
+        markAlertChange(payload.eventId, "updated");
+      }
+
       void queryClient.invalidateQueries({
         queryKey: helpdeskQueryKeys.alerts.all,
       });
@@ -112,7 +165,7 @@ export default function ZabbixProblemsTable() {
     return () => {
       socket.off("alerts-changed", handleAlertsChanged);
     };
-  }, [queryClient]);
+  }, [markAlertChange, queryClient]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">
@@ -216,6 +269,7 @@ export default function ZabbixProblemsTable() {
                     columns={columns}
                     visibleColumns={visibleColumns}
                     formatDate={formatUnixTimestamp}
+                    changeMap={recentChanges}
                   />
                 )}
               </tbody>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Route } from "next";
 
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { signIn } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -240,25 +241,43 @@ export default function SignInPage() {
                     <label className="block text-sm font-medium text-zinc-800">
                       Password
                     </label>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-xs font-semibold tracking-wide text-zinc-600 hover:text-blue-600"
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
                   </div>
 
-                  <input
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={data.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                    disabled={loading}
-                    className="auth-input"
-                  />
+                  <div className="relative">
+                    <input
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={data.password}
+                      onChange={handleChange}
+                      placeholder="Enter your password"
+                      disabled={loading}
+                      className="auth-input pr-10"
+                    />
+                    <button
+                      type="button"
+                      onPointerDown={() => setShowPassword(true)}
+                      onPointerUp={() => setShowPassword(false)}
+                      onPointerLeave={() => setShowPassword(false)}
+                      onPointerCancel={() => setShowPassword(false)}
+                      onKeyDown={(event) => {
+                        if (event.key === " " || event.key === "Enter") {
+                          event.preventDefault();
+                          setShowPassword(true);
+                        }
+                      }}
+                      onKeyUp={() => setShowPassword(false)}
+                      onBlur={() => setShowPassword(false)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
+                      aria-label="Hold to reveal password"
+                      disabled={loading}
+                    >
+                      {showPassword ? (
+                        <EyeSlashIcon className="h-4 w-4" />
+                      ) : (
+                        <EyeIcon className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
 
                   {errors.password && (
                     <p className="mt-1 text-xs text-red-500">{errors.password}</p>
