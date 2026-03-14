@@ -821,8 +821,17 @@ async function syncOtrsTicket(
 export async function POST(req: NextRequest) {
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+
+
+
   try {
     const payload = (await req.json()) as WebhookPayload;
+
+    console.log(payload)
+
+    console.info("[zabbix] webhook received", {
+      payload : JSON.stringify(payload),
+    });
     const contextResult = buildWebhookContext(payload);
     if (contextResult.error || !contextResult.data) {
       return NextResponse.json(
