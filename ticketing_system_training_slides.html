@@ -1,0 +1,561 @@
+﻿<!DOCTYPE html>
+<html lang="my">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticketing System Training Slides</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f7f2ea;
+            --ink: #0f172a;
+            --muted: #475569;
+            --accent: #0ea5e9;
+            --accent-2: #22c55e;
+            --card: #ffffff;
+            --ring: rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Space Grotesk", "Noto Sans Myanmar", sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at top left, #fff7ed 0%, #f7f2ea 40%, #eef2ff 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(148, 163, 184, 0.2) 1px, transparent 1px);
+            background-size: 22px 22px;
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            width: 48vmax;
+            height: 48vmax;
+            right: -18vmax;
+            bottom: -24vmax;
+            background: conic-gradient(from 200deg, rgba(14, 165, 233, 0.2), rgba(34, 197, 94, 0.2), rgba(244, 63, 94, 0.15));
+            filter: blur(40px);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .deck {
+            position: relative;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            padding: clamp(24px, 6vw, 72px);
+            opacity: 0;
+            transform: translateY(24px) scale(0.98);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+        }
+
+        .slide.is-active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .slide-inner {
+            max-width: 1100px;
+            margin: auto;
+            display: grid;
+            gap: clamp(16px, 3vw, 32px);
+        }
+
+        .title {
+            font-size: clamp(36px, 6vw, 72px);
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: clamp(16px, 2vw, 22px);
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .section-title {
+            font-size: clamp(26px, 3.5vw, 40px);
+            margin: 0;
+        }
+
+        .lead {
+            font-size: clamp(16px, 2.2vw, 22px);
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--ring);
+            box-shadow: 0 18px 30px -22px rgba(15, 23, 42, 0.35);
+        }
+
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(14, 165, 233, 0.12);
+            color: #0f172a;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .grid-2 {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid-3 {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 18px;
+        }
+
+        .list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .list li::before {
+            content: "•";
+            color: var(--accent);
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .status-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status-pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-weight: 600;
+            background: #ffffff;
+            border: 1px solid var(--ring);
+        }
+
+        .hud {
+            position: fixed;
+            inset: auto 0 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 5;
+        }
+
+        .hud-left .pill {
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .hud-center {
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .hud-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            border: 1px solid var(--ring);
+            background: #ffffff;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--ink);
+            color: #ffffff;
+            border-color: var(--ink);
+        }
+
+        .progress {
+            position: fixed;
+            inset: auto 24px 8px 24px;
+            height: 4px;
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 999px;
+            overflow: hidden;
+            z-index: 5;
+        }
+
+        .progress span {
+            display: block;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0ea5e9, #22c55e);
+            transition: width 0.3s ease;
+        }
+
+        .mermaid {
+            background: #ffffff;
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid var(--ring);
+            overflow-x: auto;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .hud {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .hud-right {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="deck">
+        <section class="slide is-active" data-title="Title">
+            <div class="slide-inner">
+                <p class="badge">Training Deck</p>
+                <h1 class="title">Ticketing System</h1>
+                <p class="subtitle">User Guide Summary & Hands-on Workflow</p>
+                <div class="badge-row">
+                    <span class="badge">Requester</span>
+                    <span class="badge">Support Agent</span>
+                    <span class="badge">LEVEL_3 / Admin</span>
+                </div>
+                <div class="card">
+                    <p class="lead">Main goal: clear requests, fast response, reliable SLA, and realtime updates.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Goals">
+            <div class="slide-inner">
+                <h2 class="section-title">Training Goals (????????????)</h2>
+                <ul class="list">
+                    <li>Roles & permissions ??? ?????????</li>
+                    <li>Ticket create/update flow ??? ?????????? ????????????</li>
+                    <li>SLA & Priority ??? ??????? ???????????????</li>
+                    <li>Zabbix auto-ticketing ??? ????????</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Overview">
+            <div class="slide-inner">
+                <h2 class="section-title">System Overview</h2>
+                <p class="lead">Modules ? ????? ???? ?????????????????</p>
+                <div class="grid-3">
+                    <div class="card">
+                        <h3>Helpdesk Ticketing</h3>
+                        <p class="lead">Ticket create, assign, status update, audit log.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Zabbix Alerts</h3>
+                        <p class="lead">Monitoring alerts ??? auto ticket ????????????</p>
+                    </div>
+                    <div class="card">
+                        <h3>Analysis & Report</h3>
+                        <p class="lead">KPI, charts, CSV export for performance review.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="slide" data-title="DFD">
+            <div class="slide-inner">
+                <h2 class="section-title">Data Flow Diagram</h2>
+                <div class="mermaid">
+                    flowchart LR
+                    classDef ext fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0f172a
+                    classDef proc fill:#dcfce7,stroke:#16a34a,stroke-width:2px
+                    classDef store fill:#fff7ed,stroke:#f97316,stroke-width:2px
+
+                    User([User]):::ext
+                    Zabbix([Zabbix]):::ext
+                    UI[[Web UI]]:::proc
+                    API[[API/Actions]]:::proc
+                    DB[(PostgreSQL)]:::store
+                    Redis[(Redis)]:::store
+
+                    User --> UI --> API --> DB
+                    API --> Redis
+                    Zabbix --> API
+                </div>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Lifecycle">
+            <div class="slide-inner">
+                <h2 class="section-title">Ticket Lifecycle (Status Flow)</h2>
+                <div class="status-row">
+                    <span class="status-pill">NEW</span>
+                    <span class="status-pill">OPEN</span>
+                    <span class="status-pill">IN_PROGRESS</span>
+                    <span class="status-pill">RESOLVED</span>
+                    <span class="status-pill">CLOSED</span>
+                    <span class="status-pill">CANCELED</span>
+                </div>
+                <p class="lead">User confirm ?????? CLOSED ?????????? Reject ?????????? RESOLVED ? OPEN ??????????????</p>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Requester">
+            <div class="slide-inner">
+                <h2 class="section-title">Requester Workflow (??????????)</h2>
+                <ul class="list">
+                    <li>Login ? Tickets ? New</li>
+                    <li>Title/Description/Department/Category/Priority ?????</li>
+                    <li>Screenshot ???? file attachment ?????????</li>
+                    <li>Status & SLA due time ??? ?????????????????</li>
+                    <li>Comment ????? follow-up ???????</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Agent">
+            <div class="slide-inner">
+                <h2 class="section-title">Agent Workflow (Support Team)</h2>
+                <ul class="list">
+                    <li>Unassigned tickets ????????? Assign</li>
+                    <li>Priority/Status/Remark update</li>
+                    <li>SLA violation ???????? Ticket ??????? ????????</li>
+                    <li>Resolve ????????? RESOLVED ? CLOSED flow ?????????</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="slide" data-title="SLA">
+            <div class="slide-inner">
+                <h2 class="section-title">SLA & Priority</h2>
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>P1 CRITICAL</h3>
+                        <p class="lead">??????????????????????? ???????? ???????????</p>
+                    </div>
+                    <div class="card">
+                        <h3>P2 MAJOR</h3>
+                        <p class="lead">????????????/???????????????????? ????? ????????</p>
+                    </div>
+                    <div class="card">
+                        <h3>P3 MINOR</h3>
+                        <p class="lead">??????? ?????????? low impact</p>
+                    </div>
+                    <div class="card">
+                        <h3>P4 REQUEST</h3>
+                        <p class="lead">Service request, planned work</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Zabbix">
+            <div class="slide-inner">
+                <h2 class="section-title">Zabbix Auto Ticketing</h2>
+                <ul class="list">
+                    <li>Zabbix alert ? API/Cron ??? fetch</li>
+                    <li>PROBLEM ??????? CRITICAL Ticket auto-create</li>
+                    <li>RESOLVED ??????? status auto-update</li>
+                    <li>Realtime socket ????? UI ??? ????????? ??</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Best Practices">
+            <div class="slide-inner">
+                <h2 class="section-title">Best Practices (?????????)</h2>
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>Do</h3>
+                        <ul class="list">
+                            <li>Title ??? ??????????????? ????????????</li>
+                            <li>Evidence (screenshot/log) ??????</li>
+                            <li>Comment ????? update ??????</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Avoid</h3>
+                        <ul class="list">
+                            <li>Priority ??? ????????? ???????????</li>
+                            <li>Status change ??? ?????????????????</li>
+                            <li>Duplicate tickets ????????????????????</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="slide" data-title="Support">
+            <div class="slide-inner">
+                <h2 class="section-title">Q&A / Support</h2>
+                <div class="card">
+                    <p class="lead">Helpdesk channel ??? ????????????????? SOP ??????? follow ???????</p>
+                </div>
+                <p class="subtitle">Thanks!</p>
+            </div>
+        </section>
+    </div>
+
+    <div class="hud">
+        <div class="hud-left">
+            <span class="pill">Ticketing System Training</span>
+        </div>
+        <div class="hud-center" id="counter">1 / 11</div>
+        <div class="hud-right">
+            <button class="btn" id="prev" aria-label="Previous slide">Prev</button>
+            <button class="btn btn-primary" id="next" aria-label="Next slide">Next</button>
+        </div>
+    </div>
+    <div class="progress"><span id="progress-bar"></span></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const counter = document.getElementById('counter');
+        const progressBar = document.getElementById('progress-bar');
+        const mermaidBlocks = Array.from(document.querySelectorAll('.mermaid'));
+        let index = 0;
+
+        const clamp = (value) => Math.max(0, Math.min(slides.length - 1, value));
+
+        mermaidBlocks.forEach((block) => {
+            block.dataset.source = block.textContent.trim();
+        });
+
+        const renderMermaid = (scope) => {
+            if (!window.mermaid || !scope) {
+                return;
+            }
+            const blocks = scope.querySelectorAll('.mermaid');
+            blocks.forEach((block) => {
+                if (block.dataset.source) {
+                    block.removeAttribute('data-processed');
+                    block.innerHTML = block.dataset.source;
+                }
+            });
+            if (blocks.length) {
+                mermaid.init(undefined, blocks);
+            }
+        };
+
+        if (window.mermaid) {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'base',
+                themeVariables: {
+                    primaryColor: '#e0f2fe',
+                    primaryTextColor: '#0f172a',
+                    primaryBorderColor: '#38bdf8',
+                    lineColor: '#94a3b8',
+                    secondaryColor: '#f8fafc',
+                    tertiaryColor: '#ffffff'
+                },
+                securityLevel: 'loose',
+                fontFamily: 'Space Grotesk'
+            });
+        }
+
+        function show(nextIndex, updateHash = true) {
+            index = clamp(nextIndex);
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('is-active', i === index);
+            });
+            counter.textContent = `${index + 1} / ${slides.length}`;
+            progressBar.style.width = `${((index + 1) / slides.length) * 100}%`;
+
+            if (updateHash) {
+                history.replaceState(null, '', `#slide-${index + 1}`);
+            }
+
+            renderMermaid(slides[index]);
+        }
+
+        document.getElementById('prev').addEventListener('click', () => show(index - 1));
+        document.getElementById('next').addEventListener('click', () => show(index + 1));
+
+        document.addEventListener('keydown', (event) => {
+            if (['ArrowRight', 'PageDown', ' '].includes(event.key)) {
+                event.preventDefault();
+                show(index + 1);
+            }
+            if (['ArrowLeft', 'PageUp'].includes(event.key)) {
+                event.preventDefault();
+                show(index - 1);
+            }
+        });
+
+        const hashMatch = location.hash.match(/slide-(\d+)/);
+        if (hashMatch) {
+            show(parseInt(hashMatch[1], 10) - 1, false);
+        } else {
+            show(0, false);
+        }
+
+        renderMermaid(slides[index]);
+    </script>
+</body>
+
+</html>
+

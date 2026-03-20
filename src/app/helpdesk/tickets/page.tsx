@@ -9,6 +9,7 @@ import { useSession } from "next-auth/react";
 
 import TableBody from "@/components/TableBody";
 import TableHead from "@/components/TableHead";
+import Loading from "@/components/Loading";
 import { Ticket } from "@/generated/prisma/client";
 import { usePriorityColor } from "@/hooks/usePriorityColor";
 import { useStatusColor } from "@/hooks/useStatusColor";
@@ -253,6 +254,7 @@ export default function Page() {
   const totalPages =
     pageSize === 0 ? 1 : Math.ceil(totalTickets / Math.max(1, pageSize));
   const isLoading = ticketsQuery.isLoading;
+  const showAllRowsLoading = pageSize === 0 && ticketsQuery.isFetching;
   const errorMessage = ticketsQuery.error
     ? ticketsQuery.error instanceof Error
       ? ticketsQuery.error.message
@@ -490,6 +492,7 @@ export default function Page() {
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
       />
+      {showAllRowsLoading && <Loading />}
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         <TableTopBar
           title="Tickets"
@@ -521,7 +524,7 @@ export default function Page() {
               title: "Priority",
               options: ["REQUEST", "MINOR", "MAJOR", "CRITICAL"],
             },
-            { title: "Ticket Creation Mode", options: ["MANUAL", "AUTOMATIC"] },
+            { title: "Creation Mode", options: ["MANUAL", "AUTOMATIC"] },
             { title: "SLA", options: ["Violated", "Not Violated"] },
           ]}
           selectedFilters={selectedFilters}

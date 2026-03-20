@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import TableHead from "@/components/TableHead";
+import Loading from "@/components/Loading";
 import { useFetchZabbix } from "@/hooks/useFetchZabbix";
 import { getSocket } from "@/libs/socket-client";
 
@@ -96,6 +97,7 @@ export default function ZabbixProblemsTable() {
   const totalPages =
     pageSize === 0 ? 1 : Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
   const displayCurrentPage = Math.min(currentPage, totalPages);
+  const showAllRowsLoading = pageSize === 0 && isFetching;
 
   const visibleColumnKeys = useMemo(
     () => columns.filter((column) => visibleColumns[column.key]),
@@ -169,6 +171,7 @@ export default function ZabbixProblemsTable() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-4 py-5 sm:px-6 sm:py-6">
+      {showAllRowsLoading && <Loading />}
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

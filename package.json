@@ -81,5 +81,11 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.11",
+    "hono": "4.12.8",
+    "lodash": "4.17.23",
+    "fast-xml-parser": "5.5.7"
   }
 }
