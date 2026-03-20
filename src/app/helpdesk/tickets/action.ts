@@ -17,6 +17,7 @@ import {
 } from "../cache/redis-keys";
 import { emitTicketsChanged } from "@/libs/socket-emitter";
 import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
+import { syncTicketOutbound } from "@/libs/ticket-outbound-sync";
 // import { Priority } from "@/generated/prisma/enums";
 // ======================
 // Zod Schemas
@@ -137,10 +138,32 @@ type TicketActionResult<T> = {
     error?: string;
 };
 
+type TicketMutationOptions = {
+    actorUserId?: string | null;
+};
+
 const toErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error) return error.message;
     if (typeof error === "string" && error.trim()) return error;
     return fallback;
+};
+
+const resolveActorUserId = async (
+    actorUserId?: string | null,
+): Promise<string | undefined> => {
+    const normalized = actorUserId?.trim();
+    if (normalized) {
+        const actor = await prisma.user.findFirst({
+            where: {
+                id: normalized,
+                isArchived: false,
+            },
+            select: { id: true },
+        });
+        return actor?.id;
+    }
+
+    return getCurrentUserId();
 };
 
 
@@ -172,6 +195,7 @@ export async function generateTicketId(): Promise<string> {
 // ======================
 export async function createTicket(
     formData: FormData,
+    options: TicketMutationOptions = {},
 ): Promise<TicketActionResult<Ticket>> {
     // Parse and trim input
     const raw = {
@@ -195,7 +219,7 @@ export async function createTicket(
         parsed.data.assignedToId,
     );
 
-    const userId = await getCurrentUserId();
+    const userId = await resolveActorUserId(options.actorUserId);
     if (!userId) return { error: "Unauthorized" };
 
     if (parsed.data.categoryId) {
@@ -298,6 +322,19 @@ export async function createTicket(
             at: new Date().toISOString(),
         });
 
+        const syncResult = await syncTicketOutbound({
+            event: "created",
+            ticketId: ticket.id,
+            ticket,
+        });
+        if (!syncResult.ok && !syncResult.skipped) {
+            console.error("[ticket-sync] outbound create sync failed", {
+                ticketId: ticket.id,
+                status: syncResult.status,
+                error: syncResult.error,
+            });
+        }
+
         return { data: ticket };
     } catch (error) {
         return { error: toErrorMessage(error, "Failed to create ticket.") };
@@ -307,6 +344,7 @@ export async function createTicket(
 export async function updateTicket(
     ticketId: string,
     formData: FormData,
+    options: TicketMutationOptions = {},
 ): Promise<
     TicketActionResult<{ updated: UpdatedTicketWithRelations; urlsToDelete: string[] }>
 > {
@@ -375,8 +413,8 @@ export async function updateTicket(
 
     if (!oldData) return { error: "Ticket not found" };
 
-    const currentUserId = await getCurrentUserId();
-    if (!currentUserId) return { error: "Ticket not found" };
+    const currentUserId = await resolveActorUserId(options.actorUserId);
+    if (!currentUserId) return { error: "Unauthorized" };
 
     let existingImageIds: string[] = [];
     const hasExistingImageIdsField = formData.has("existingImageIds");
@@ -572,6 +610,19 @@ export async function updateTicket(
             status: updated.status,
             at: new Date().toISOString(),
         });
+
+        const syncResult = await syncTicketOutbound({
+            event: "updated",
+            ticketId: updated.id,
+            ticket: updated,
+        });
+        if (!syncResult.ok && !syncResult.skipped) {
+            console.error("[ticket-sync] outbound update sync failed", {
+                ticketId: updated.id,
+                status: syncResult.status,
+                error: syncResult.error,
+            });
+        }
 
         return { data: { updated, urlsToDelete } };
     } catch (error) {

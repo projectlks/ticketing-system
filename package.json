@@ -41,7 +41,7 @@
     "chart.js": "^4.5.1",
     "dayjs": "^1.11.19",
     "dotenv": "^17.3.1",
-    "imap": "^0.8.17",
+    "imap": "0.8.17",
     "ioredis": "^5.9.2",
     "lottie-react": "^2.4.1",
     "mailparser": "^3.9.0",
