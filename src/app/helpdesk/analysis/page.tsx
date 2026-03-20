@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import type { AnalysisDashboardData, AnalysisFilterInput } from "./action";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 import DepartmentPerformanceSection from "./components/DepartmentPerformanceSection";
 import FilterToolbar from "./components/FilterToolbar";
 import KpiGrid from "./components/KpiGrid";
@@ -60,7 +61,7 @@ export default function Dashboard() {
   const errorMessage = formErrorMessage ?? queryErrorMessage;
   const isLoading = analysisQuery.isFetching;
   const lastUpdatedAt = analysisQuery.dataUpdatedAt
-    ? new Date(analysisQuery.dataUpdatedAt).toLocaleString()
+    ? formatMyanmarDateTime(analysisQuery.dataUpdatedAt)
     : "";
 
   const appliedRangeLabel = useMemo(() => {

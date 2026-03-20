@@ -25,6 +25,7 @@ import {
   toTicketsListQueryInput,
 } from "../queries/query-options";
 import { deleteTickets } from "./action";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 
 export type TicketWithRelations = Ticket & {
   requester?: { name: string; email: string } | null;
@@ -410,9 +411,7 @@ export default function Page() {
       ticket.department?.name ?? "",
       ticket.requester?.name ?? "",
       ticket.assignedTo?.name ?? "",
-      new Date(ticket.createdAt).toLocaleString("en-US", {
-        timeZone: "Asia/Yangon",
-      }),
+      formatMyanmarDateTime(ticket.createdAt),
       ticket.creationMode ?? "",
       ticket.isSlaViolated ? "Yes" : "No",
     ]);

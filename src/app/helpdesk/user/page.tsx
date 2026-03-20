@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import UserDetailPanel from "./components/UserDetailPanel";
 import UserQuickListItem from "./components/UserQuickListItem";
 import UserToolbar from "./components/UserToolbar";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 import { usersQueryOptions } from "../queries/query-options";
 import type { TicketStats, UserTicketStatus } from "./types";
 
@@ -67,7 +68,7 @@ export default function UserPage() {
       : "Failed to load users."
     : null;
   const lastUpdatedAt = usersQuery.dataUpdatedAt
-    ? new Date(usersQuery.dataUpdatedAt).toLocaleString()
+    ? formatMyanmarDateTime(usersQuery.dataUpdatedAt)
     : "";
 
   return (

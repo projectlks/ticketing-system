@@ -2,6 +2,7 @@
 import Countdown from "@/components/Countdown";
 import { TicketWithRelations } from "@/app/helpdesk/tickets/page";
 import PillBadge from "@/components/ticket/PillBadge";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 
 export type RenderCellHelpers = {
   getStatusColor: (status: string, type?: "borderAndText") => string;
@@ -71,9 +72,7 @@ export const renderCell = (
       );
 
     case "createdAt":
-      return new Date(ticket.createdAt).toLocaleString("en-US", {
-        timeZone: "Asia/Yangon",
-      });
+      return formatMyanmarDateTime(ticket.createdAt);
 
     case "creationMode":
       if (!ticket.creationMode) return "-";

@@ -1,5 +1,5 @@
 import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
-import dayjs from "@/libs/dayjs";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 
 import { Audit } from "../generated/prisma/client";
 import Avatar from "./Avatar";
@@ -87,7 +87,7 @@ export function AuditLogList({
 
         const changedAtText =
           item.changedAt && !Number.isNaN(new Date(item.changedAt).getTime())
-            ? dayjs(item.changedAt).fromNow()
+            ? formatMyanmarDateTime(item.changedAt)
             : "Unknown time";
 
         const changes = parseChanges(item.changes);

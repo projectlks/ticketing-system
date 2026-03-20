@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useSession } from "next-auth/react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 import { createCategory, deleteCategory, updateCategory } from "./action";
 import CategoryFormPanel from "./components/CategoryFormPanel";
 import CategoryListPanel from "./components/CategoryListPanel";
@@ -73,7 +74,7 @@ export default function CategoryPage() {
     departmentsQuery.dataUpdatedAt,
   );
   const lastUpdatedAt = lastUpdatedEpoch
-    ? new Date(lastUpdatedEpoch).toLocaleString()
+    ? formatMyanmarDateTime(lastUpdatedEpoch)
     : "";
 
   const createCategoryMutation = useMutation({

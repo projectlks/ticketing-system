@@ -8,6 +8,7 @@ import TableHead from "@/components/TableHead";
 import Loading from "@/components/Loading";
 import { useFetchZabbix } from "@/hooks/useFetchZabbix";
 import { getSocket } from "@/libs/socket-client";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 
 import TableFooter from "../tickets/TableFooter";
 import Body from "./Body";
@@ -69,7 +70,7 @@ const formatUnixTimestamp = (timestamp: string) => {
     return "-";
   }
 
-  return new Date(numericValue * 1000).toLocaleString();
+  return formatMyanmarDateTime(new Date(numericValue * 1000));
 };
 
 export default function ZabbixProblemsTable() {

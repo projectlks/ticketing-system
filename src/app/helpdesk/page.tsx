@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import DepartmentCard from "@/components/DepartmentCard";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 import { overviewQueryOptions } from "./queries/query-options";
 
 type PriorityKey = "REQUEST" | "MINOR" | "MAJOR" | "CRITICAL";
@@ -110,7 +111,7 @@ export default function Page() {
       : "Failed to load overview data. Please refresh."
     : null;
   const lastUpdatedAt = overviewQuery.dataUpdatedAt
-    ? new Date(overviewQuery.dataUpdatedAt).toLocaleString()
+    ? formatMyanmarDateTime(overviewQuery.dataUpdatedAt)
     : "";
 
   const filteredDepartments = useMemo(() => {

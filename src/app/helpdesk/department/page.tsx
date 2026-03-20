@@ -10,6 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import DepartmentCard from "@/components/DepartmentCard";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 
 import { deleteDepartment } from "./action";
 import { departmentsQueryOptions, helpdeskQueryKeys } from "../queries/query-options";
@@ -63,7 +64,7 @@ export default function DepartmentPage() {
     : null;
 
   const lastUpdatedAt = departmentsQuery.dataUpdatedAt
-    ? new Date(departmentsQuery.dataUpdatedAt).toLocaleString()
+    ? formatMyanmarDateTime(departmentsQuery.dataUpdatedAt)
     : "";
 
   const handleDeleteRequest = (department: DepartmentTicketStats) => {

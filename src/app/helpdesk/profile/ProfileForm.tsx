@@ -15,6 +15,7 @@ import { z } from "zod";
 
 import Avatar from "@/components/Avatar";
 import { useUserData } from "@/context/UserProfileContext";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 
 import type { MyAccountProfile } from "./action";
 import { updateMyAccountPassword, updateMyAccountProfile } from "./action";
@@ -157,11 +158,11 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
   });
 
   const createdAtLabel = useMemo(
-    () => new Date(initialProfile.createdAt).toLocaleString(),
+    () => formatMyanmarDateTime(initialProfile.createdAt),
     [initialProfile.createdAt],
   );
   const updatedAtLabel = useMemo(
-    () => new Date(persistedProfile.updatedAt).toLocaleString(),
+    () => formatMyanmarDateTime(persistedProfile.updatedAt),
     [persistedProfile.updatedAt],
   );
 

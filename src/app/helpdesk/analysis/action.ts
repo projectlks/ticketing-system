@@ -1,7 +1,7 @@
 "use server";
 
 import { Priority, Status } from "@/generated/prisma/client";
-import dayjs from "@/libs/dayjs";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 import { prisma } from "@/libs/prisma";
 import { getOrSetCache } from "@/libs/redis-cache";
 
@@ -215,7 +215,7 @@ export async function getAnalysisDashboardData(
           department: ticket.department?.name ?? "Unassigned",
           priority: toPriorityLevel(ticket.priority),
           status: toTicketStatus(ticket.status),
-          created: dayjs(ticket.createdAt).fromNow(),
+          created: formatMyanmarDateTime(ticket.createdAt),
         }));
 
         const kpi: AnalysisKpi = {

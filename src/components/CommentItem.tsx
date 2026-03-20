@@ -174,7 +174,6 @@
 "use client";
 
 import Image from "next/image";
-import dayjs from "@/libs/dayjs";
 import React, { useState } from "react";
 import {
   ChatBubbleOvalLeftEllipsisIcon,
@@ -185,6 +184,7 @@ import { useSession } from "next-auth/react";
 
 import Avatar from "@/components/Avatar";
 import { likeComment } from "@/libs/action";
+import { formatMyanmarDateTime } from "@/libs/myanmar-date-time";
 
 import CommentInput from "./CommentInput";
 import { CommentWithRelations } from "./CommentSection";
@@ -263,7 +263,7 @@ export default function CommentItem({
                 {comment.commenter?.name ?? "Unknown"}
               </p>
               <p className="text-xs text-zinc-500">
-                {dayjs(comment.createdAt).fromNow()}
+                {formatMyanmarDateTime(comment.createdAt) || "-"}
               </p>
             </div>
 
