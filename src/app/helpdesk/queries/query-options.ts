@@ -24,6 +24,7 @@ type AlertTicketProjection = {
   name: string;
   status: string;
   clock: Date | string;
+  resolvedAt?: Date | string | null;
   tags: string | null;
   hostName: string | null;
   triggerSeverity: string | null;
@@ -256,7 +257,9 @@ const mapAlertTicketToProblem = (
         .filter((tag) => tag.tag && tag.value)
     : [],
   opdata: "",
-  r_clock: "",
+  r_clock: ticket.resolvedAt
+    ? Math.floor(new Date(ticket.resolvedAt).getTime() / 1000).toString()
+    : "",
   hosts: ticket.hostName
     ? [{ hostid: String(ticket.id), host: ticket.hostName }]
     : [],
@@ -391,4 +394,3 @@ export async function prefetchHelpdeskRouteData(
     return;
   }
 }
-

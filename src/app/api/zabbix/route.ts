@@ -338,51 +338,53 @@ type ZabbixUpsertAction = "created" | "updated";
 async function upsertZabbixSnapshot(
   context: NormalizedWebhookContext,
 ): Promise<ZabbixUpsertAction> {
+  const targetEventId = context.isRecoveryEvent
+    ? context.problemEventId
+    : context.event.id;
+
   const existing = await prisma.zabbixTicket.findUnique({
-    where: { eventid: context.event.id },
+    where: { eventid: targetEventId },
     select: { eventid: true },
   });
 
+  const baseData = {
+    name: context.trigger.name ?? `Zabbix Event ${targetEventId}`,
+    status: context.status,
+    triggerId: context.normalizedTriggerId,
+    triggerName: context.trigger.name ?? null,
+    triggerDesc: context.trigger.description ?? null,
+    triggerStatus: context.trigger.status ?? null,
+    triggerSeverity: context.trigger.severity ?? null,
+    hostName: context.normalizedHostName,
+    hostTag: context.host.inventory_tag ?? null,
+    hostGroup: context.host.group ?? null,
+    itemId: context.item.id ?? null,
+    itemName: context.item.name ?? null,
+    itemDescription: context.item.key ?? null,
+    last5Values: context.last5Values,
+    tags: context.tagsString,
+  };
+
+  const updateData: typeof baseData & { clock?: Date; resolvedAt: Date | null } = {
+    ...baseData,
+    resolvedAt: context.isRecoveryEvent ? context.clock : null,
+  };
+
+  // Recovery events should not overwrite the original problem start time.
+  if (!context.isRecoveryEvent) {
+    updateData.clock = context.clock;
+  }
+
   await prisma.zabbixTicket.upsert({
     where: {
-      eventid: context.event.id,
+      eventid: targetEventId,
     },
-    update: {
-      name: context.trigger.name ?? `Zabbix Event ${context.event.id}`,
-      status: context.status,
-      clock: context.clock,
-      triggerId: context.normalizedTriggerId,
-      triggerName: context.trigger.name ?? null,
-      triggerDesc: context.trigger.description ?? null,
-      triggerStatus: context.trigger.status ?? null,
-      triggerSeverity: context.trigger.severity ?? null,
-      hostName: context.normalizedHostName,
-      hostTag: context.host.inventory_tag ?? null,
-      hostGroup: context.host.group ?? null,
-      itemId: context.item.id ?? null,
-      itemName: context.item.name ?? null,
-      itemDescription: context.item.key ?? null,
-      last5Values: context.last5Values,
-      tags: context.tagsString,
-    },
+    update: updateData,
     create: {
-      eventid: context.event.id,
-      name: context.trigger.name ?? `Zabbix Event ${context.event.id}`,
-      status: context.status,
+      eventid: targetEventId,
       clock: context.clock,
-      triggerId: context.normalizedTriggerId,
-      triggerName: context.trigger.name ?? null,
-      triggerDesc: context.trigger.description ?? null,
-      triggerStatus: context.trigger.status ?? null,
-      triggerSeverity: context.trigger.severity ?? null,
-      hostName: context.normalizedHostName,
-      hostTag: context.host.inventory_tag ?? null,
-      hostGroup: context.host.group ?? null,
-      itemId: context.item.id ?? null,
-      itemName: context.item.name ?? null,
-      itemDescription: context.item.key ?? null,
-      last5Values: context.last5Values,
-      tags: context.tagsString,
+      resolvedAt: context.isRecoveryEvent ? context.clock : null,
+      ...baseData,
     },
   });
 

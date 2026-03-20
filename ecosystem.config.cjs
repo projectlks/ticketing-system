@@ -20,7 +20,7 @@ module.exports = {
       ...baseApp,
       name: "ticketing-web",
       script: "npm",
-      args: "run dev",
+      args: "run start",
     },
     {
       ...baseApp,
