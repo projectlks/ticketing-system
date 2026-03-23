@@ -1,7 +1,7 @@
 export const MYANMAR_TIME_ZONE = "Asia/Yangon";
 
-const PRIMARY_LOCALE = "my-MM";
-const FALLBACK_LOCALE = "en-GB";
+const PRIMARY_LOCALE = "en-GB";
+const FALLBACK_LOCALE = "en-US";
 
 export const MYANMAR_DISPLAY_LOCALE =
   Intl.DateTimeFormat.supportedLocalesOf([PRIMARY_LOCALE]).length > 0
