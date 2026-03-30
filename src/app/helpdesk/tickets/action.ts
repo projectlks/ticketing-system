@@ -2,7 +2,7 @@
 
 import { getCurrentUserId } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
-import { CreationMode, Priority, Prisma, Status, Ticket } from "@/generated/prisma/client";
+import { CreationMode, Priority, Prisma, Role, Status, Ticket } from "@/generated/prisma/client";
 import {
     getOrSetCache,
     hashKeyPayload,
@@ -57,6 +57,7 @@ const VALID_CREATION_MODE_SET = new Set<CreationMode>(
 
 const ACTIVE_WORK_STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "NEW" ];
 const CLOSED_LIKE_STATUSES: Status[] = ["CLOSED", "RESOLVED", "CANCELED"];
+const SUPER_ADMIN_ROLE: Role = "SUPER_ADMIN";
 
 // Empty string / "null" / "undefined" values coming from form data
 // should be treated as NULL for optional foreign-key columns.
@@ -148,9 +149,14 @@ const toErrorMessage = (error: unknown, fallback: string) => {
     return fallback;
 };
 
-const resolveActorUserId = async (
+type ActorContext = {
+    id: string;
+    role: Role;
+};
+
+const resolveActorContext = async (
     actorUserId?: string | null,
-): Promise<string | undefined> => {
+): Promise<ActorContext | undefined> => {
     const normalized = actorUserId?.trim();
     if (normalized) {
         const actor = await prisma.user.findFirst({
@@ -158,12 +164,23 @@ const resolveActorUserId = async (
                 id: normalized,
                 isArchived: false,
             },
-            select: { id: true },
+            select: { id: true, role: true },
         });
-        return actor?.id;
+        return actor ?? undefined;
     }
 
-    return getCurrentUserId();
+    const currentUserId = await getCurrentUserId();
+    if (!currentUserId) return undefined;
+
+    const actor = await prisma.user.findFirst({
+        where: {
+            id: currentUserId,
+            isArchived: false,
+        },
+        select: { id: true, role: true },
+    });
+
+    return actor ?? undefined;
 };
 
 
@@ -219,8 +236,9 @@ export async function createTicket(
         parsed.data.assignedToId,
     );
 
-    const userId = await resolveActorUserId(options.actorUserId);
-    if (!userId) return { error: "Unauthorized" };
+    const actor = await resolveActorContext(options.actorUserId);
+    if (!actor) return { error: "Unauthorized" };
+    const userId = actor.id;
 
     if (parsed.data.categoryId) {
         const categoryExists = await prisma.category.findUnique({
@@ -368,28 +386,6 @@ export async function updateTicket(
         };
     }
 
-    if (parsed.data.categoryId) {
-        const categoryExists = await prisma.category.findUnique({
-            where: { id: parsed.data.categoryId, isArchived: false },
-        });
-        if (!categoryExists) {
-            return { error: "Selected category does not exist" };
-        }
-    }
-
-    if (parsed.data.departmentId) {
-        const departmentExists = await prisma.department.findUnique({
-            where: { id: parsed.data.departmentId, isArchived: false },
-        });
-        if (!departmentExists) {
-            return { error: "Selected department does not exist" };
-        }
-    }
-
-    const normalizedAssignedToId = normalizeOptionalRelationId(parsed.data.assignedToId);
-    const assignError = await ensureAssignableUserExists(normalizedAssignedToId);
-    if (assignError) return { error: assignError };
-
     const oldData = await prisma.ticket.findFirst({
         where: { id: ticketId },
         include: {
@@ -413,8 +409,42 @@ export async function updateTicket(
 
     if (!oldData) return { error: "Ticket not found" };
 
-    const currentUserId = await resolveActorUserId(options.actorUserId);
-    if (!currentUserId) return { error: "Unauthorized" };
+    const actor = await resolveActorContext(options.actorUserId);
+    if (!actor) return { error: "Unauthorized" };
+    const currentUserId = actor.id;
+    const isSuperAdmin = actor.role === SUPER_ADMIN_ROLE;
+    if (
+        !isSuperAdmin &&
+        (parsed.data.title !== oldData.title ||
+            parsed.data.description !== oldData.description ||
+            parsed.data.priority !== oldData.priority)
+    ) {
+        return {
+            error: "Only SUPER_ADMIN can edit title, priority, and description.",
+        };
+    }
+
+    if (parsed.data.categoryId) {
+        const categoryExists = await prisma.category.findUnique({
+            where: { id: parsed.data.categoryId, isArchived: false },
+        });
+        if (!categoryExists) {
+            return { error: "Selected category does not exist" };
+        }
+    }
+
+    if (parsed.data.departmentId) {
+        const departmentExists = await prisma.department.findUnique({
+            where: { id: parsed.data.departmentId, isArchived: false },
+        });
+        if (!departmentExists) {
+            return { error: "Selected department does not exist" };
+        }
+    }
+
+    const normalizedAssignedToId = normalizeOptionalRelationId(parsed.data.assignedToId);
+    const assignError = await ensureAssignableUserExists(normalizedAssignedToId);
+    if (assignError) return { error: assignError };
 
     let existingImageIds: string[] = [];
     const hasExistingImageIdsField = formData.has("existingImageIds");

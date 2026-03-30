@@ -19,10 +19,11 @@ const priorityLevels: {
 
 type Props = {
   value: PriorityValue;
+  disabled?: boolean;
   onChange: (p: PriorityValue) => void;
 };
 
-export default function PriorityStars({ value, onChange }: Props) {
+export default function PriorityStars({ value, disabled = false, onChange }: Props) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {priorityLevels.map((level) => {
@@ -32,12 +33,13 @@ export default function PriorityStars({ value, onChange }: Props) {
           <button
             key={level.value}
             type="button"
+            disabled={disabled}
             onClick={() => onChange(level.value)}
             className={`rounded-xl border px-3 py-2 text-left transition-colors ${
               isActive
                 ? "border-zinc-900 bg-zinc-900 text-white"
                 : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}>
+            } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}>
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">{level.label}</span>
               <span className="flex items-center gap-0.5">

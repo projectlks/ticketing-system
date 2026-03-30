@@ -5,5 +5,5 @@ export default function HelpdeskTemplate({
 }: {
   children: ReactNode;
 }) {
-  return <div className="route-enter-root overflow-x-hidden bg-red-700">{children}</div>;
+  return <div className="route-enter-root ">{children}</div>;
 }

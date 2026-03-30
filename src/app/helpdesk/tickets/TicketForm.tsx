@@ -134,10 +134,10 @@
 //   );
 // }
 
-
 "use client";
 
 import { ToastContainer } from "react-toastify";
+import { useSession } from "next-auth/react";
 import CommentSection from "@/components/CommentSection";
 import AssignmentSection from "@/components/ticket/AssignmentSection";
 import AuditPanel from "@/components/ticket/AuditPanel";
@@ -153,6 +153,7 @@ import { TicketFormProps } from "./ticket.types";
 import { useTicketForm } from "./useTicketForm";
 
 export default function TicketForm(props: TicketFormProps) {
+  const { data: session } = useSession();
   const {
     form,
     setForm,
@@ -171,6 +172,8 @@ export default function TicketForm(props: TicketFormProps) {
     handleRemoveExistingImage,
     ticketId,
   } = useTicketForm(props);
+  const isSuperAdmin = session?.user.role === "SUPER_ADMIN";
+  const isSensitiveFieldLocked = props.mode === "edit" && !isSuperAdmin;
 
   const ribbonStatus =
     form.status === "RESOLVED" ||
@@ -189,7 +192,7 @@ export default function TicketForm(props: TicketFormProps) {
     <div className="min-h-screen bg-zinc-50">
       <ToastContainer />
 
-      <section className="mx-auto w-full max-w-[1480px] relative px-4  py-5 sm:px-6 sm:py-6">
+      <section className="mx-auto w-full max-w-370 relative px-4  py-5 sm:px-6 sm:py-6">
         <div
           className={`grid items-start relative gap-5 ${
             ticketId
@@ -202,7 +205,7 @@ export default function TicketForm(props: TicketFormProps) {
           */}
           <div className="xl:sticky xl:top-24 self-start rounded-2xl overflow-hidden  border border-zinc-200 p-5 bg-white shadow-sm sm:p-7">
             {ribbonStatus && (
-              <div className="pointer-events-none absolute right-[-46px] top-6 z-10 w-44 rotate-45">
+              <div className="pointer-events-none absolute -right-11.5 top-6 z-10 w-44 rotate-45">
                 <div
                   className={`border border-white/25 py-1.5 text-center text-[11px] font-semibold tracking-[0.2em] shadow-sm ${ribbonStyles[ribbonStatus]}`}>
                   {ribbonStatus}
@@ -219,16 +222,19 @@ export default function TicketForm(props: TicketFormProps) {
                   setForm((prev) => ({ ...prev, status }))
                 }
               />
+          
 
               <TitleInput
                 value={form.title}
                 error={errors.title}
+                disabled={isSensitiveFieldLocked}
                 onChange={(title) => setForm((prev) => ({ ...prev, title }))}
               />
 
               <PrioritySection
                 value={form.priority}
                 mode={props.mode}
+                disabled={isSensitiveFieldLocked}
                 onChange={(priority) =>
                   setForm((prev) => ({ ...prev, priority }))
                 }
@@ -263,6 +269,7 @@ export default function TicketForm(props: TicketFormProps) {
               <DescriptionInput
                 value={form.description}
                 error={errors.description}
+                disabled={isSensitiveFieldLocked}
                 onChange={(description) =>
                   setForm((prev) => ({ ...prev, description }))
                 }

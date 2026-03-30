@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 4000",
     "start:socket": "tsx src/libs/socket-server.ts",
     "start:cron": "tsx src/libs/cron.ts",
     "pm2:start": "pm2 start ecosystem.config.cjs",
