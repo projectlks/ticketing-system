@@ -22,6 +22,7 @@ export default function RemarkInput({
       </label>
       <textarea
         rows={3}
+        required={visible}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Explain why priority changed"

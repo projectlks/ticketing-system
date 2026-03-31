@@ -417,11 +417,18 @@ export async function updateTicket(
     if (
         !isSuperAdmin &&
         (parsed.data.title !== oldData.title ||
-            parsed.data.description !== oldData.description ||
-            parsed.data.priority !== oldData.priority)
+            parsed.data.description !== oldData.description)
     ) {
         return {
-            error: "Only SUPER_ADMIN can edit title, priority, and description.",
+            error: "Only SUPER_ADMIN can edit title and description.",
+        };
+    }
+
+    const priorityChanged = parsed.data.priority !== oldData.priority;
+    const normalizedRemark = (parsed.data.remark ?? "").trim();
+    if (priorityChanged && !normalizedRemark) {
+        return {
+            error: "Remark is required when changing priority.",
         };
     }
 
@@ -549,7 +556,7 @@ export async function updateTicket(
                 departmentId: parsed.data.departmentId,
                 categoryId: parsed.data.categoryId,
                 priority: parsed.data.priority,
-                remark: parsed.data.remark || "",
+                remark: normalizedRemark,
                 assignedToId: normalizedAssignedToId,
                 status: parsed.data.status,
                 slaId: sla.id,
@@ -605,6 +612,9 @@ export async function updateTicket(
             } else if (field === "assignedToId") {
                 oldValue = oldData?.assignedTo?.name ?? "";
                 newValue = updated.assignedTo?.name ?? "";
+            } else if (field === "remark") {
+                oldValue = oldData.remark ?? "";
+                newValue = normalizedRemark;
             } else {
                 oldValue = String((oldData as Record<string, unknown>)[field] ?? "");
                 newValue = String((parsed.data as Record<string, unknown>)[field] ?? "");
