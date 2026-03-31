@@ -234,7 +234,7 @@ export default function TicketForm(props: TicketFormProps) {
               <PrioritySection
                 value={form.priority}
                 mode={props.mode}
-                disabled={isSensitiveFieldLocked}
+                // disabled={isSensitiveFieldLocked}
                 onChange={(priority) =>
                   setForm((prev) => ({ ...prev, priority }))
                 }

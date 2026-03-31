@@ -141,6 +141,7 @@ type TicketActionResult<T> = {
 
 type TicketMutationOptions = {
     actorUserId?: string | null;
+    allowApiTokenActorlessUpdate?: boolean;
 };
 
 const toErrorMessage = (error: unknown, fallback: string) => {
@@ -657,6 +658,121 @@ export async function updateTicket(
         return { data: { updated, urlsToDelete } };
     } catch (error) {
         return { error: toErrorMessage(error, "Failed to update ticket.") };
+    }
+}
+
+export async function updateTicketStatus(
+    ticketId: string,
+    status: Status,
+    options: TicketMutationOptions = {},
+): Promise<TicketActionResult<{ updated: UpdatedTicketWithRelations }>> {
+    if (!ticketId) return { error: "Ticket ID is required" };
+
+    if (!VALID_STATUS_SET.has(status)) {
+        return { error: "Invalid status value." };
+    }
+
+    const oldData = await prisma.ticket.findFirst({
+        where: { id: ticketId },
+        select: { id: true, status: true },
+    });
+    if (!oldData) return { error: "Ticket not found" };
+
+    const actor = await resolveActorContext(options.actorUserId);
+    const allowApiTokenActorlessUpdate =
+        options.allowApiTokenActorlessUpdate === true;
+    if (!actor && !allowApiTokenActorlessUpdate) return { error: "Unauthorized" };
+    const currentUserId = actor?.id ?? null;
+
+    try {
+        const updated = await prisma.ticket.update({
+            where: { id: ticketId },
+            data: { status },
+            include: {
+                department: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                category: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                assignedTo: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        });
+
+        if (oldData.status !== updated.status) {
+            await prisma.audit.create({
+                data: {
+                    entity: "Ticket",
+                    entityId: updated.id,
+                    userId: currentUserId ?? undefined,
+                    action: "UPDATE",
+                    changes: [
+                        {
+                            field: "status",
+                            oldValue: String(oldData.status),
+                            newValue: String(updated.status),
+                        },
+                    ],
+                },
+            });
+        }
+
+        await invalidateCacheByPrefixes([
+            HELPDESK_CACHE_PREFIXES.tickets,
+            HELPDESK_CACHE_PREFIXES.overview,
+            HELPDESK_CACHE_PREFIXES.departments,
+            HELPDESK_CACHE_PREFIXES.analysis,
+            HELPDESK_CACHE_PREFIXES.users,
+        ]);
+
+        try {
+            await Promise.all([
+                getSingleTicket(ticketId),
+                getTicketAuditLogs(ticketId),
+            ]);
+        } catch (error) {
+            console.warn("[ticket-cache] status cache warm failed", {
+                ticketId,
+                message: error instanceof Error ? error.message : String(error),
+            });
+        }
+
+        emitTicketsChanged({
+            action: "updated",
+            ticketId: updated.id,
+            status: updated.status,
+            at: new Date().toISOString(),
+        });
+
+        const syncResult = await syncTicketOutbound({
+            event: "updated",
+            ticketId: updated.id,
+            ticket: updated,
+        });
+        if (!syncResult.ok && !syncResult.skipped) {
+            console.error("[ticket-sync] outbound update sync failed", {
+                ticketId: updated.id,
+                status: syncResult.status,
+                error: syncResult.error,
+            });
+        }
+
+        return { data: { updated } };
+    } catch (error) {
+        return {
+            error: toErrorMessage(error, "Failed to update ticket status."),
+        };
     }
 }
 
