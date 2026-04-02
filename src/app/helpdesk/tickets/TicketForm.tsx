@@ -159,6 +159,8 @@ export default function TicketForm(props: TicketFormProps) {
     handleFieldChange,
     handleAssignmentChange,
     errors,
+    liveValidationState,
+    liveValidationActive,
     submitting,
     remark,
     setRemark,
@@ -228,6 +230,8 @@ export default function TicketForm(props: TicketFormProps) {
               <TitleInput
                 value={form.title}
                 error={errors.title}
+                validationState={liveValidationState.title}
+                showValidation={Boolean(liveValidationActive.title)}
                 disabled={isSensitiveFieldLocked}
                 onChange={(title) => handleFieldChange("title", title)}
               />
@@ -263,6 +267,8 @@ export default function TicketForm(props: TicketFormProps) {
               <DescriptionInput
                 value={form.description}
                 error={errors.description}
+                validationState={liveValidationState.description}
+                showValidation={Boolean(liveValidationActive.description)}
                 disabled={isSensitiveFieldLocked}
                 onChange={(description) =>
                   handleFieldChange("description", description)

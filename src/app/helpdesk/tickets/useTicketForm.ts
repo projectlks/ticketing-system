@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
@@ -18,7 +18,17 @@ type UseTicketFormArgs = {
 };
 
 type FormErrors = Partial<Record<keyof TicketFormData, string>>;
-type AssignmentFieldName = "departmentId" | "categoryId" | "assignedToId";
+type LiveValidateField = "title" | "description";
+type LiveValidationState = "valid" | "invalid";
+const LIVE_VALIDATE_FIELDS: Set<LiveValidateField> = new Set([
+  "title",
+  "description",
+]);
+const LIVE_FIELD_SCHEMAS = {
+  title: TicketSchema.shape.title,
+  description: TicketSchema.shape.description,
+} as const;
+const LIVE_VALIDATION_IDLE_MS = 700;
 
 export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs) {
   const router = useRouter();
@@ -43,6 +53,15 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [liveValidationState, setLiveValidationState] = useState<
+    Partial<Record<LiveValidateField, LiveValidationState>>
+  >({});
+  const [liveValidationActive, setLiveValidationActive] = useState<
+    Partial<Record<LiveValidateField, boolean>>
+  >({});
+  const liveValidationTimersRef = useRef<
+    Partial<Record<LiveValidateField, ReturnType<typeof setTimeout>>>
+  >({});
 
   const [submitting, setSubmitting] = useState(false);
   const [remark, setRemark] = useState("");
@@ -57,22 +76,78 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
     resolutionDue: value.resolutionDue ? new Date(value.resolutionDue) : undefined,
   });
 
+  const buildFormErrors = (value: TicketFormData): FormErrors => {
+    const parsed = TicketSchema.safeParse(toSchemaInput(value));
+    if (parsed.success) return {};
+
+    const nextErrors: FormErrors = {};
+    parsed.error.issues.forEach((issue) => {
+      const key = issue.path[0] as keyof TicketFormData;
+      if (!nextErrors[key]) {
+        nextErrors[key] = issue.message;
+      }
+    });
+
+    return nextErrors;
+  };
+
+  const clearLiveValidationTimer = (field: LiveValidateField) => {
+    const timeoutId = liveValidationTimersRef.current[field];
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+      delete liveValidationTimersRef.current[field];
+    }
+  };
+
+  const showLiveValidation = (
+    field: LiveValidateField,
+    state: LiveValidationState,
+  ) => {
+    clearLiveValidationTimer(field);
+
+    setLiveValidationState((previous) => ({
+      ...previous,
+      [field]: state,
+    }));
+    setLiveValidationActive((previous) => ({
+      ...previous,
+      [field]: true,
+    }));
+
+    if (state === "valid") {
+      liveValidationTimersRef.current[field] = window.setTimeout(() => {
+        setLiveValidationActive((previous) => ({
+          ...previous,
+          [field]: false,
+        }));
+        delete liveValidationTimersRef.current[field];
+      }, LIVE_VALIDATION_IDLE_MS);
+    }
+  };
+
   const handleFieldChange = <K extends keyof TicketFormData>(
     field: K,
     value: TicketFormData[K],
   ) => {
-    setForm((previous) => {
-      return {
-        ...previous,
-        [field]: value,
-      } as TicketFormData;
-    });
+    const nextForm = {
+      ...form,
+      [field]: value,
+    } as TicketFormData;
+    setForm(nextForm);
 
-    setErrors((previous) => {
-      const nextErrors = { ...previous };
-      delete nextErrors[field];
-      return nextErrors;
-    });
+    if (LIVE_VALIDATE_FIELDS.has(field as LiveValidateField)) {
+      const liveField = field as LiveValidateField;
+      const nextErrors = buildFormErrors(nextForm);
+      const liveSchema = LIVE_FIELD_SCHEMAS[liveField];
+      const parsed = liveSchema.safeParse(String(value ?? ""));
+      const hasFieldError = Boolean(nextErrors[liveField]) || !parsed.success;
+
+      showLiveValidation(liveField, hasFieldError ? "invalid" : "valid");
+      setErrors(nextErrors);
+      return;
+    }
+
+    setErrors(buildFormErrors(nextForm));
   };
 
   const handleAssignmentChange = (name: string, value: string) => {
@@ -84,33 +159,16 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
       return;
     }
 
-    let nextForm: TicketFormData | null = null;
-
-    setForm((previous) => {
-      const updated = {
-        ...previous,
-        [name]: value,
-      } as TicketFormData;
-
-      if (name === "departmentId") {
-        updated.categoryId = "";
-        updated.assignedToId = "";
-      }
-
-      nextForm = updated;
-      return updated;
-    });
-
-    if (!nextForm) return;
-
-    setErrors((previous) => {
-      const nextErrors = { ...previous };
-      delete nextErrors[name as AssignmentFieldName];
-      if (name === "departmentId") {
-        delete nextErrors.categoryId;
-      }
-      return nextErrors;
-    });
+    const nextForm = {
+      ...form,
+      [name]: value,
+    } as TicketFormData;
+    if (name === "departmentId") {
+      nextForm.categoryId = "";
+      nextForm.assignedToId = "";
+    }
+    setForm(nextForm);
+    setErrors(buildFormErrors(nextForm));
   };
 
   useEffect(() => {
@@ -123,9 +181,22 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
   useEffect(() => {
     if (priorityChanged) {
       setRemark("");
-      setRemarkError("");
     }
   }, [priorityChanged]);
+
+  useEffect(() => {
+    if (!priorityChanged) {
+      setRemarkError("");
+      return;
+    }
+
+    if (!remark.trim()) {
+      setRemarkError("Remark is required when changing priority");
+      return;
+    }
+
+    setRemarkError("");
+  }, [priorityChanged, remark]);
 
   useEffect(() => {
     if (!ticket?.id) return;
@@ -151,6 +222,18 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
       socket.off("ticket-updated", listener);
     };
   }, [ticket?.id]);
+
+  useEffect(() => {
+    return () => {
+      const timers = liveValidationTimersRef.current;
+      Object.values(timers).forEach((timeoutId) => {
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+      });
+      liveValidationTimersRef.current = {};
+    };
+  }, []);
 
   const uploadImages = async (files: File[]) => {
     if (!files.length) return [];
@@ -278,6 +361,8 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
     handleFieldChange,
     handleAssignmentChange,
     errors,
+    liveValidationState,
+    liveValidationActive,
     submitting,
     remark,
     setRemark,
