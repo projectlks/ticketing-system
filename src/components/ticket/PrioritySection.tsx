@@ -12,7 +12,9 @@ type Props = {
 export default function PrioritySection({ value, disabled = false, onChange }: Props) {
   return (
     <section className="space-y-2">
-      <p className="text-sm font-medium text-zinc-700">Priority</p>
+      <p className="text-sm font-medium text-zinc-700">
+        Priority <span className="text-red-500">*</span>
+      </p>
       <PriorityStars value={value} disabled={disabled} onChange={onChange} />
     </section>
   );

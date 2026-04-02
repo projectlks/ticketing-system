@@ -26,7 +26,9 @@ export default function TitleInput({
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-zinc-700">Title</label>
+      <label className="block text-sm font-medium text-zinc-700">
+        Title <span className="text-red-500">*</span>
+      </label>
       <input
         value={value}
         disabled={disabled}

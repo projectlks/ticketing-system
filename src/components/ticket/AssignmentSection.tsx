@@ -18,6 +18,7 @@ type SelectFieldProps = {
   value: string;
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
+  required?: boolean;
   disabled?: boolean;
   error?: string;
   placeholder: string;
@@ -28,13 +29,16 @@ function SelectField({
   value,
   options,
   onChange,
+  required = false,
   disabled = false,
   error,
   placeholder,
 }: SelectFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-zinc-700">{label}</label>
+      <label className="block text-sm font-medium text-zinc-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
 
       {/* Select element ပေါ်မှာ icon ကို absolute ထည့်ထားပြီး pointer-events-none သတ်မှတ်ထားလို့
           ဘယ်နေရာနှိပ်နှိပ် native select dropdown ပဲဖွင့်သွားစေပါတယ်။ */}
@@ -88,6 +92,7 @@ export default function AssignmentSection({
     <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
       <SelectField
         label="Department"
+        required
         value={departmentId}
         placeholder="Select department"
         options={depts.map((department) => ({
@@ -100,6 +105,7 @@ export default function AssignmentSection({
 
       <SelectField
         label="Category"
+        required
         value={categoryId}
         disabled={!departmentId}
         placeholder="Select category"

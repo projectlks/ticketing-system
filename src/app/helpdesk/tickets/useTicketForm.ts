@@ -76,21 +76,6 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
     resolutionDue: value.resolutionDue ? new Date(value.resolutionDue) : undefined,
   });
 
-  const buildFormErrors = (value: TicketFormData): FormErrors => {
-    const parsed = TicketSchema.safeParse(toSchemaInput(value));
-    if (parsed.success) return {};
-
-    const nextErrors: FormErrors = {};
-    parsed.error.issues.forEach((issue) => {
-      const key = issue.path[0] as keyof TicketFormData;
-      if (!nextErrors[key]) {
-        nextErrors[key] = issue.message;
-      }
-    });
-
-    return nextErrors;
-  };
-
   const clearLiveValidationTimer = (field: LiveValidateField) => {
     const timeoutId = liveValidationTimersRef.current[field];
     if (timeoutId) {
@@ -137,17 +122,46 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
 
     if (LIVE_VALIDATE_FIELDS.has(field as LiveValidateField)) {
       const liveField = field as LiveValidateField;
-      const nextErrors = buildFormErrors(nextForm);
+      const textValue = String(value ?? "");
       const liveSchema = LIVE_FIELD_SCHEMAS[liveField];
-      const parsed = liveSchema.safeParse(String(value ?? ""));
-      const hasFieldError = Boolean(nextErrors[liveField]) || !parsed.success;
+      const parsed = liveSchema.safeParse(textValue);
 
-      showLiveValidation(liveField, hasFieldError ? "invalid" : "valid");
-      setErrors(nextErrors);
+      if (textValue.length === 0) {
+        clearLiveValidationTimer(liveField);
+        setLiveValidationActive((previous) => ({
+          ...previous,
+          [liveField]: false,
+        }));
+        setLiveValidationState((previous) => ({
+          ...previous,
+          [liveField]: undefined,
+        }));
+        setErrors((previous) => {
+          const nextErrors = { ...previous };
+          delete nextErrors[liveField];
+          return nextErrors;
+        });
+        return;
+      }
+
+      showLiveValidation(liveField, parsed.success ? "valid" : "invalid");
+      setErrors((previous) => {
+        const nextErrors = { ...previous };
+        if (parsed.success) {
+          delete nextErrors[liveField];
+        } else {
+          nextErrors[liveField] = parsed.error.issues[0]?.message ?? "Invalid value.";
+        }
+        return nextErrors;
+      });
       return;
     }
 
-    setErrors(buildFormErrors(nextForm));
+    setErrors((previous) => {
+      const nextErrors = { ...previous };
+      delete nextErrors[field];
+      return nextErrors;
+    });
   };
 
   const handleAssignmentChange = (name: string, value: string) => {
@@ -168,7 +182,14 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
       nextForm.assignedToId = "";
     }
     setForm(nextForm);
-    setErrors(buildFormErrors(nextForm));
+    setErrors((previous) => {
+      const nextErrors = { ...previous };
+      delete nextErrors[name];
+      if (name === "departmentId") {
+        delete nextErrors.categoryId;
+      }
+      return nextErrors;
+    });
   };
 
   useEffect(() => {
