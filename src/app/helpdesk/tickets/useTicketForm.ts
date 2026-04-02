@@ -60,7 +60,7 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
     Partial<Record<LiveValidateField, boolean>>
   >({});
   const liveValidationTimersRef = useRef<
-    Partial<Record<LiveValidateField, ReturnType<typeof setTimeout>>>
+    Partial<Record<LiveValidateField, number>>
   >({});
 
   const [submitting, setSubmitting] = useState(false);
@@ -121,7 +121,7 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
           [field]: false,
         }));
         delete liveValidationTimersRef.current[field];
-      }, LIVE_VALIDATION_IDLE_MS);
+      }, LIVE_VALIDATION_IDLE_MS) as number;
     }
   };
 

@@ -30,16 +30,17 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     "prisma/seed.ts",
     "src/scripts/gmail-imap.js",
-    ".next/dev/dev/types/**/*.ts"
+    "**/*.mts",
+    ".next/types/**/*.ts",
+    "next.config.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next/dev"
   ]
 }
