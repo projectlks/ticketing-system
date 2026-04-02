@@ -68,14 +68,35 @@ async function requireCurrentUserId(): Promise<ProfileActionResult<string>> {
   return { data: currentUserId };
 }
 
-function extractUploadFileNameFromUrl(url: string): string | null {
+function resolveUploadRelativePathFromUrl(url: string): string | null {
   if (!url.startsWith(UPLOAD_API_PREFIX)) return null;
-  const rawFileName = url.slice(UPLOAD_API_PREFIX.length).trim();
-  if (!rawFileName) return null;
+  const rawPath = url.slice(UPLOAD_API_PREFIX.length).trim();
+  if (!rawPath) return null;
 
-  const safeFileName = path.basename(rawFileName);
-  if (!safeFileName || safeFileName === "." || safeFileName === "..") return null;
+  const normalized = rawPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const segments = normalized.split("/").filter(Boolean);
+  if (!segments.length || segments.length > 2) return null;
 
+  if (segments.length === 2) {
+    const [folder, fileName] = segments;
+    const safeFileName = path.basename(fileName);
+    if (safeFileName !== fileName || safeFileName === "." || safeFileName === "..") {
+      return null;
+    }
+    if (folder !== "images" && folder !== "files") return null;
+    return `${folder}/${safeFileName}`;
+  }
+
+  const [fileName] = segments;
+  const safeFileName = path.basename(fileName);
+  if (safeFileName !== fileName || safeFileName === "." || safeFileName === "..") {
+    return null;
+  }
+
+  if (safeFileName.startsWith("img-")) return `images/${safeFileName}`;
+  if (safeFileName.startsWith("file-")) return `files/${safeFileName}`;
+
+  // Backward compatibility for old uploads kept directly in uploads/
   return safeFileName;
 }
 
@@ -84,10 +105,14 @@ async function deleteLocalUploadFileIfExists(
 ): Promise<string | null> {
   if (!url) return null;
 
-  const safeFileName = extractUploadFileNameFromUrl(url);
-  if (!safeFileName) return null;
+  const relativePath = resolveUploadRelativePathFromUrl(url);
+  if (!relativePath) return null;
 
-  const absolutePath = path.join(process.cwd(), "uploads", safeFileName);
+  const absolutePath = path.join(
+    process.cwd(),
+    "uploads",
+    ...relativePath.split("/"),
+  );
 
   try {
     await fs.unlink(absolutePath);

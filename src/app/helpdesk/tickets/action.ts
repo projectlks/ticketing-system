@@ -58,6 +58,57 @@ const VALID_CREATION_MODE_SET = new Set<CreationMode>(
 const ACTIVE_WORK_STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "NEW" ];
 const CLOSED_LIKE_STATUSES: Status[] = ["CLOSED", "RESOLVED", "CANCELED"];
 const SUPER_ADMIN_ROLE: Role = "SUPER_ADMIN";
+const MAX_TICKET_ATTACHMENTS = 6;
+const MAX_TICKET_IMAGE_ATTACHMENTS = 3;
+const MAX_TICKET_FILE_ATTACHMENTS = 3;
+const TICKET_UPLOAD_PREFIX = "/api/uploads/";
+const ATTACHMENT_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+
+const getAttachmentKindFromUrl = (url: string): "image" | "file" | "unknown" => {
+    const trimmed = url.trim();
+    if (!trimmed.startsWith(TICKET_UPLOAD_PREFIX)) return "unknown";
+
+    const lowerPath = trimmed.split("?")[0]?.toLowerCase() ?? "";
+    const fileName = lowerPath.split("/").pop() ?? "";
+
+    if (fileName.startsWith("img-")) return "image";
+    if (fileName.startsWith("file-")) return "file";
+
+    const dotIndex = fileName.lastIndexOf(".");
+    if (dotIndex < 0) return "unknown";
+    const extension = fileName.slice(dotIndex);
+    if (ATTACHMENT_IMAGE_EXTENSIONS.has(extension)) return "image";
+    return "file";
+};
+
+const validateTicketAttachmentUrls = (urls: string[]): string | null => {
+    if (urls.length > MAX_TICKET_ATTACHMENTS) {
+        return `You can attach up to ${MAX_TICKET_ATTACHMENTS} files per ticket.`;
+    }
+
+    let imageCount = 0;
+    let fileCount = 0;
+
+    for (const url of urls) {
+        const kind = getAttachmentKindFromUrl(url);
+        if (kind === "unknown") {
+            return "Invalid attachment URL.";
+        }
+        if (kind === "image") {
+            imageCount += 1;
+            if (imageCount > MAX_TICKET_IMAGE_ATTACHMENTS) {
+                return `You can attach up to ${MAX_TICKET_IMAGE_ATTACHMENTS} images per ticket.`;
+            }
+        } else {
+            fileCount += 1;
+            if (fileCount > MAX_TICKET_FILE_ATTACHMENTS) {
+                return `You can attach up to ${MAX_TICKET_FILE_ATTACHMENTS} files per ticket.`;
+            }
+        }
+    }
+
+    return null;
+};
 
 // Empty string / "null" / "undefined" values coming from form data
 // should be treated as NULL for optional foreign-key columns.
@@ -277,6 +328,8 @@ export async function createTicket(
             return { error: "Invalid images payload." };
         }
     }
+    const attachmentsError = validateTicketAttachmentUrls(images);
+    if (attachmentsError) return { error: attachmentsError };
 
     const priority = parsed.data.priority;
 
@@ -520,6 +573,12 @@ export async function updateTicket(
         const urlsToDelete = imagesInDb
             .filter((img) => idsToDeleteSet.has(img.id))
             .map((img) => img.url);
+        const finalAttachmentUrls = imagesInDb
+            .filter((img) => !idsToDeleteSet.has(img.id))
+            .map((img) => img.url)
+            .concat(newImageUrls);
+        const attachmentsError = validateTicketAttachmentUrls(finalAttachmentUrls);
+        if (attachmentsError) return { error: attachmentsError };
 
         if (idsToDelete.length > 0) {
             await prisma.ticketImage.deleteMany({

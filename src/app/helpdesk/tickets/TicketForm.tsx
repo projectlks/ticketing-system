@@ -156,7 +156,8 @@ export default function TicketForm(props: TicketFormProps) {
   const { data: session } = useSession();
   const {
     form,
-    setForm,
+    handleFieldChange,
+    handleAssignmentChange,
     errors,
     submitting,
     remark,
@@ -219,7 +220,7 @@ export default function TicketForm(props: TicketFormProps) {
                 resolutionDue={form.resolutionDue}
                 status={form.status!}
                 onStatusChange={(status) =>
-                  setForm((prev) => ({ ...prev, status }))
+                  handleFieldChange("status", status)
                 }
               />
           
@@ -228,14 +229,14 @@ export default function TicketForm(props: TicketFormProps) {
                 value={form.title}
                 error={errors.title}
                 disabled={isSensitiveFieldLocked}
-                onChange={(title) => setForm((prev) => ({ ...prev, title }))}
+                onChange={(title) => handleFieldChange("title", title)}
               />
 
               <PrioritySection
                 value={form.priority}
                 mode={props.mode}
                 onChange={(priority) =>
-                  setForm((prev) => ({ ...prev, priority }))
+                  handleFieldChange("priority", priority)
                 }
               />
 
@@ -248,13 +249,7 @@ export default function TicketForm(props: TicketFormProps) {
                 users={props.users}
                 errors={errors}
                 onChange={(name, value) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    [name]: value,
-                    ...(name === "departmentId"
-                      ? { categoryId: "", assignedToId: "" }
-                      : {}),
-                  }))
+                  handleAssignmentChange(name, value)
                 }
               />
 
@@ -270,7 +265,7 @@ export default function TicketForm(props: TicketFormProps) {
                 error={errors.description}
                 disabled={isSensitiveFieldLocked}
                 onChange={(description) =>
-                  setForm((prev) => ({ ...prev, description }))
+                  handleFieldChange("description", description)
                 }
               />
 
@@ -304,3 +299,4 @@ export default function TicketForm(props: TicketFormProps) {
     </div>
   );
 }
+
