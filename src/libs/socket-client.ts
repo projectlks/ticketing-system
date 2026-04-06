@@ -9,6 +9,28 @@ import { Audit } from "@/generated/prisma/client";
 let socket: Socket | null = null;
 const SOCKET_PATH = process.env.NEXT_PUBLIC_WEB_SOCKET_PATH || "/socket.io";
 const SOCKET_TOKEN = process.env.NEXT_PUBLIC_WEB_SOCKET_TOKEN;
+type SocketTransport = "polling" | "websocket";
+
+function parseSocketTransports(
+    rawValue: string | undefined,
+    fallback: SocketTransport[],
+) {
+    if (!rawValue) {
+        return fallback;
+    }
+
+    const transports = rawValue
+        .split(",")
+        .map((value) => value.trim())
+        .filter((value): value is SocketTransport => value === "polling" || value === "websocket");
+
+    return transports.length ? transports : fallback;
+}
+
+const SOCKET_TRANSPORTS = parseSocketTransports(
+    process.env.NEXT_PUBLIC_WEB_SOCKET_TRANSPORTS,
+    process.env.NODE_ENV === "development" ? ["polling", "websocket"] : ["polling"],
+);
 
 function resolveSocketUrl() {
     const configuredUrl = process.env.NEXT_PUBLIC_WEB_SOCKET_URL?.trim();
@@ -26,12 +48,22 @@ function resolveSocketUrl() {
 export function getSocket(): Socket {
     if (!socket) {
         const url = resolveSocketUrl();
-        console.log("Connecting to socket at", url ?? "same-origin", "path", SOCKET_PATH);
+        console.log(
+            "Connecting to socket at",
+            url ?? "same-origin",
+            "path",
+            SOCKET_PATH,
+            "transports",
+            SOCKET_TRANSPORTS.join(","),
+        );
 
         const options = {
             path: SOCKET_PATH,
             autoConnect: false, // we will connect manually
-            transports: ["websocket", "polling"],
+            // Cloudflare/proxy websocket upgrades are unreliable in production, so keep the
+            // browser client on polling unless explicitly overridden via env.
+            transports: SOCKET_TRANSPORTS,
+            upgrade: SOCKET_TRANSPORTS.includes("websocket"),
             auth: SOCKET_TOKEN ? { token: SOCKET_TOKEN } : undefined,
         };
 
@@ -46,6 +78,9 @@ export function getSocket(): Socket {
         });
 
         socket.on("connect_error", (err) => {
+            if (socket?.connected) {
+                return;
+            }
             console.error("Socket connection error:", err.message);
         });
 

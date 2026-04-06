@@ -9,16 +9,30 @@ const SOCKET_PATH =
 const SOCKET_TOKEN =
   process.env.WEB_SOCKET_TOKEN || process.env.NEXT_PUBLIC_WEB_SOCKET_TOKEN;
 
-function resolveSocketUrl() {
-  const configured =
-    process.env.WEB_SOCKET_URL?.trim() ||
-    process.env.NEXT_PUBLIC_WEB_SOCKET_URL?.trim();
-  if (configured) return configured;
+function normalizeServerSocketUrl(url: string, fallbackPort: string) {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.port) {
+      parsed.port = fallbackPort;
+    }
 
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return url;
+  }
+}
+
+function resolveSocketUrl() {
   const port =
     process.env.WEB_SOCKET_PORT ||
     process.env.NEXT_PUBLIC_WEB_SOCKET_PORT ||
     "3010";
+  const configured = process.env.WEB_SOCKET_URL?.trim();
+
+  if (configured) {
+    return normalizeServerSocketUrl(configured, port);
+  }
+
   return `http://127.0.0.1:${port}`;
 }
 
@@ -28,7 +42,7 @@ function getEmitterSocket(): Socket {
     const options = {
       path: SOCKET_PATH,
       autoConnect: false,
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       auth: SOCKET_TOKEN ? { token: SOCKET_TOKEN } : undefined,
     };
 
