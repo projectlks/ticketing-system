@@ -68,14 +68,22 @@ function buildCreateTicketPayload(context: NormalizedWebhookContext) {
         Value: context.host.name ?? "",
       },
     ],
-    EventTime: context.event.datetime ?? new Date().toISOString(),
-    TriggerClient: context.host.inventory_tag ?? "",
-    TriggerGroups: context.host.group ?? "",
+    // EventTime: context.event.datetime ?? new Date().toISOString(),
+    // TriggerClient: context.host.inventory_tag ?? "",
+    // TriggerGroups: context.host.group ?? "",
     Article: {
       Subject: articleSubject,
       Body: articleBody,
+
+      // ပြင်ဆင်ချက် (၂) - OTRS Document အရ မဖြစ်မနေ လိုအပ်သော Article Fields များ ဖြည့်စွက်ခြင်း
+      SenderType: "customer",
+      From: DEFAULT_CUSTOMER_EMAIL,
+      ContentType: "text/plain; charset=utf8",
+      MimeType: "text/plain",
+      Charset: "utf8",
+      TimeUnit: 0,
     },
-    Message: articleBody,
+    // Message: articleBody,
   };
 }
 
@@ -94,6 +102,10 @@ async function callCreateTicket(
       },
       body: JSON.stringify(payload),
     });
+
+    console.log("###########################################################################################")
+    console.log(JSON.stringify(payload));
+    console.log("###########################################################################################")
 
     const responseText = await response.text();
     const contentType = response.headers.get("content-type") ?? "";

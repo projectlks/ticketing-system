@@ -160,10 +160,8 @@ function logOutgoingOtrsPayload(
     endpoint: string,
     payload: Record<string, unknown>
 ): void {
-    const sanitized = redactSensitiveForLog(payload);
-    console.log(
-        `[create-ticket] outgoing OTRS payload requestId=${requestId} endpoint=${endpoint} payload=${JSON.stringify(sanitized)}`
-    );
+    redactSensitiveForLog(payload);
+ 
 }
 
 function extractOtrsApiError(value: unknown): OtrsApiError | null {
