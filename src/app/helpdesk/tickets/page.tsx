@@ -9,7 +9,6 @@ import { useSession } from "next-auth/react";
 
 import TableBody from "@/components/TableBody";
 import TableHead from "@/components/TableHead";
-import Loading from "@/components/Loading";
 import { Ticket } from "@/generated/prisma/client";
 import { usePriorityColor } from "@/hooks/usePriorityColor";
 import { useStatusColor } from "@/hooks/useStatusColor";
@@ -252,10 +251,8 @@ export default function Page() {
     [ticketsQuery.data?.tickets],
   );
   const totalTickets = ticketsQuery.data?.total ?? 0;
-  const totalPages =
-    pageSize === 0 ? 1 : Math.ceil(totalTickets / Math.max(1, pageSize));
+  const totalPages = Math.ceil(totalTickets / Math.max(1, pageSize));
   const isLoading = ticketsQuery.isLoading;
-  const showAllRowsLoading = pageSize === 0 && ticketsQuery.isFetching;
   const errorMessage = ticketsQuery.error
     ? ticketsQuery.error instanceof Error
       ? ticketsQuery.error.message
@@ -491,8 +488,7 @@ export default function Page() {
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
       />
-      {showAllRowsLoading && <Loading />}
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-400 flex-col gap-4">
         <TableTopBar
           title="Tickets"
           onNew={() => router.push("/helpdesk/tickets/new")}
@@ -574,7 +570,7 @@ export default function Page() {
 
         <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white p-4">
           <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[1200px] border-separate border-spacing-0">
+            <table className="w-full min-w-300 border-separate border-spacing-0">
               <thead className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50">
                 <tr>
                   <th className="w-12 px-3 py-3">

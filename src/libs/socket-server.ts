@@ -50,8 +50,6 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
-
     socket.on("join-ticket", (ticketId: string) => {
         socket.join(`ticket:${ticketId}`);
     });
@@ -87,6 +85,4 @@ io.on("connection", (socket) => {
 
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-    console.log(`⚡ Socket server running on 0.0.0.0:${PORT} path=${SOCKET_PATH}`);
-});
+server.listen(PORT, "0.0.0.0");

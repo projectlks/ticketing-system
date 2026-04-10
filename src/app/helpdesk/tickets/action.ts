@@ -55,7 +55,7 @@ const VALID_CREATION_MODE_SET = new Set<CreationMode>(
     Object.values(CreationMode) as CreationMode[],
 );
 
-const ACTIVE_WORK_STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "NEW" ];
+const ACTIVE_WORK_STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "NEW"];
 const CLOSED_LIKE_STATUSES: Status[] = ["CLOSED", "RESOLVED", "CANCELED"];
 const SUPER_ADMIN_ROLE: Role = "SUPER_ADMIN";
 const MAX_TICKET_ATTACHMENTS = 6;
@@ -400,7 +400,7 @@ export async function createTicket(
             ticket,
         });
         if (!syncResult.ok && !syncResult.skipped) {
-            console.error("[ticket-sync] outbound create sync failed", {
+            console.log("[ticket-sync] outbound create sync failed", {
                 ticketId: ticket.id,
                 status: syncResult.status,
                 error: syncResult.error,
@@ -717,7 +717,7 @@ export async function updateTicket(
             ticket: updated,
         });
         if (!syncResult.ok && !syncResult.skipped) {
-            console.error("[ticket-sync] outbound update sync failed", {
+            console.log("[ticket-sync] outbound update sync failed", {
                 ticketId: updated.id,
                 status: syncResult.status,
                 error: syncResult.error,
@@ -830,7 +830,7 @@ export async function updateTicketStatus(
             ticket: updated,
         });
         if (!syncResult.ok && !syncResult.skipped) {
-            console.error("[ticket-sync] outbound update sync failed", {
+            console.log("[ticket-sync] outbound update sync failed", {
                 ticketId: updated.id,
                 status: syncResult.status,
                 error: syncResult.error,

@@ -236,7 +236,7 @@ export async function getAnalysisDashboardData(
 
     return { data: dashboardData };
   } catch (error) {
-    console.error("[analysis] failed to load dashboard data", {
+    console.log("[analysis] failed to load dashboard data", {
       message: error instanceof Error ? error.message : String(error),
     });
     return { error: "Failed to load analysis dashboard data." };

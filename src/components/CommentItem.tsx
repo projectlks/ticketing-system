@@ -225,7 +225,7 @@ export default function CommentItem({
     const result = await likeComment({ commentId });
 
     if (result.error) {
-      console.error("Like action failed:", result.error);
+      console.log("Like action failed:", result.error);
       return;
     }
 

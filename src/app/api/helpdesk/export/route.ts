@@ -198,7 +198,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[helpdesk-export] failed", {
+    console.log("[helpdesk-export] failed", {
       message: error instanceof Error ? error.message : String(error),
       failedAt: new Date().toISOString(),
     });

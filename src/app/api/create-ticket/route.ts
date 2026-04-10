@@ -56,6 +56,16 @@ type OtrsApiError = {
     message: string;
 };
 
+const MASKED_VALUE = "********";
+const SENSITIVE_LOG_KEYS = new Set([
+    "password",
+    "passphrase",
+    "authorization",
+    "token",
+    "apikey",
+    "api_key",
+]);
+
 function recoverComposedPassword(value: string): string {
     // Docker Compose may interpolate `$_` using host env `_` (often `/usr/bin/docker`).
     // Recover intended literal pattern for passwords that contain `$_`.
@@ -121,6 +131,39 @@ function asObject(value: unknown): Record<string, unknown> | null {
         return null;
     }
     return value as Record<string, unknown>;
+}
+
+function redactSensitiveForLog(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map((entry) => redactSensitiveForLog(entry));
+    }
+
+    const obj = asObject(value);
+    if (!obj) {
+        return value;
+    }
+
+    const output: Record<string, unknown> = {};
+    for (const [key, entryValue] of Object.entries(obj)) {
+        if (SENSITIVE_LOG_KEYS.has(key.toLowerCase())) {
+            output[key] = MASKED_VALUE;
+            continue;
+        }
+        output[key] = redactSensitiveForLog(entryValue);
+    }
+
+    return output;
+}
+
+function logOutgoingOtrsPayload(
+    requestId: string,
+    endpoint: string,
+    payload: Record<string, unknown>
+): void {
+    const sanitized = redactSensitiveForLog(payload);
+    console.log(
+        `[create-ticket] outgoing OTRS payload requestId=${requestId} endpoint=${endpoint} payload=${JSON.stringify(sanitized)}`
+    );
 }
 
 function extractOtrsApiError(value: unknown): OtrsApiError | null {
@@ -438,6 +481,7 @@ export async function POST(req: Request) {
     try {
         // Step 1: request body JSON ဖတ်ပြီး Ticket object validate
         const body = (await req.json()) as ZabbixRequestBody;
+
         const ticket = asObject(body.Ticket);
         // console.log("[create-ticket] request received", {
         //     requestId,
@@ -446,7 +490,6 @@ export async function POST(req: Request) {
         // });
 
         if (!ticket) {
-            console.error("[create-ticket] invalid ticket object", { requestId });
             return NextResponse.json(
                 { error: "Invalid request: Ticket must be an object." },
                 { status: 400 }
@@ -456,7 +499,6 @@ export async function POST(req: Request) {
         // Step 2: DynamicField format validate
         const dynamicFields = normalizeDynamicFields(body.DynamicField);
         if (!dynamicFields || dynamicFields.length === 0) {
-            console.error("[create-ticket] invalid dynamic fields", { requestId });
             return NextResponse.json(
                 { error: "Invalid request: DynamicField must be a non-empty array." },
                 { status: 400 }
@@ -470,10 +512,6 @@ export async function POST(req: Request) {
         );
 
         if (missingDynamicFields.length > 0) {
-            console.error("[create-ticket] missing required dynamic fields", {
-                requestId,
-                missingDynamicFields,
-            });
             return NextResponse.json(
                 {
                     error: "Invalid request: missing required DynamicField values.",
@@ -486,10 +524,6 @@ export async function POST(req: Request) {
         // Step 4: ZabbixState ကို canonical value ပြောင်းပြီး လက်ခံတန်ဖိုးစစ်
         const zabbixState = normalizeZabbixState(mappedDynamicFields.ZabbixState);
         if (!zabbixState) {
-            console.error("[create-ticket] invalid zabbix state", {
-                requestId,
-                zabbixState: mappedDynamicFields.ZabbixState,
-            });
             return NextResponse.json(
                 {
                     error:
@@ -504,7 +538,6 @@ export async function POST(req: Request) {
         const configResult = loadConfig();
         if (!configResult.config) {
             const message = configResult.error ?? "Missing OTRS configuration.";
-            console.error("[create-ticket] config error", { requestId, message });
             return NextResponse.json(
                 { error: message, requestId },
                 { status: 500 }
@@ -525,7 +558,6 @@ export async function POST(req: Request) {
         //     host: mappedDynamicFields.ZabbixHost,
         // });
         if (queueId === null) {
-            console.error("[create-ticket] queue not resolved", { requestId });
             return NextResponse.json(
                 {
                     error:
@@ -559,6 +591,12 @@ export async function POST(req: Request) {
             },
         };
 
+        logOutgoingOtrsPayload(
+            requestId,
+            `${config.baseUrl}/TicketSearch`,
+            searchPayload
+        );
+
         const searchResponse = await axios.post(
             `${config.baseUrl}/TicketSearch`,
             searchPayload,
@@ -571,7 +609,7 @@ export async function POST(req: Request) {
 
         const searchApiError = extractOtrsApiError(searchResponse.data);
         if (searchApiError) {
-            console.error("[create-ticket] TicketSearch API error", {
+            console.log("[create-ticket] TicketSearch API error", {
                 requestId,
                 code: searchApiError.code,
                 message: searchApiError.message,
@@ -632,6 +670,12 @@ export async function POST(req: Request) {
                 },
             };
 
+            logOutgoingOtrsPayload(
+                requestId,
+                `${config.baseUrl}/Ticket/${existingTicketId}`,
+                updatePayload
+            );
+
             // PUT -> POST fallback helper နဲ့ update request ပို့
             const updateResult = await sendTicketUpdate(
                 `${config.baseUrl}/Ticket/${existingTicketId}`,
@@ -639,7 +683,7 @@ export async function POST(req: Request) {
                 requestConfig
             );
             if (updateResult.error || !updateResult.data) {
-                console.error("[create-ticket] Ticket update call failed", {
+                console.log("[create-ticket] Ticket update call failed", {
                     requestId,
                     existingTicketId,
                     message: updateResult.error instanceof Error
@@ -667,7 +711,7 @@ export async function POST(req: Request) {
 
             const updateApiError = extractOtrsApiError(response.data);
             if (updateApiError) {
-                console.error("[create-ticket] Ticket update API error", {
+                console.log("[create-ticket] Ticket update API error", {
                     requestId,
                     existingTicketId,
                     code: updateApiError.code,
@@ -701,10 +745,6 @@ export async function POST(req: Request) {
         // Step 8B: Recovered event ဖြစ်ပြီး open/new ticket မတွေ့ရင်
         // doc requirement အတိုင်း create မလုပ်ဘဲ skip လုပ်
         if (zabbixState === "Recovered") {
-            console.warn("[create-ticket] recovered event skipped", {
-                requestId,
-                trigger: mappedDynamicFields.ZabbixTrigger,
-            });
             return NextResponse.json(
                 {
                     action: "skipped",
@@ -720,10 +760,6 @@ export async function POST(req: Request) {
         // create မတင်ခင် Ticket mandatory fields စစ်
         const missingFields = missingCreateFields(ticket);
         if (missingFields.length > 0) {
-            console.error("[create-ticket] missing ticket fields for create", {
-                requestId,
-                missingFields,
-            });
             return NextResponse.json(
                 {
                     error: "Invalid request: missing required Ticket fields for create.",
@@ -750,6 +786,12 @@ export async function POST(req: Request) {
             },
         };
 
+        logOutgoingOtrsPayload(
+            requestId,
+            `${config.baseUrl}/Ticket`,
+            createPayload
+        );
+
         // create request
         const createResponse = await axios.post(
             `${config.baseUrl}/Ticket`,
@@ -763,7 +805,7 @@ export async function POST(req: Request) {
 
         const createApiError = extractOtrsApiError(createResponse.data);
         if (createApiError) {
-            console.error("[create-ticket] Ticket create API error", {
+            console.log("[create-ticket] Ticket create API error", {
                 requestId,
                 code: createApiError.code,
                 message: createApiError.message,
@@ -791,7 +833,7 @@ export async function POST(req: Request) {
     catch (error: unknown) {
         // Axios error ဖြစ်ရင် OTRS status/data ပါ log + response မှာပြန်ပို့
         if (axios.isAxiosError(error)) {
-            console.error("[create-ticket] axios failure", {
+            console.log("[create-ticket] axios failure", {
                 requestId,
                 message: error.message,
                 status: error.response?.status,
@@ -809,7 +851,7 @@ export async function POST(req: Request) {
 
         // Axios မဟုတ်တဲ့ error အတွက် generic fallback
         const details = error instanceof Error ? error.message : String(error);
-        console.error("[create-ticket] unknown failure", { requestId, details });
+        console.log("[create-ticket] unknown failure", { requestId, details });
         return NextResponse.json(
             { error: "OTRS API call failed", requestId },
             { status: 500 }

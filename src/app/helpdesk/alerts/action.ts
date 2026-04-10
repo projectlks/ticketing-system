@@ -83,7 +83,7 @@ export async function getPaginatedZabbixTickets(input: AlertsPaginationInput = {
       pageSize,
     };
   } catch (error) {
-    console.error("getPaginatedZabbixTickets error:", error);
+    console.log("getPaginatedZabbixTickets error:", error);
 
     return {
       success: false,
@@ -116,7 +116,7 @@ export async function getAllZabbixTickets() {
       data: tickets,
     };
   } catch (error) {
-    console.error("getAllZabbixTickets error:", error);
+    console.log("getAllZabbixTickets error:", error);
 
     return {
       success: false,

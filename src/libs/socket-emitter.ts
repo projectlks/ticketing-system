@@ -34,7 +34,7 @@ function getEmitterSocket(): Socket {
 
     socket = io(url, options);
     socket.on("connect_error", (err) => {
-      console.error("[socket-emitter] connection error:", err.message);
+      console.log("[socket-emitter] connection error:", err.message);
     });
     socket.connect();
   }
@@ -54,7 +54,7 @@ function emitEvent(event: string, payload: Record<string, unknown>) {
       sock.emit(event, payload);
     });
   } catch (error) {
-    console.error("[socket-emitter] emit failed", {
+    console.log("[socket-emitter] emit failed", {
       event,
       message: error instanceof Error ? error.message : String(error),
     });

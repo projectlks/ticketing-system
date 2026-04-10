@@ -65,12 +65,9 @@ async function main() {
     ],
     skipDuplicates: true,
   });
-
-  console.log("Seed data inserted successfully!");
 }
 
 main()
-  .catch((error) => console.error(error))
   .finally(async () => {
     await prisma.$disconnect();
   });

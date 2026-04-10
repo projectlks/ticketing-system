@@ -23,6 +23,6 @@ export async function sendMail(to: string, subject: string, text: string, html?:
     });
     console.log("✅ Email sent:", info.messageId);
   } catch (err) {
-    console.error("❌ Email error:", err);
+    console.log("❌ Email error:", err);
   }
 }

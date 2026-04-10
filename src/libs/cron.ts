@@ -25,11 +25,11 @@ cron.schedule(
             // await permanentDeleteTickets();
 
             console.log("[CRON] Deleting expired user sessions...");
-          
+
 
             console.log("[CRON] Cleanup done.");
         } catch (err) {
-            console.error("[CRON] Cleanup failed:", err);
+            console.log("[CRON] Cleanup failed:", err);
         }
     },
     { timezone: "Asia/Yangon" }
@@ -58,7 +58,7 @@ cron.schedule(
                 `[CRON] Deleted ${result.count} alerts older than 1 month (before ${cutoff.toISOString()}).`,
             );
         } catch (err) {
-            console.error("[CRON] Alerts cleanup failed:", err);
+            console.log("[CRON] Alerts cleanup failed:", err);
         }
     },
     { timezone: "Asia/Yangon" }
@@ -98,7 +98,7 @@ cron.schedule(
 
                 // console.log(`SLA violated → Ticket: ${ticket.ticketId}`);
 
-         
+
             }
 
             if (violatedTickets.length > 0) {
@@ -116,7 +116,7 @@ cron.schedule(
 
             console.log(`[CRON] Checked ${violatedTickets.length} tickets.`);
         } catch (err) {
-            console.error("[CRON] SLA check failed:", err);
+            console.log("[CRON] SLA check failed:", err);
         }
     },
     { timezone: "Asia/Yangon" }

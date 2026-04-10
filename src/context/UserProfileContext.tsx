@@ -38,7 +38,7 @@ const EMPTY_USER: BasicUserData = {
 };
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const UserDataProvider = ({ children }: { children: ReactNode }) => {
@@ -60,14 +60,13 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       try {
         const result = await getBasicUserData();
         if (result.error || !result.data) {
-          console.error("Failed to fetch user data:", result.error);
           return;
         }
         if (isActive) {
           setUserData(result.data);
         }
-      } catch (err) {
-        console.error("Failed to fetch full user data:", err);
+      } catch {
+        return;
       }
     }
 

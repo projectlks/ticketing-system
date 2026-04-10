@@ -20,12 +20,12 @@ type PaginationViewport = "mobile" | "tablet" | "desktop";
 const MOBILE_MAX_WIDTH = 639;
 const TABLET_MAX_WIDTH = 1279;
 
-// UX research အရ table pagination မှာ 10/20/25/50/100 scale ကို
+// UX research အရ table pagination မှာ 10/20/25/50/100/200 scale ကို
 // အများစုသုံးထားတာကြောင့် breakpoint အလိုက် options ခွဲထားပါတယ်။
 const PAGE_SIZE_OPTIONS_BY_VIEWPORT: Record<PaginationViewport, number[]> = {
-  mobile: [10, 20, 50, 0],
-  tablet: [20, 50, 100, 0],
-  desktop: [20, 25, 50, 100, 0],
+  mobile: [10, 20, 50, 100],
+  tablet: [20, 50, 100, 200],
+  desktop: [20, 25, 50, 100, 200],
 };
 
 const resolveViewport = (width: number): PaginationViewport => {
@@ -35,11 +35,7 @@ const resolveViewport = (width: number): PaginationViewport => {
 };
 
 const sortPageSizes = (values: number[]) =>
-  [...values].sort((left, right) => {
-    if (left === 0) return 1;
-    if (right === 0) return -1;
-    return left - right;
-  });
+  [...values].sort((left, right) => left - right);
 
 export default function TableFooter({
   pageSize,
@@ -83,7 +79,7 @@ export default function TableFooter({
               className="h-8 appearance-none rounded-lg border border-zinc-200 bg-white pl-2 pr-7 text-sm text-zinc-700 outline-none focus:border-zinc-400">
               {pageSizeOptions.map((size) => (
                 <option key={size} value={size}>
-                  {size === 0 ? "All" : size}
+                  {size}
                 </option>
               ))}
             </select>

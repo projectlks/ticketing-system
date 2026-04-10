@@ -1,0 +1,103 @@
+{
+  "source": "user-provided terminal logs",
+  "service": "create-ticket -> OTRS GenericInterface",
+  "note": "Password is masked exactly as shown in logs.",
+  "observedRequests": [
+    {
+      "requestId": "1775638035465-rvilgp",
+      "route": "/api/create-ticket",
+      "routeStatus": 404,
+      "duration": "14.0s",
+      "otrs": {
+        "endpoint": "https://support-test.eastwind.ru/nph-genericinterface.pl/Webservice/EWChatbot/TicketSearch",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "payload": {
+          "UserLogin": "myanmarapi",
+          "Password": "********",
+          "States": [
+            "new",
+            "open"
+          ],
+          "QueueIDs": [
+            96
+          ],
+          "DynamicField_ZabbixTrigger": {
+            "Equals": "TEST-TRIGGER-LOG-ONLY"
+          }
+        }
+      },
+      "result": {
+        "action": "skipped",
+        "reason": "Recovered event received but no open ticket found. TicketCreate was intentionally skipped.",
+        "trigger": "TEST-TRIGGER-LOG-ONLY"
+      }
+    },
+    {
+      "requestId": "1775638080338-qob3py",
+      "route": "/api/create-ticket",
+      "routeStatus": 404,
+      "duration": "5.3s",
+      "otrs": {
+        "endpoint": "https://support-test.eastwind.ru/nph-genericinterface.pl/Webservice/EWChatbot/TicketSearch",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "payload": {
+          "UserLogin": "myanmarapi",
+          "Password": "********",
+          "States": [
+            "new",
+            "open"
+          ],
+          "QueueIDs": [
+            96
+          ],
+          "DynamicField_ZabbixTrigger": {
+            "Equals": "TEST-TRIGGER-LOG-ONLY"
+          }
+        }
+      },
+      "result": {
+        "action": "skipped",
+        "reason": "Recovered event received but no open ticket found. TicketCreate was intentionally skipped.",
+        "trigger": "TEST-TRIGGER-LOG-ONLY"
+      }
+    },
+    {
+      "requestId": "1775638102070-2vkgf9",
+      "route": "/api/create-ticket",
+      "routeStatus": 404,
+      "duration": "4.4s",
+      "otrs": {
+        "endpoint": "https://support-test.eastwind.ru/nph-genericinterface.pl/Webservice/EWChatbot/TicketSearch",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "payload": {
+          "UserLogin": "myanmarapi",
+          "Password": "********",
+          "States": [
+            "new",
+            "open"
+          ],
+          "QueueIDs": [
+            96
+          ],
+          "DynamicField_ZabbixTrigger": {
+            "Equals": "TEST-TRIGGER-LOG-ONLY"
+          }
+        }
+      },
+      "result": {
+        "action": "skipped",
+        "reason": "Recovered event received but no open ticket found. TicketCreate was intentionally skipped.",
+        "trigger": "TEST-TRIGGER-LOG-ONLY"
+      }
+    }
+  ]
+}

@@ -82,7 +82,12 @@ export default function CommentInput({
       message?: string;
     };
 
-    if (!response.ok || !payload.success || !Array.isArray(payload.urls) || !payload.urls[0]) {
+    if (
+      !response.ok ||
+      !payload.success ||
+      !Array.isArray(payload.urls) ||
+      !payload.urls[0]
+    ) {
       throw new Error(payload.message ?? "Upload failed");
     }
 
@@ -109,7 +114,7 @@ export default function CommentInput({
       });
 
       if (!result.success || !result.data) {
-        console.error("Comment upload failed:", result.error ?? "Unknown error");
+        console.log("Comment upload failed:", result.error ?? "Unknown error");
         return;
       }
 
@@ -134,7 +139,7 @@ export default function CommentInput({
         }
       }
     } catch (error) {
-      console.error("Comment upload failed:", error);
+      console.log("Comment upload failed:", error);
     } finally {
       // setLoading(false);
     }

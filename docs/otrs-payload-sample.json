@@ -1,0 +1,37 @@
+{
+  "Ticket": {
+    "Title": "High CPU usage on app-server-01",
+    "QueueID": "96",
+    "Service": "CEIR",
+    "State": "new",
+    "Priority": "2 High",
+    "Type": "Incident",
+    "CustomerUser": "support@eastwindmyanmar.com.mm"
+  },
+  "DynamicField": [
+    {
+      "Name": "ZabbixState",
+      "Value": "PROBLEM"
+    },
+    {
+      "Name": "ZabbixTrigger",
+      "Value": "TEST-TRIGGER-LOG-ONLY"
+    },
+    {
+      "Name": "ZabbixEvent",
+      "Value": "1775638035465"
+    },
+    {
+      "Name": "ZabbixHost",
+      "Value": "app-server-01"
+    }
+  ],
+  "EventTime": "2026-04-08T10:35:00Z",
+  "TriggerClient": "EW-MYANMAR",
+  "TriggerGroups": "Linux Servers",
+  "Article": {
+    "Subject": "EW-MYANMAR - PROBLEM: High CPU usage on app-server-01",
+    "Body": "Problem started at 10:35:00 on 2026-04-08\nTrigger client: EW-MYANMAR\nTrigger groups: Linux Servers\nHostname: app-server-01\nTrigger: High CPU usage on app-server-01\nOriginal event ID: 1775638035465\nLast 5 Item values:\n1: 95\n2: 92\n3: 90\n4: 89\n5: 88\nEvent Detail: \"https://zabbix.example.com/tr_events.php?triggerid=TEST-TRIGGER-LOG-ONLY&eventid=1775638035465\""
+  },
+  "Message": "Problem started at 10:35:00 on 2026-04-08\nTrigger client: EW-MYANMAR\nTrigger groups: Linux Servers\nHostname: app-server-01\nTrigger: High CPU usage on app-server-01\nOriginal event ID: 1775638035465\nLast 5 Item values:\n1: 95\n2: 92\n3: 90\n4: 89\n5: 88\nEvent Detail: \"https://zabbix.example.com/tr_events.php?triggerid=TEST-TRIGGER-LOG-ONLY&eventid=1775638035465\""
+}

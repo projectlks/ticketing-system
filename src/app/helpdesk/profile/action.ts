@@ -234,7 +234,7 @@ export async function updateMyAccountProfile(
   if (existingUser.profileUrl !== nextProfileUrl) {
     const deleteError = await deleteLocalUploadFileIfExists(existingUser.profileUrl);
     if (deleteError) {
-      console.error("[profile] failed to delete old upload file", {
+      console.log("[profile] failed to delete old upload file", {
         profileUrl: existingUser.profileUrl,
         message: deleteError,
       });
