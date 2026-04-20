@@ -50,8 +50,11 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
+    console.log(`🟢 New client connected: ${socket.id}`);
+
     socket.on("join-ticket", (ticketId: string) => {
         socket.join(`ticket:${ticketId}`);
+        console.log(`Client ${socket.id} joined ticket: ${ticketId}`);
     });
 
     socket.on("typing", (data: { ticketId: string; userName: string }) => {
@@ -61,8 +64,6 @@ io.on("connection", (socket) => {
     socket.on("send-comment", (comment) => {
         io.to(`ticket:${comment.ticketId}`).emit("new-comment", comment);
     });
-
-
 
     socket.on("update-ticket", (data: { id: string; audit: Audit; ticket: TicketFormData }) => {
         // broadcast to the ticket room
@@ -81,8 +82,13 @@ io.on("connection", (socket) => {
         io.emit("sla-violations", payload);
     });
 
-
-
+    socket.on("disconnect", () => {
+        console.log(`🔴 Client disconnected: ${socket.id}`);
+    });
 });
 
-server.listen(PORT, "0.0.0.0");
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Socket.IO Server is successfully running!`);
+    console.log(`👉 Port: ${PORT}`);
+    console.log(`👉 Path: ${SOCKET_PATH}`);
+});

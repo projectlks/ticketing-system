@@ -29,7 +29,7 @@ export default async function RootLayout({
 }>) {
   const session = await getServerSession(authOptions);
   return (
-    <html lang="en" className={roboto.variable}>
+    <html lang="en" className={roboto.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Providers session={session}>
           <UserDataProvider>{children}</UserDataProvider>
@@ -39,4 +39,3 @@ export default async function RootLayout({
   );
 }
 
-// alda tifn zhak xqmy
