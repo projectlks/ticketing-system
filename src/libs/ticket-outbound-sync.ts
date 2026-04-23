@@ -115,10 +115,14 @@ export async function syncTicketOutbound(
   params: TicketOutboundSyncParams,
 ): Promise<TicketOutboundSyncResult> {
   const endpoint = process.env.TICKET_OUTBOUND_API_URL?.trim();
+
+
+
+
   if (!endpoint) {
     return { ok: true, skipped: true };
   }
-
+  
   const timeoutMs = toNumberOrDefault(
     process.env.TICKET_OUTBOUND_TIMEOUT_MS,
     DEFAULT_TIMEOUT_MS,
