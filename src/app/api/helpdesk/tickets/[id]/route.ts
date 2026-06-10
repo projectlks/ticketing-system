@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import bcrypt from "bcrypt";
 
 import { prisma } from "@/libs/prisma";
 import { getCurrentUserId } from "@/libs/action";
 import { updateTicket } from "@/app/helpdesk/tickets/action";
+import { getUserIdFromBasicAuth } from "@/libs/basic-auth";
 
 interface Params {
   id: string;
@@ -28,32 +28,6 @@ const UpdateTicketPayloadSchema = z.object({
 
 type UpdateTicketPayload = z.infer<typeof UpdateTicketPayloadSchema>;
 
-/**
- * Header ထဲမှ Basic Auth (Email:Password) ကို ဖတ်ပြီး User ကို ရှာပေးသည့် Function
- */
-async function getUserIdFromBasicAuth(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Basic ")) return null;
-
-  try {
-    const base64Credentials = authHeader.split(" ")[1];
-    const credentials = Buffer.from(base64Credentials, "base64").toString("utf-8");
-    const [email, password] = credentials.split(":");
-
-    if (!email || !password) return null;
-
-    const user = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
-    });
-
-    if (!user || user.isArchived || !user.password) return null;
-
-    const isValid = await bcrypt.compare(password, user.password);
-    return isValid ? user.id : null;
-  } catch (error) {
-    return null;
-  }
-}
 
 export async function PATCH(
   request: NextRequest,
@@ -150,9 +124,6 @@ export async function PATCH(
   });
 }
 
-
-
-// ... အပေါ်က import တွေ အတိုင်းထားပါ ...
 
 export async function GET(
   request: NextRequest,

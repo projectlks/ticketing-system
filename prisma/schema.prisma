@@ -137,6 +137,8 @@ model User {
   // Job Positions
   jobPositionId String?
 
+  
+
   // Tickets
   requestTickets  Ticket[]      @relation("TicketRequester")
   assignedTickets Ticket[]      @relation("TicketAssignedTo")
