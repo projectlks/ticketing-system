@@ -2,12 +2,15 @@
 
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom"; // 🌟 ၁။ createPortal ကို Import လုပ်ပါသည်
 import { useDropzone } from "react-dropzone";
 import {
   ArrowUpTrayIcon,
   TrashIcon,
   ArrowDownTrayIcon,
   DocumentTextIcon,
+  ArrowsPointingOutIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
 
@@ -71,7 +74,11 @@ const getAttachmentCategory = (file: File): AttachmentCategory => {
   ) {
     return "file";
   }
-  if (mime === "text/plain" || mime === "text/csv" || TEXT_EXTENSIONS.has(ext)) {
+  if (
+    mime === "text/plain" ||
+    mime === "text/csv" ||
+    TEXT_EXTENSIONS.has(ext)
+  ) {
     return "file";
   }
 
@@ -94,7 +101,9 @@ const formatBytes = (bytes: number): string => {
 
 const isImageByUrl = (url: string) => {
   const safeUrl = url.split("?")[0]?.toLowerCase() ?? "";
-  return [".png", ".jpg", ".jpeg", ".webp"].some((ext) => safeUrl.endsWith(ext));
+  return [".png", ".jpg", ".jpeg", ".webp"].some((ext) =>
+    safeUrl.endsWith(ext),
+  );
 };
 
 const getFileNameFromUrl = (url: string) => {
@@ -117,7 +126,16 @@ export default function ImageUploader({
     [],
   );
 
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  // 🌟 ၂။ Next.js Hybrid Rendering ကြောင့် SSR Hydration Mismatch မဖြစ်အောင် Mounted State ထားပါမည်
+  const [mounted, setMounted] = useState<boolean>(false);
+
   useEffect(() => {
+    setTimeout(() => {
+      
+      setMounted(true); // Client-side ရောက်မှ True ပေးပါမည်
+    }, 1);
     const previewUrls = previews.map((preview) => preview.url);
     return () => {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -137,7 +155,8 @@ export default function ImageUploader({
       (item) => getAttachmentCategory(item) === "file",
     ).length;
 
-    let nextImageCount = currentImageCountFromExisting + currentImageCountFromNew;
+    let nextImageCount =
+      currentImageCountFromExisting + currentImageCountFromNew;
     let nextFileCount = currentFileCountFromExisting + currentFileCountFromNew;
     let nextTotalCount = nextImageCount + nextFileCount;
 
@@ -150,12 +169,16 @@ export default function ImageUploader({
 
       const limit = getSizeLimitForCategory(category);
       if (file.size > limit) {
-        toast.error(`${file.name} exceeds ${formatBytes(limit)} and was skipped.`);
+        toast.error(
+          `${file.name} exceeds ${formatBytes(limit)} and was skipped.`,
+        );
         return false;
       }
 
       if (nextTotalCount >= MAX_ATTACHMENTS) {
-        toast.error(`You can upload up to ${MAX_ATTACHMENTS} attachments total.`);
+        toast.error(
+          `You can upload up to ${MAX_ATTACHMENTS} attachments total.`,
+        );
         return false;
       }
 
@@ -192,7 +215,10 @@ export default function ImageUploader({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: DROPZONE_ACCEPT,
-    maxFiles: Math.max(0, MAX_ATTACHMENTS - (images.length + existingImages.length)),
+    maxFiles: Math.max(
+      0,
+      MAX_ATTACHMENTS - (images.length + existingImages.length),
+    ),
   });
 
   const showEmptyState = previews.length === 0 && existingImages.length === 0;
@@ -207,8 +233,7 @@ export default function ImageUploader({
           isDragActive
             ? "border-zinc-500 bg-zinc-100"
             : "border-zinc-300 bg-zinc-50 hover:border-zinc-400"
-        }`}
-      >
+        }`}>
         <input {...getInputProps()} />
 
         {showEmptyState ? (
@@ -220,7 +245,8 @@ export default function ImageUploader({
               Drop files here or click to upload
             </p>
             <p className="text-xs text-zinc-500">
-              Max 6 attachments total: up to 3 images (1MB each) and 3 files (5MB each).
+              Max 6 attachments total: up to 3 images (1MB each) and 3 files
+              (5MB each).
             </p>
           </div>
         ) : (
@@ -238,6 +264,7 @@ export default function ImageUploader({
                     previous.filter((item) => item.id !== attachment.id),
                   );
                 }}
+                onViewClick={() => setFullscreenImage(attachment.url)}
               />
             ))}
 
@@ -252,14 +279,43 @@ export default function ImageUploader({
                   setPreviews((previous) =>
                     previous.filter((preview) => preview.url !== url),
                   );
-                  setImages((previous) => previous.filter((item) => item !== file));
+                  setImages((previous) =>
+                    previous.filter((item) => item !== file),
+                  );
                   URL.revokeObjectURL(url);
                 }}
+                onViewClick={() => setFullscreenImage(url)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* 🌟 ၃။ createPortal သုံးပြီး document.body အောက်သို့ Modal အား ပို့လိုက်ပါသည် */}
+      {fullscreenImage &&
+        mounted &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            onClick={() => setFullscreenImage(null)}>
+            <div className="relative max-h-full max-w-full">
+              <button
+                onClick={() => setFullscreenImage(null)}
+                className="absolute -right-12 top-0 rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white">
+                <XMarkIcon className="h-8 w-8" />
+              </button>
+
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={fullscreenImage}
+                alt="Fullscreen Preview"
+                className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>,
+          document.body, // DOM ရဲ့ အပြင်ဘက်ဆုံးအဆင့်ထိ ပို့ပေးခြင်းဖြစ်ပါသည်
+        )}
     </section>
   );
 }
@@ -270,6 +326,7 @@ type AttachmentTileProps = {
   isImage: boolean;
   onDelete: () => void;
   onDownloadClick?: (event: React.MouseEvent<HTMLElement>) => void;
+  onViewClick?: () => void;
 };
 
 function AttachmentTile({
@@ -278,6 +335,7 @@ function AttachmentTile({
   isImage,
   onDelete,
   onDownloadClick,
+  onViewClick,
 }: AttachmentTileProps) {
   return (
     <div className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white">
@@ -293,19 +351,32 @@ function AttachmentTile({
       ) : (
         <div className="flex aspect-square flex-col items-center justify-center gap-2 px-3 text-center">
           <DocumentTextIcon className="h-10 w-10 text-zinc-500" />
-          <p className="line-clamp-3 text-xs font-medium text-zinc-700" title={fileName}>
+          <p
+            className="line-clamp-3 text-xs font-medium text-zinc-700"
+            title={fileName}>
             {fileName}
           </p>
         </div>
       )}
 
       <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+        {isImage && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (onViewClick) onViewClick();
+            }}
+            className="rounded-full bg-white p-2 transition hover:bg-zinc-200">
+            <ArrowsPointingOutIcon className="h-4 w-4 text-zinc-700" />
+          </button>
+        )}
+
         <a
           href={fileUrl}
           download={fileName}
           onClick={onDownloadClick}
-          className="rounded-full bg-white p-2 transition hover:bg-zinc-200"
-        >
+          className="rounded-full bg-white p-2 transition hover:bg-zinc-200">
           <ArrowDownTrayIcon className="h-4 w-4 text-zinc-700" />
         </a>
 
@@ -315,8 +386,7 @@ function AttachmentTile({
             event.stopPropagation();
             onDelete();
           }}
-          className="rounded-full bg-white p-2 transition hover:bg-zinc-200"
-        >
+          className="rounded-full bg-white p-2 transition hover:bg-zinc-200">
           <TrashIcon className="h-4 w-4 text-zinc-700" />
         </button>
       </div>

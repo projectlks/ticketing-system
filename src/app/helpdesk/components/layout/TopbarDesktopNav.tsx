@@ -59,7 +59,7 @@ export default function TopbarDesktopNav({
   return (
     <nav
       ref={navRef}
-      className="hidden min-w-0 flex-1 items-center gap-1  lg:flex">
+      className="hidden min-w-0 flex-1  items-center gap-1  lg:flex">
       {sections.map((section) => {
         if (section.items.length === 1) {
           const item = section.items[0];
@@ -87,12 +87,16 @@ export default function TopbarDesktopNav({
         const sectionOpen = openSectionKey === section.key;
 
         return (
-          <div key={section.key} className="relative shrink-0">
+          <div
+            key={section.key}
+            onMouseEnter={() => setOpenSectionKey(section.key)}
+            onMouseLeave={() => setOpenSectionKey(null)}
+            className="relative  shrink-0">
             <button
               type="button"
               aria-haspopup="menu"
               aria-expanded={sectionOpen}
-              onClick={() => toggleSection(section.key)}
+              // onClick={() => toggleSection(section.key)}
               className={`flex h-9 items-center gap-1 rounded-lg px-3 text-sm transition-colors ${
                 sectionActive
                   ? "bg-zinc-900 text-white"
@@ -107,18 +111,24 @@ export default function TopbarDesktopNav({
             </button>
 
             {sectionOpen && (
-              <div className="absolute left-0 top-[calc(100%+8px)] z-50 min-w-[180px] rounded-lg border border-zinc-200 bg-white p-1.5 shadow-lg">
+              <div className="absolute left-0 top-full pt-2 z-50 min-w-[180px] rounded-lg border border-zinc-200 bg-white p-1.5 shadow-lg">
                 {/* Dropdown item ?????????? click ?????????? close ???????????
                     route ???????????????? panel ??????? ???????????????????????? */}
                 {section.items.map((item) => {
-                  const active = isItemActive(activeItemKey, item.href, item.key);
+                  const active = isItemActive(
+                    activeItemKey,
+                    item.href,
+                    item.key,
+                  );
 
                   return (
                     <Link
                       key={item.key}
                       href={item.href}
                       prefetch
-                      onMouseEnter={() => handleLinkPrefetch(item.href.pathname)}
+                      onMouseEnter={() =>
+                        handleLinkPrefetch(item.href.pathname)
+                      }
                       onFocus={() => handleLinkPrefetch(item.href.pathname)}
                       onClick={() => setOpenSectionKey(null)}
                       className={`block rounded-md px-2.5 py-2 text-sm transition-colors ${

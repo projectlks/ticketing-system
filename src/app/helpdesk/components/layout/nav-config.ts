@@ -37,18 +37,19 @@ export const navSections: NavSection[] = [
         },
       },
       { key: "all-tickets", label: "All Tickets", href: { pathname: "/helpdesk/tickets" } },
+      {
+        key: "create-ticket",
+        label: "Create Ticket",
+        href: { pathname: "/helpdesk/tickets/new" },
+        // icon စသည်တို့ ပါလျှင် ထပ်ထည့်ပါ
+      }
     ],
   },
   {
     key: "alerts",
     label: "Alerts",
     items: [
-      // { key: "current-alerts", label: "Current Alerts", href: { pathname: "/helpdesk/alerts" } },
-      // {
-      //   key: "all-alerts",
-      //   label: "All Alerts",
-      //   href: { pathname: "/helpdesk/alerts", query: { filter: "All Alerts" } },
-      // },
+
       {
         key: "Alerts",
         label: "Alerts",

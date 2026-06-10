@@ -128,7 +128,7 @@
 
 "use client";
 
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, XMarkIcon, PlusIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -211,6 +211,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             />
 
             <div className="ml-auto flex shrink-0 items-center gap-2">
+              {/* 🌟 Contrastive ဖြစ်ပြီး ထင်သာမြင်သာရှိမည့် Create Ticket Button */}
+              <Link
+                href={{ pathname: "/helpdesk/tickets/new" }}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white shadow-md transition-all hover:bg-zinc-800 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900">
+                <PlusIcon className="h-4 w-4 stroke-[2.5]" />
+                <span className="hidden sm:inline">Create Ticket</span>
+              </Link>
+
               <SlaViolationNotification />
               <UserProfile />
             </div>
