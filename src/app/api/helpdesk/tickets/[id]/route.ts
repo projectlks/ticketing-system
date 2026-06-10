@@ -1,24 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-
 import { prisma } from "@/libs/prisma";
-import { getCurrentUserId } from "@/libs/action";
 import { updateTicket } from "@/app/helpdesk/tickets/action";
-import { getUserIdFromBasicAuth } from "@/libs/basic-auth";
+import { withAuth } from "@/libs/api-auth-wrapper"; // 🌟 withAuth ကို Import လုပ်ပါမည်
 
 interface Params {
   id: string;
 }
 
-// ၁။ အားလုံးကို .optional() ပေးထားသောကြောင့် မပြင်ချင်သော Field များကို ထည့်ပို့ရန်မလိုပါ။
 const UpdateTicketPayloadSchema = z.object({
   status: z.enum(["NEW", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELED"]).optional(),
   description: z.string().optional(),
-  // သင့် System ရှိ Priority များကို လိုအပ်သလို အတိုးအလျှော့လုပ်ပါ 
   priority: z.enum(["REQUEST", "MINOR", "MAJOR", "CRITICAL"]).optional(),
   remark: z.string().optional(),
 }).refine((data) => {
-  // Priority ကို ထည့်ပို့ထားလျှင် Remark သည် မဖြစ်မနေ ပါရမည်။ မပါလျှင် Error ပြမည်။
   if (data.priority && (!data.remark || data.remark.trim() === "")) return false;
   return true;
 }, {
@@ -29,71 +24,46 @@ const UpdateTicketPayloadSchema = z.object({
 type UpdateTicketPayload = z.infer<typeof UpdateTicketPayloadSchema>;
 
 
-export async function PATCH(
+// 🌟 PATCH function ကို withAuth ဖြင့် ပတ်လိုက်ပါပြီ (context ကို တတိယ Parameter အဖြစ် ယူပါမည်)
+export const PATCH = withAuth(async (
   request: NextRequest,
-  context: { params: Promise<Params> },
-) {
+  userId: string,
+  context: { params: Promise<Params> }
+) => {
   const { id } = await context.params;
 
   if (!id) {
-    return NextResponse.json(
-      { success: false, error: "Ticket id is required" },
-      { status: 400 },
-    );
+    return NextResponse.json({ success: false, error: "Ticket id is required" }, { status: 400 });
   }
 
-  // Authentication စစ်ဆေးခြင်း
-  const sessionUserId = await getCurrentUserId();
-  const basicAuthUserId = await getUserIdFromBasicAuth(request);
-  const finalActorId = sessionUserId || basicAuthUserId;
+  // လုံခြုံရေးစစ်ဆေးခြင်းများကို withAuth က လုပ်ပေးသွားပြီဖြစ်၍ ဖြုတ်လိုက်ပါသည်
 
-  if (!finalActorId) {
-    return NextResponse.json(
-      { success: false, error: "Unauthorized: Invalid credentials or session" },
-      { status: 401 },
-    );
-  }
-
-  // JSON ဖတ်ခြင်း
   let jsonBody: unknown;
   try {
     jsonBody = await request.json();
   } catch {
-    return NextResponse.json(
-      { success: false, error: "Invalid JSON body" },
-      { status: 400 },
-    );
+    return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // Validation စစ်ဆေးခြင်း
   const resultParse = UpdateTicketPayloadSchema.safeParse(jsonBody);
   if (!resultParse.success) {
     return NextResponse.json(
-      {
-        success: false,
-        error: resultParse.error.issues[0]?.message ?? "Invalid payload",
-      },
+      { success: false, error: resultParse.error.issues[0]?.message ?? "Invalid payload" },
       { status: 400 },
     );
   }
 
   const validatedData: UpdateTicketPayload = resultParse.data;
 
-  // ၂။ Database မှ လက်ရှိ Ticket ကို ဆွဲထုတ်ခြင်း (Action တွင် Error မတက်စေရန်)
   const existingTicket = await prisma.ticket.findUnique({
     where: { id },
   });
 
   if (!existingTicket) {
-    return NextResponse.json(
-      { success: false, error: "Ticket not found" },
-      { status: 404 },
-    );
+    return NextResponse.json({ success: false, error: "Ticket not found" }, { status: 404 });
   }
 
-  // ၃။ FormData ကို တည်ဆောက်ခြင်း
   const formData = new FormData();
-
   formData.append("title", existingTicket.title);
   formData.append("status", validatedData.status ?? existingTicket.status);
   formData.append("description", validatedData.description ?? existingTicket.description ?? "");
@@ -103,12 +73,11 @@ export async function PATCH(
   if (existingTicket.categoryId) formData.append("categoryId", existingTicket.categoryId);
   if (existingTicket.assignedToId) formData.append("assignedToId", existingTicket.assignedToId);
 
-  // အသစ်ပို့လိုက်တဲ့ remark မရှိရင် အဟောင်းကို ယူမယ်၊ အဟောင်းမှမရှိရင် "" ကို ယူမယ်
   formData.append("remark", validatedData.remark ?? existingTicket.remark ?? "");
 
-  // Update Action ကို ခေါ်ယူခြင်း
+  // 🌟 withAuth မှ ရလာသော userId ကို တိုက်ရိုက် အသုံးပြုပါမည်
   const result = await updateTicket(id, formData, {
-    actorUserId: finalActorId,
+    actorUserId: userId,
   });
 
   if (result.error || !result.data) {
@@ -118,40 +87,25 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json({
-    success: true,
-    data: result.data.updated,
-  });
-}
+  return NextResponse.json({ success: true, data: result.data.updated });
+});
 
 
-export async function GET(
+// 🌟 GET function ကိုလည်း withAuth ဖြင့် ပတ်လိုက်ပါပြီ
+export const GET = withAuth(async (
   request: NextRequest,
+  userId: string,
   context: { params: Promise<Params> }
-) {
+) => {
   const { id } = await context.params;
 
   if (!id) {
-    return NextResponse.json(
-      { success: false, error: "Ticket id is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ success: false, error: "Ticket id is required" }, { status: 400 });
   }
 
-  // ၁။ လုံခြုံရေး စစ်ဆေးခြင်း (Authentication)
-  const sessionUserId = await getCurrentUserId();
-  const basicAuthUserId = await getUserIdFromBasicAuth(request);
-  const finalActorId = sessionUserId || basicAuthUserId;
-
-  if (!finalActorId) {
-    return NextResponse.json(
-      { success: false, error: "Unauthorized: Invalid credentials or session" },
-      { status: 401 }
-    );
-  }
+  // လုံခြုံရေးစစ်ဆေးခြင်းများကို withAuth က လုပ်ပေးသွားပြီဖြစ်၍ ဖြုတ်လိုက်ပါသည်
 
   try {
-    // ၂။ Database ထဲတွင် ID ဖြင့် အတိအကျရှာခြင်း (id သို့မဟုတ် ticketId နှစ်မျိုးလုံးကို လက်ခံသည်)
     const ticket = await prisma.ticket.findFirst({
       where: {
         isArchived: false,
@@ -169,25 +123,14 @@ export async function GET(
       }
     });
 
-    // ၃။ ရှာမတွေ့ပါက Error ပြန်ပေးမည်
     if (!ticket) {
-      return NextResponse.json(
-        { success: false, error: "Ticket not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Ticket not found" }, { status: 404 });
     }
 
-    // ၄။ အောင်မြင်စွာ တွေ့ရှိပါက Ticket Data ကို ပြန်ပေးမည်
-    return NextResponse.json({
-      success: true,
-      data: ticket,
-    });
+    return NextResponse.json({ success: true, data: ticket });
 
   } catch (error) {
     console.error("[get-single-ticket-api-error]", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch ticket." },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Failed to fetch ticket." }, { status: 500 });
   }
-}
+});

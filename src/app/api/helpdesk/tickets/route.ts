@@ -1,16 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createTicket } from "@/app/helpdesk/tickets/_lib/mutations";
-import { getUserIdFromBasicAuth } from "@/libs/basic-auth";
+import { withAuth } from "@/libs/api-auth-wrapper"; // 🌟 withAuth ကို Import လုပ်ပါမည်
 
-export async function POST(request: NextRequest) {
-    // ၁။ Authentication (Basic Auth သုံးပြီး User ID ကို ယူမည်)
-    const userId = await getUserIdFromBasicAuth(request);
-    if (!userId) {
-        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+// 🌟 POST function ကို withAuth ဖြင့် ပတ်လိုက်ပါပြီ
+export const POST = withAuth(async (request: NextRequest, userId: string) => {
+
+    // လုံခြုံရေးစစ်ဆေးခြင်း (Auth Check) အားလုံးကို withAuth က တာဝန်ယူသွားပါပြီ။
+    // အောင်မြင်မှသာ ဒီထဲကို userId နှင့်တကွ ရောက်လာပါမည်။
 
     try {
-        // ၂။ JSON Body ကို ဖတ်ပြီး FormData အဖြစ် ပြောင်းလဲခြင်း
+        // ၁။ JSON Body ကို ဖတ်ပြီး FormData အဖြစ် ပြောင်းလဲခြင်း
         const body = await request.json();
         const formData = new FormData();
 
@@ -21,8 +20,8 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // ၃။ UI ကသုံးတဲ့ createTicket Action ကို တိုက်ရိုက်ခေါ်သုံးခြင်း
-        // options မှာ actorUserId အနေနဲ့ API ခေါ်သူရဲ့ ID ကို ပေးလိုက်ပါတယ်
+        // ၂။ UI ကသုံးတဲ့ createTicket Action ကို တိုက်ရိုက်ခေါ်သုံးခြင်း
+        // withAuth ကနေ အလိုအလျောက် ရလာတဲ့ "userId" ကို တိုက်ရိုက် ထည့်သုံးလိုက်ရုံပါပဲ
         const result = await createTicket(formData, { actorUserId: userId });
 
         if ("error" in result) {
@@ -35,4 +34,4 @@ export async function POST(request: NextRequest) {
         console.error("[api-create-ticket-error]", error);
         return NextResponse.json({ success: false, error: "Failed to create ticket" }, { status: 500 });
     }
-}
+});
