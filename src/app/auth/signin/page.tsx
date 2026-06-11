@@ -213,7 +213,10 @@ export default function SignInPage() {
                 credentials.
               </p>
 
-              <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+              <form
+                className="mt-8 space-y-5"
+                method="post"
+                onSubmit={handleSubmit}>
                 {/* Email input UI */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-800">
@@ -269,8 +272,7 @@ export default function SignInPage() {
                       onBlur={() => setShowPassword(false)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 hover:text-zinc-700"
                       aria-label="Hold to reveal password"
-                      disabled={loading}
-                    >
+                      disabled={loading}>
                       {showPassword ? (
                         <EyeSlashIcon className="h-4 w-4" />
                       ) : (
@@ -280,7 +282,9 @@ export default function SignInPage() {
                   </div>
 
                   {errors.password && (
-                    <p className="mt-1 text-xs text-red-500">{errors.password}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
 
@@ -299,30 +303,33 @@ export default function SignInPage() {
                     <div>
                       <label
                         htmlFor={MAIN_AGREEMENT_CHECKBOX_ID}
-                        className="cursor-pointer"
-                      >
+                        className="cursor-pointer">
                         I agree to the{" "}
                       </label>
                       <button
                         type="button"
                         onClick={openTermsModal}
-                        className="font-semibold underline underline-offset-2 hover:text-blue-700"
-                      >
+                        className="font-semibold underline underline-offset-2 hover:text-blue-700">
                         Terms and Conditions
                       </button>
                       <span className="text-zinc-700">.</span>
                       <p className="mt-1 text-[11px] leading-5 text-zinc-500">
-                        This is an internal system. Access is restricted to authorized staff.
+                        This is an internal system. Access is restricted to
+                        authorized staff.
                       </p>
                     </div>
                   </div>
                   {errors.agreement && (
-                    <p className="mt-1 text-xs text-red-500">{errors.agreement}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.agreement}
+                    </p>
                   )}
                 </div>
 
                 {errors.response && (
-                  <p className="text-sm text-red-600 text-center">{errors.response}</p>
+                  <p className="text-sm text-red-600 text-center">
+                    {errors.response}
+                  </p>
                 )}
 
                 {/* Sign in button (agreement မလုပ်ရသေးရင် disable) */}
@@ -336,8 +343,7 @@ export default function SignInPage() {
     transition-all duration-300
     hover:from-zinc-900 hover:to-black
     disabled:cursor-not-allowed disabled:opacity-80
-  "
-                >
+  ">
                   {loading ? "Signing in..." : "Sign In"}
                 </button>
               </form>
@@ -346,8 +352,8 @@ export default function SignInPage() {
 
           <footer className="mt-10 text-center text-xs text-zinc-500">
             <p>
-              Copyright (c) {new Date().getFullYear()} East Wind Myanmar Co., Ltd.
-              All rights reserved.
+              Copyright (c) {new Date().getFullYear()} East Wind Myanmar Co.,
+              Ltd. All rights reserved.
             </p>
           </footer>
         </section>
@@ -359,15 +365,13 @@ export default function SignInPage() {
           onClick={(event) => {
             if (event.target !== event.currentTarget) return;
             closeTermsModal();
-          }}
-        >
+          }}>
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="terms-modal-title"
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.6)]"
-          >
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.6)]">
             <header className="flex items-start justify-between gap-3 border-b border-zinc-200 px-6 py-4">
               <div>
                 <p className="text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
@@ -375,23 +379,22 @@ export default function SignInPage() {
                 </p>
                 <h3
                   id="terms-modal-title"
-                  className="mt-1 text-lg font-semibold text-zinc-900"
-                >
+                  className="mt-1 text-lg font-semibold text-zinc-900">
                   Terms and Conditions
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={closeTermsModal}
-                className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100"
-              >
+                className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100">
                 Close
               </button>
             </header>
 
             <div className="max-h-[62vh] space-y-4 overflow-y-auto px-6 py-5">
               <p className="text-sm leading-6 text-zinc-700">
-                Please review the following legal and confidentiality terms carefully.
+                Please review the following legal and confidentiality terms
+                carefully.
               </p>
 
               <ol className="list-decimal space-y-3 pl-5 text-sm leading-6 text-zinc-700">
@@ -417,8 +420,7 @@ export default function SignInPage() {
                 <button
                   type="button"
                   onClick={closeTermsModal}
-                  className="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-3.5 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
-                >
+                  className="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-3.5 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100">
                   Close
                 </button>
               </div>

@@ -1,7 +1,7 @@
 // src/libs/basic-auth.ts
 import { type NextRequest } from "next/server";
 import { prisma } from "@/libs/prisma";
-import bcrypt from "bcryptjs"; // သို့မဟုတ် အစ်ကိုသုံးထားသော bcrypt package
+import bcrypt from "bcrypt"; // သို့မဟုတ် အစ်ကိုသုံးထားသော bcrypt package
 import crypto from "node:crypto";
 import redis from "./redis";
 

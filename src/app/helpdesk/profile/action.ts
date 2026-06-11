@@ -8,7 +8,7 @@ import { getCurrentUserId } from "@/libs/action";
 import { prisma } from "@/libs/prisma";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 
 import { HELPDESK_CACHE_PREFIXES } from "../cache/redis-keys";
 

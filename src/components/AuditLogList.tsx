@@ -112,7 +112,9 @@ export function AuditLogList({
       />
 
       {items.map((item, idx) => {
-        const key = item.id ?? `${idx}-${String(item.changedAt)}`;
+     const key = item.id
+       ? `${item.id}-${idx}`
+       : `${idx}-${String(item.changedAt)}`;
 
         const changedAtISO =
           item.changedAt && !Number.isNaN(new Date(item.changedAt).getTime())

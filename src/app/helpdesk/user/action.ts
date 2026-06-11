@@ -8,7 +8,7 @@ import {
   invalidateCacheByPrefixes,
 } from "@/libs/redis-cache";
 import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import { z } from "zod";
 
 import {

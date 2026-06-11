@@ -195,28 +195,39 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
   useEffect(() => {
     const filter = searchParams.get("filter");
     if (filter) {
-      setForm((previous) => ({ ...previous, departmentId: filter }));
+      setTimeout(() => {
+
+        setForm((previous) => ({ ...previous, departmentId: filter }));
+      }, 1);
     }
   }, [searchParams]);
 
   useEffect(() => {
     if (priorityChanged) {
-      setRemark("");
+      setTimeout(() => {
+        setRemark("");
+      }, 1);
     }
   }, [priorityChanged]);
 
   useEffect(() => {
     if (!priorityChanged) {
-      setRemarkError("");
+      setTimeout(() => {
+        setRemarkError("");
+      }, 1);
       return;
     }
 
     if (!remark.trim()) {
-      setRemarkError("Remark is required when changing priority");
+      setTimeout(() => {
+        setRemarkError("Remark is required when changing priority");
+      }, 1);
       return;
     }
 
-    setRemarkError("");
+    setTimeout(() => {
+      setRemarkError("");
+    }, 1);
   }, [priorityChanged, remark]);
 
   useEffect(() => {
@@ -228,13 +239,26 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
     const listener = (audit: Audit, updatedTicket: TicketFormData) => {
       if (audit.entityId !== ticket.id) return;
 
-      setAuditLogs((previous) => [audit, ...previous]);
+      // setAuditLogs((previous) => [audit, ...previous]);
+
+      setAuditLogs((prevLogs) => {
+        // ၁။ အသစ်ဝင်လာတဲ့ Log က လက်ရှိ ဇယားထဲမှာ ပါပြီးသားလား စစ်ပါမယ်
+        const isDuplicate = prevLogs.some((log) => log.id === audit.id);
+
+        // ၂။ ပါပြီးသားဆိုရင် ထပ်မထည့်ဘဲ မူလအတိုင်းပဲ ပြန်ထားပါမယ် (Key ထပ်တဲ့ Error ကို ကာကွယ်ခြင်း)
+        if (isDuplicate) {
+          return prevLogs;
+        }
+
+        // ၃။ မပါသေးဘူးဆိုမှသာ အသစ်ကို ထိပ်ဆုံးကနေ ပေါင်းထည့်ပါမယ်
+        return [audit, ...prevLogs];
+      });
       setForm((previous) => ({
         ...previous,
         ...updatedTicket,
       }));
 
-      toast.success("Ticket updated");
+      // toast.success("Ticket updated");
     };
 
     socket.on("ticket-updated", listener);
@@ -330,7 +354,7 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
         }
 
         toast.success("Ticket created successfully");
-        router.push(`/helpdesk/tickets/${createResult.data.id}` as Route);
+        router.replace(`/helpdesk/tickets/${createResult.data.id}` as Route);
         return;
       }
 

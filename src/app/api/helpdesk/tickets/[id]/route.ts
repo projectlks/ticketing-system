@@ -8,18 +8,33 @@ interface Params {
   id: string;
 }
 
+// const UpdateTicketPayloadSchema = z.object({
+//   status: z.enum(["NEW", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELED"]).optional(),
+//   description: z.string().optional(),
+//   priority: z.enum(["REQUEST", "MINOR", "MAJOR", "CRITICAL"]).optional(),
+//   remark: z.string().optional(),
+// }).refine((data) => {
+//   if (data.priority && (!data.remark || data.remark.trim() === "")) return false;
+//   return true;
+// }, {
+//   message: "Remark is required when changing priority.",
+//   path: ["remark"],
+// });
+
 const UpdateTicketPayloadSchema = z.object({
   status: z.enum(["NEW", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "CANCELED"]).optional(),
   description: z.string().optional(),
   priority: z.enum(["REQUEST", "MINOR", "MAJOR", "CRITICAL"]).optional(),
   remark: z.string().optional(),
-}).refine((data) => {
-  if (data.priority && (!data.remark || data.remark.trim() === "")) return false;
-  return true;
-}, {
-  message: "Remark is required when changing priority.",
-  path: ["remark"],
-});
+})
+  .strict() // 🌟 ဤနေရာတွင် .strict() ကို ထည့်ပါမည်
+  .refine((data) => {
+    if (data.priority && (!data.remark || data.remark.trim() === "")) return false;
+    return true;
+  }, {
+    message: "Remark is required when changing priority.",
+    path: ["remark"],
+  });
 
 type UpdateTicketPayload = z.infer<typeof UpdateTicketPayloadSchema>;
 
@@ -64,7 +79,7 @@ export const PATCH = withAuth(async (
   }
 
   const formData = new FormData();
-  formData.append("title", existingTicket.title);
+
   formData.append("status", validatedData.status ?? existingTicket.status);
   formData.append("description", validatedData.description ?? existingTicket.description ?? "");
   formData.append("priority", validatedData.priority ?? existingTicket.priority ?? "");

@@ -175,7 +175,7 @@ export default function TicketForm(props: TicketFormProps) {
     handleRemoveExistingImage,
     ticketId,
   } = useTicketForm(props);
-  const isSuperAdmin = session?.user.role === "SUPER_ADMIN";
+  const isSuperAdmin = session?.user.role === "SUPER_ADMIN" && session?.user.email === process.env.SUPER_ADMIN_EMAIL;
   const isSensitiveFieldLocked = props.mode === "edit" && !isSuperAdmin;
 
   const ribbonStatus =
