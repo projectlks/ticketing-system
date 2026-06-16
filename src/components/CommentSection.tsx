@@ -136,7 +136,7 @@ export default function CommentSection({
   }, []);
 
   return (
-    <section className="flex h-full min-h-[440px] flex-col">
+    <section className="flex h-full min-h-110 flex-col">
       <header className="mb-3 flex items-center justify-between border-b border-zinc-100 pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-zinc-900">

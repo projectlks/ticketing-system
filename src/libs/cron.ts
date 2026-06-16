@@ -5,6 +5,7 @@ import { prisma } from "./prisma.js";
 import { emitSlaViolationsChanged, emitTicketsChanged } from "./socket-emitter.js";
 import { invalidateCacheByPrefixes } from "./redis-cache.js";
 import { HELPDESK_CACHE_PREFIXES } from "@/app/helpdesk/cache/redis-keys";
+import { OTRSPayload, otrsService } from "./otrsService.js";
 
 const isProduction =
     process.env.NODE_ENV === "production" ||
@@ -117,6 +118,133 @@ cron.schedule(
             console.log(`[CRON] Checked ${violatedTickets.length} tickets.`);
         } catch (err) {
             console.log("[CRON] SLA check failed:", err);
+        }
+    },
+    { timezone: "Asia/Yangon" }
+);
+
+
+
+
+// 🕒 OTRS Sync Retry job (every 1 minute)
+cron.schedule(
+    "*/1 * * * *",
+    async () => {
+        try {
+            // ၁။ PENDING ဖြစ်နေပြီး၊ Retry ၅ ကြိမ် မပြည့်သေးသော အလုပ်များကို ဆွဲထုတ်မည်
+            const pendingJobs = await prisma.otrsSyncQueue.findMany({
+                where: {
+                    status: "PENDING",
+                    retryCount: { lt: 5 }
+                },
+                take: 10,
+            });
+
+            for (const job of pendingJobs) {
+                // 🌟 JSON အဖြစ် သိမ်းထားသော payload ကို OTRSPayload Type အဖြစ် ပြောင်းလဲခြင်း (any မသုံးပါ)
+                const payload = job.payload as unknown as OTRSPayload;
+                try {
+
+                    // ၂။ OTRS သို့ ပြန်ပို့ကြည့်မည် (Enum ဖြင့် စစ်ဆေးခြင်း)
+                    if (job.operation === "TicketCreate") {
+
+                        console.log(`[CRON] Attempting OTRS Ticket Creation for Ticket: ${job.ticketId}, Retry Count: ${job.retryCount + 1}`);
+
+                        // await otrsService.createTicket(payload);
+
+
+                        const otrsRes = await otrsService.createTicket(payload);
+
+                        console.log(`[CRON] OTRS Response for Ticket Creation (Ticket ID: ${job.ticketId}):`, otrsRes.status, otrsRes.data);
+
+                        if (otrsRes.status === 200 && otrsRes.data.TicketNumber) {
+                            const otrsLink = `https://support.eastwind.ru/customer.pl?Action=CustomerTicketZoom;TicketNumber=${otrsRes.data.TicketNumber}`;
+
+                            // Local DB အပ်ဒိတ်လုပ်ခြင်း
+                            await prisma.comment.create({
+                                data: { ticketId: job.ticketId, commenterId: process.env.NEXT_PUBLIC_COMMENTER_ID || "", content: otrsLink }
+                            });
+                            await prisma.ticket.update({
+                                where: { id: job.ticketId },
+                                data: { otrsTicketId: String(otrsRes.data.TicketID), otrsTicketNumber: String(otrsRes.data.TicketNumber) }
+                            });
+                        }
+
+
+                    } else if (job.operation === "TicketUpdate") {
+                        await otrsService.updateTicket(job.ticketId, payload);
+                    }
+
+                    // ၃။ အောင်မြင်သွားပါက Status ကို COMPLETED ပြောင်းမည်
+                    await prisma.otrsSyncQueue.update({
+                        where: { id: job.id },
+                        data: { status: "COMPLETED" }
+                    });
+
+                    console.log(`[CRON] OTRS Sync Success for Ticket: ${job.ticketId}`);
+
+                } catch (error) {
+
+                    console.error(`[CRON] OTRS Sync Error for Ticket: ${job.ticketId}, Retry Count: ${job.retryCount + 1}`, error);
+                    const newRetryCount = job.retryCount + 1;
+
+                    // ၄။ ၅ ကြိမ်မြောက်လည်း ကျရှုံးပါက (If not sent 5 times)
+                    if (newRetryCount >= 5) {
+                        // Status ကို FAILED ပြောင်းမည်
+                        await prisma.otrsSyncQueue.update({
+                            where: { id: job.id },
+                            data: { status: "FAILED", retryCount: newRetryCount }
+                        });
+
+                        const systemCommenterId = process.env.NEXT_PUBLIC_COMMENTER_ID || "";
+
+                        if (systemCommenterId) {
+                            if (job.operation === "TicketCreate") {
+
+                                console.log(`[CRON] OTRS Sync FAILED after 5 retries for Ticket: ${job.ticketId}. Adding failure comment.`);
+
+                                const a = await prisma.comment.create({
+                                    data: {
+                                        ticketId: job.ticketId,
+                                        commenterId: systemCommenterId,
+                                        content: "⚠️ OTRS Ticket creation failed after 5 retries. (OTRS သို့ Ticket အသစ်ဖွင့်ခြင်း မအောင်မြင်ပါ။)"
+                                    }
+                                });
+
+                                console.log("Failure comment created:", a);
+                            } else if (job.operation === "TicketUpdate") {
+                                // 🌟 Payload ထဲမှ ဘာလုပ်ဆောင်ချက်လဲ ဆိုသည်ကို ဆွဲထုတ်မည် (Subject မရှိပါက Default စာသားသုံးမည်)
+                                const updateAction = payload?.Article?.Subject || "Ticket modifications";
+
+                                // 🌟 ထိုလုပ်ဆောင်ချက်အား Comment တွင် ထည့်သွင်းပြသမည်
+                                await prisma.comment.create({
+                                    data: {
+                                        ticketId: job.ticketId,
+                                        commenterId: systemCommenterId,
+                                        content: `⚠️ OTRS Ticket update failed. Action: "${updateAction}". The latest changes were not synced to OTRS. (OTRS သို့ နောက်ဆုံးပြင်ဆင်ချက်များ ပို့ဆောင်ခြင်း မအောင်မြင်ပါ။)`
+                                    }
+                                });
+                            }
+                        }
+
+                        console.log(`[CRON] OTRS Sync FAILED after 5 retries for Ticket: ${job.ticketId}`);
+                    } else {
+                        // ၅ ကြိမ် မပြည့်သေးပါက Retry Count သာ တိုးထားမည်
+                        await prisma.otrsSyncQueue.update({
+                            where: { id: job.id },
+                            data: { retryCount: newRetryCount }
+                        });
+                    }
+                }
+            }
+
+            // NextResponse အစား console.log ကိုသာ သုံးပါမည်
+            if (pendingJobs.length > 0) {
+                console.log(`[CRON] OTRS Sync Processed ${pendingJobs.length} jobs.`);
+            }
+
+        } catch (err) {
+            console.log("[CRON] OTRS Sync check failed:", err);
         }
     },
     { timezone: "Asia/Yangon" }

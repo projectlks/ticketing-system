@@ -109,10 +109,92 @@ export async function POST(req: Request) {
   let imageFilesCount = 0;
   let nonImageFilesCount = 0;
 
-  for (const file of files) {
-    if (file instanceof File) {
+  // for (const file of files) {
+  //   if (file instanceof File) {
+  //     const extension = path.extname(file.name).toLowerCase();
+  //     const category = FILE_CATEGORY_BY_EXTENSION[extension];
+  //     if (!category) {
+  //       return NextResponse.json(
+  //         {
+  //           success: false,
+  //           error:
+  //             `${file.name} has unsupported file extension. ` +
+  //             "Allowed: PNG, JPG, JPEG, WEBP, PDF, DOC, DOCX, XLS, XLSX, CSV, TXT.",
+  //         },
+  //         { status: 400 },
+  //       );
+  //     }
+
+  //     const normalizedMime = file.type.trim().toLowerCase();
+  //     const allowedMimes = EXTENSION_MIME_ALLOWLIST[extension] ?? [];
+  //     if (normalizedMime && !allowedMimes.includes(normalizedMime)) {
+  //       return NextResponse.json(
+  //         {
+  //           success: false,
+  //           error: `${file.name} has unsupported MIME type (${normalizedMime}).`,
+  //         },
+  //         { status: 400 },
+  //       );
+  //     }
+
+  //     if (category === "image") {
+  //       imageFilesCount += 1;
+  //       if (imageFilesCount > MAX_IMAGE_FILES_PER_REQUEST) {
+  //         return NextResponse.json(
+  //           {
+  //             success: false,
+  //             error: `You can upload up to ${MAX_IMAGE_FILES_PER_REQUEST} images.`,
+  //           },
+  //           { status: 400 },
+  //         );
+  //       }
+  //     } else {
+  //       nonImageFilesCount += 1;
+  //       if (nonImageFilesCount > MAX_NON_IMAGE_FILES_PER_REQUEST) {
+  //         return NextResponse.json(
+  //           {
+  //             success: false,
+  //             error: `You can upload up to ${MAX_NON_IMAGE_FILES_PER_REQUEST} files.`,
+  //           },
+  //           { status: 400 },
+  //         );
+  //       }
+  //     }
+
+  //     const maxSizeForFile = getMaxFileSizeByCategory(category);
+  //     const categoryLabel = category === "image" ? "image" : "file";
+  //     if (file.size > maxSizeForFile) {
+  //       return NextResponse.json(
+  //         {
+  //           success: false,
+  //           error:
+  //             `${file.name} exceeds ${formatBytes(maxSizeForFile)} size limit ` +
+  //             `for ${categoryLabel}.`,
+  //         },
+  //         { status: 400 },
+  //       );
+  //     }
+
+  //     const arrayBuffer = await file.arrayBuffer();
+  //     const buffer = Buffer.from(arrayBuffer);
+  //     const filename = generateUniqueFileName(file.name, category);
+  //     const targetDir = category === "image" ? uploadImageDir : uploadFileDir;
+  //     const filepath = path.join(targetDir, filename);
+
+  //     await fs.writeFile(filepath, buffer);
+  //     urls.push(`/api/uploads/${filename}`);
+  //   }
+  // }
+
+
+  for (const entry of files) {
+    // 🌟 ပြင်ဆင်ထားသောအချက်: instanceof အစား File ၏ ဂုဏ်သတ္တိ (name) ပါ/မပါကိုသာ စစ်ဆေးပါမည်
+    if (typeof entry === "object" && entry !== null && "name" in entry) {
+      const file = entry as File; // Type ကို File အဖြစ် သတ်မှတ်ပါမည်
+
       const extension = path.extname(file.name).toLowerCase();
       const category = FILE_CATEGORY_BY_EXTENSION[extension];
+
       if (!category) {
         return NextResponse.json(
           {

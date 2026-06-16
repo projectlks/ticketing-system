@@ -1,5 +1,5 @@
 import dayjs from "@/libs/dayjs";
-import { Priority, Status, Ticket } from "@/generated/prisma/client";
+import { Priority, Status, Ticket, OtrsOperation } from "@/generated/prisma/client";
 import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
 import { prisma } from "@/libs/prisma";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
@@ -21,6 +21,9 @@ import {
   toErrorMessage,
   validateTicketAttachmentUrls,
 } from "./shared";
+import fs from "fs";
+import path from "path";
+import { OTRSAttachment, OTRSPayload, otrsService } from "@/libs/otrsService";
 
 const HELP_DESK_INVALIDATION_PREFIXES = [
   HELPDESK_CACHE_PREFIXES.tickets,
@@ -180,6 +183,105 @@ export async function createTicket(
       });
     }
 
+
+    // ==========================================
+    // 🚀 SECTION 5.2: OTRS API INTEGRATION (For JSC Creation Only)
+    // ==========================================
+
+
+    if (ticket.department?.name === "JSC") {
+
+      // ၁။ Attachment များအားလုံးကို ပြင်ဆင်ခြင်း
+      const otrsAttachments: OTRSAttachment[] = await Promise.all(
+        images.map(async (url) => {
+          let base64Content = "";
+
+          if (url.startsWith("http")) {
+            const fileRes = await fetch(url);
+            if (fileRes.ok) {
+              const buffer = Buffer.from(await fileRes.arrayBuffer());
+              base64Content = buffer.toString("base64");
+            }
+          } else {
+            const filename = url.split("/").pop() || "attachment";
+            const folderName = filename.startsWith("img-") ? "images" : "files";
+            const localFilePath = path.join(process.cwd(), "uploads", folderName, filename);
+            if (fs.existsSync(localFilePath)) {
+              base64Content = fs.readFileSync(localFilePath).toString("base64");
+            }
+          }
+
+          return {
+            Content: base64Content,
+            ContentType: url.includes("img-") ? "image/png" : "application/pdf",
+            Filename: url.split("/").pop() || "attachment",
+          };
+        })
+      );
+
+      // ၂။ Payload တည်ဆောက်ခြင်း (Type-Safe ဖြစ်သွားပါပြီ)
+      const otrsPriority = ticket.priority === "CRITICAL" ? "1 Critical" :
+        ticket.priority === "MAJOR" ? "2 High" :
+          ticket.priority === "MINOR" ? "3 Medium" : "4 Low";
+
+      const payload: OTRSPayload = {
+        UserLogin: "myanmarapi",
+        Password: "cQtw3qjF9Rt$_@",
+        Ticket: {
+          Title: ticket.title,
+          QueueID: "96",
+          Service: "CEIR",
+          State: "new",
+          Priority: otrsPriority,
+          Type: "Incident",
+          CustomerUser: "support@eastwindmyanmar.com.mm"
+        },
+        DynamicField: [{ Name: "ExternalID", Value: ticket.ticketId }],
+        Article: {
+          Subject: ticket.title,
+          SenderType: "customer",
+          From: "support@eastwindmyanmar.com.mm",
+          Body: ticket.description || "",
+          ContentType: "text/plain; charset=utf8",
+          MimeType: "text/plain",
+          Charset: "utf8",
+          TimeUnit: 0,
+          Attachment: otrsAttachments
+        }
+      };
+
+      // ၃။ OTRS Service ကို သုံး၍ ပို့ခြင်း
+      try {
+        const otrsRes = await otrsService.createTicket(payload);
+
+        if (otrsRes.status === 200 && otrsRes.data.TicketNumber) {
+          const otrsLink = `https://support.eastwind.ru/customer.pl?Action=CustomerTicketZoom;TicketNumber=${otrsRes.data.TicketNumber}`;
+
+          // Local DB အပ်ဒိတ်လုပ်ခြင်း
+          await prisma.comment.create({
+            data: { ticketId: ticket.id, commenterId: process.env.NEXT_PUBLIC_COMMENTER_ID || "", content: otrsLink }
+          });
+          await prisma.ticket.update({
+            where: { id: ticket.id },
+            data: { otrsTicketId: String(otrsRes.data.TicketID), otrsTicketNumber: String(otrsRes.data.TicketNumber) }
+          });
+        }
+      } catch (error) {
+        await prisma.otrsSyncQueue.create({
+          data: {
+            ticketId: ticket.id,
+            operation: OtrsOperation.TicketCreate, // Update ဆိုရင် TicketUpdate လို့ရေးပါ
+            payload: JSON.parse(JSON.stringify(payload)),
+            status: "PENDING",
+            retryCount: 0,
+          }
+        });
+        console.error("[OTRS Sync]: Failed", error);
+      }
+    }
+    // ==========================================
+
+
     await prisma.audit.create({
       data: {
         entity: "Ticket",
@@ -213,7 +315,10 @@ export async function createTicket(
 
     return { data: ticket };
   } catch (error) {
+
     return { error: toErrorMessage(error, "Failed to create ticket.") };
+
+
   }
 }
 

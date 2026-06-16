@@ -95,7 +95,8 @@ model ZabbixTicket {
 
   // ✅ OTRS Ticket ID column added
   otrsTicketId String?
-  resolvedAt  DateTime?
+  resolvedAt   DateTime?
+
 
   createdAt DateTime @default(now())
 
@@ -137,8 +138,6 @@ model User {
   // Job Positions
   jobPositionId String?
 
-  
-
   // Tickets
   requestTickets  Ticket[]      @relation("TicketRequester")
   assignedTickets Ticket[]      @relation("TicketAssignedTo")
@@ -173,8 +172,8 @@ model Department {
   updaterId String?
   updater   User?   @relation("DepartmentUpdaters", fields: [updaterId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   isArchived Boolean  @default(false)
 
   tickets    Ticket[]   @relation("DepartmentTickets")
@@ -247,6 +246,9 @@ model Ticket {
   // category      Category? @relation(fields: [categoryId], references: [id])
   // categoryId    String?
 
+  otrsTicketId     String?   // OTRS မှ ပြန်ပေးသော အတွင်းသုံး ID (ဥပမာ - "576552")
+  otrsTicketNumber String?   // OTRS မှ ပြန်ပေးသော အပြင်ပြ ID (ဥပမာ - "011571357")
+
   @@index([departmentId])
   @@index([assignedToId])
   @@index([requesterId])
@@ -264,6 +266,24 @@ model Ticket {
   @@index([creationMode]) // Add an index if you plan to filter reports by source
 }
 
+
+// schema.prisma
+
+enum OtrsOperation {
+  TicketCreate
+  TicketUpdate
+}
+
+model OtrsSyncQueue {
+  id          String        @id @default(cuid())
+  ticketId    String   
+  operation   OtrsOperation // Enum ကို ပြောင်းသုံးထားပါသည်
+  payload     Json     
+  retryCount  Int           @default(0)
+  status      String        @default("PENDING") 
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
 // SLA
 
 model SLA {
@@ -389,8 +409,8 @@ model Category {
   department   Department @relation(fields: [departmentId], references: [id])
   departmentId String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   isArchived Boolean  @default(false)
 
   parentId      String?
@@ -413,5 +433,3 @@ model Category {
 //   createdAt DateTime @default(now())
 //   updatedAt DateTime @updatedAt
 // }
-
-
