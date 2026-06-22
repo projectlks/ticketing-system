@@ -92,6 +92,7 @@ const otrsClient: AxiosInstance = axios.create({
     baseURL: otrsBaseUrl,
     httpsAgent: httpsAgent,
     headers: { "Content-Type": "application/json" },
+    timeout: 15000, // 🌟 အလုံခြုံဆုံးဖြစ်ရန် ၁၅ စက္ကန့် သတ်မှတ်ထားပါသည်
 });
 
 // --- Exported Service ---

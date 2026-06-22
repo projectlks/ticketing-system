@@ -283,6 +283,12 @@ model OtrsSyncQueue {
   status      String        @default("PENDING") 
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
+  referenceType String?  // 🌟 "AUDIT" သို့မဟုတ် "COMMENT"
+  referenceId   String?  // 🌟 သက်ဆိုင်ရာ Table ၏ ID
+
+  @@index([ticketId])
+  @@index([status])
 }
 // SLA
 
@@ -345,6 +351,7 @@ model Comment {
 
   likes     CommentLike[]
   createdAt DateTime      @default(now())
+    syncState Json?    @default("{}") // 🌟 ယခု field အသစ်ကို ထည့်ပါ
 
   @@index([ticketId, createdAt])
   @@index([parentId])
@@ -391,6 +398,8 @@ model Audit {
   action AuditAction
 
   changes Json? // <-- store multiple field changes here
+
+  syncState Json?    @default("{}") // 🌟 ယခု field အသစ်ကို ထည့်ပါ
 
   @@index([entity, entityId])
   @@index([changedAt])

@@ -2,11 +2,7 @@
 
 import Image from "next/image";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import {
-  PaperClipIcon,
-  TrashIcon,
-  DocumentTextIcon,
-} from "@heroicons/react/24/outline";
+import { PaperClipIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 
 // import Loading from "@/components/Loading";
@@ -27,14 +23,6 @@ interface Props {
   setShowReplyForm?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
-
-const extractExtension = (name: string): string => {
-  const dotIndex = name.lastIndexOf(".");
-  if (dotIndex < 0) return "";
-  return name.slice(dotIndex).toLowerCase();
-};
-
 export default function CommentInput({
   ticketId,
   parentId,
@@ -47,11 +35,10 @@ export default function CommentInput({
   const socketRef = useRef(getSocket());
   const typingTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  const [commentText, setCommentText] = useState<string>("");
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [isImage, setIsImage] = useState<boolean>(false);
-  // const [loading, setLoading] = useState<boolean>(false);
+  const [commentText, setCommentText] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // const [loading, setLoading] = useState(false);
 
   const { data: session } = useSession();
 
@@ -60,38 +47,27 @@ export default function CommentInput({
     socket.emit("join-ticket", ticketId);
   }, [ticketId]);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
-      setAttachedFile(null);
-      setFilePreview(null);
-      setIsImage(false);
+      setImageFile(null);
+      setImagePreview(null);
       return;
     }
 
     const file = event.target.files[0];
-    const ext = extractExtension(file.name);
-    const isImg =
-      IMAGE_EXTENSIONS.has(ext) || file.type.toLowerCase().startsWith("image/");
 
-    const maxSize = isImg ? 1024 * 1024 : 5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-      alert(
-        `${file.name} ဖိုင်ဆိုဒ်ကြီးလွန်းနေပါသည်။ အများဆုံး (${isImg ? "1MB" : "5MB"}) သာ လက်ခံပါသည်။`,
-      );
+    if (file.size > 1024 * 1024) {
       event.target.value = "";
-      setAttachedFile(null);
-      setFilePreview(null);
-      setIsImage(false);
+      setImageFile(null);
+      setImagePreview(null);
       return;
     }
 
-    setAttachedFile(file);
-    setIsImage(isImg);
-    setFilePreview(URL.createObjectURL(file));
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
-  const uploadFile = async (file: File): Promise<string> => {
+  const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -119,20 +95,20 @@ export default function CommentInput({
   };
 
   const handlePostComment = async () => {
-    if (!commentText.trim() && !attachedFile) return;
+    if (!commentText.trim() && !imageFile) return;
     // setLoading(true);
 
     const socket = socketRef.current;
 
     try {
-      let fileUrl = "";
-      if (attachedFile) {
-        fileUrl = await uploadFile(attachedFile);
+      let imageUrl = "";
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
       }
 
       const result = await uploadComment({
         content: commentText || null,
-        imageUrl: fileUrl || null,
+        imageUrl: imageUrl || null,
         ticketId,
         parentId,
       });
@@ -151,9 +127,8 @@ export default function CommentInput({
         }
 
         setCommentText("");
-        setAttachedFile(null);
-        setFilePreview(null);
-        setIsImage(false);
+        setImageFile(null);
+        setImagePreview(null);
 
         if (isReply && setShowReplyForm) {
           setShowReplyForm(false);
@@ -188,36 +163,23 @@ export default function CommentInput({
     <>
       {/* {loading && <Loading />} */}
 
-      {filePreview && (
+      {imagePreview && (
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation();
-            setAttachedFile(null);
-            setFilePreview(null);
-            setIsImage(false);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            setImageFile(null);
+            setImagePreview(null);
           }}
           className="group relative mb-2 block w-fit overflow-hidden rounded-lg border border-zinc-200">
-          {isImage ? (
-            <Image
-              src={filePreview}
-              width={260}
-              height={160}
-              alt="Comment attachment preview"
-              className="h-36 w-auto object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="flex h-36 w-48 flex-col items-center justify-center gap-2 px-3 text-center bg-zinc-50 rounded-md">
-              <DocumentTextIcon className="h-10 w-10 text-zinc-500" />
-              <p
-                className="line-clamp-2 text-xs font-medium text-zinc-700 break-all"
-                title={attachedFile?.name}>
-                {attachedFile?.name}
-              </p>
-            </div>
-          )}
+          <Image
+            src={imagePreview}
+            width={260}
+            height={160}
+            alt="Comment attachment preview"
+            className="h-36 w-auto object-cover"
+            unoptimized
+          />
           <span className="absolute inset-0 hidden items-center justify-center bg-black/35 group-hover:flex">
             <TrashIcon className="h-5 w-5 text-white" />
           </span>
@@ -239,8 +201,8 @@ export default function CommentInput({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".png,.jpg,.jpeg,.webp,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-            onChange={handleFileChange}
+            accept="image/*"
+            onChange={handleImageChange}
             className="hidden"
           />
 
@@ -255,7 +217,7 @@ export default function CommentInput({
           <button
             type="button"
             onClick={handlePostComment}
-            disabled={!commentText.trim() && !attachedFile}
+            disabled={!commentText.trim() && !imageFile}
             className="inline-flex h-8 items-center justify-center rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50">
             {isReply ? "Reply" : "Post"}
           </button>
