@@ -125,11 +125,41 @@ export async function POST(req: NextRequest) {
     /* ---------------------------------------------------------------------- */
     /* Step 6: Skip OTRS sync if severity is not High/Critical/Disaster        */
     /* ---------------------------------------------------------------------- */
-    if (!isAllowedOtrsSeverity(context.trigger.severity)) {
+    // if (!isAllowedOtrsSeverity(context.trigger.severity)) {
+    //   return NextResponse.json({
+    //     success: true,
+    //     action: "skipped",
+    //     reason: "OTRS sync skipped: only High/Critical/Disaster severities are allowed.",
+    //     requestId,
+    //   });
+    // }
+
+    /* ---------------------------------------------------------------------- */
+    /* Step 6: Enforce Severity and "SendtoOTRS: True" Tag for OTRS sync       */
+    /* ---------------------------------------------------------------------- */
+    const isAllowedSeverity = isAllowedOtrsSeverity(context.trigger.severity);
+
+    // 🌟 Type ဖိုင်အရ context ထဲတွင် tagsString အသင့်ပါဝင်နေပြီဖြစ်၍ တိုက်ရိုက်ခေါ်သုံးပါမည်
+    const rawTags = context.tagsString || "";
+    const tagsString = rawTags.toLowerCase();
+
+    // JSC ဘက်မှ Key="SendtoOTRS", Value="True" ဟု ထည့်ထားသဖြင့် အောက်ပါပုံစံများဖြင့် စစ်ဆေးမည်
+    const hasSendToOtrsTag =
+      tagsString.includes("sendtootrs: true") ||
+      tagsString.includes("sendtootrs:true") ||
+      tagsString.includes('"tag":"sendtootrs","value":"true"') || // JSON Object ပုံစံဖြင့်လာပါက
+      tagsString.includes('"sendtootrs":"true"');
+
+    // Severity မကိုက်ညီလျှင် (သို့မဟုတ်) SendtoOTRS Tag မပါလျှင် OTRS သို့ မပို့ဘဲ ကျော်သွားပါမည် (Skip)
+    if (!isAllowedSeverity || !hasSendToOtrsTag) {
+      let skipReason = "OTRS sync skipped: ";
+      if (!isAllowedSeverity) skipReason += "Severity is not High/Critical/Disaster. ";
+      if (!hasSendToOtrsTag) skipReason += "Missing 'SendtoOTRS: True' tag.";
+
       return NextResponse.json({
         success: true,
         action: "skipped",
-        reason: "OTRS sync skipped: only High/Critical/Disaster severities are allowed.",
+        reason: skipReason.trim(),
         requestId,
       });
     }

@@ -5,7 +5,7 @@ import {
   deleteTickets as deleteTicketsAction,
   generateTicketId as generateTicketIdAction,
   updateTicket as updateTicketAction,
-  updateTicketStatus as updateTicketStatusAction,
+  // updateTicketStatus as updateTicketStatusAction,
 } from "./_lib/mutations";
 import {
   getAllTickets as getAllTicketsQuery,
@@ -39,11 +39,11 @@ export async function updateTicket(
   return updateTicketAction(...args);
 }
 
-export async function updateTicketStatus(
-  ...args: Parameters<typeof updateTicketStatusAction>
-) {
-  return updateTicketStatusAction(...args);
-}
+// export async function updateTicketStatus(
+//   ...args: Parameters<typeof updateTicketStatusAction>
+// ) {
+//   return updateTicketStatusAction(...args);
+// }ူ
 
 export async function getSingleTicket(
   ...args: Parameters<typeof getSingleTicketQuery>

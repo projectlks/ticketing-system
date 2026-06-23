@@ -1,19 +1,17 @@
 // မှီခိုနေရသော library များနှင့် helper function များကို import လုပ်ခြင်း
 import dayjs from "@/libs/dayjs";
-import { Priority, Status, Ticket } from "@/generated/prisma/client";
+import { Audit, Priority, Status, Ticket } from "@/generated/prisma/client";
 import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
 import { prisma } from "@/libs/prisma";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
 import { emitTicketsChanged } from "@/libs/socket-emitter";
 import { syncTicketOutbound } from "@/libs/ticket-outbound-sync";
 import { HELPDESK_CACHE_PREFIXES } from "../../cache/redis-keys";
-import { getSingleTicket, getTicketAuditLogs } from "./queries";
 import {
   SUPER_ADMIN_ROLE,
   type TicketActionResult,
   type TicketMutationOptions,
   type UpdatedTicketWithRelations,
-  VALID_STATUS_SET,
   TicketFormSchema,
   createFormSchema,
   ensureAssignableUserExists,
@@ -27,7 +25,6 @@ import {
 import {
   handleOtrsTicketCreate,
   handleOtrsTicketUpdate,
-  handleOtrsTicketStatusUpdate,
   type OtrsTicketData,
 } from "./otrs-handlers";
 
@@ -245,10 +242,16 @@ export async function updateTicket(
     });
 
     const changes = computeAuditChanges(oldData, parsed.data, updated, normalizedRemark);
+
+    let newAudit : Audit | null = null;
     if (changes.length > 0) {
-      await prisma.audit.create({
-        data: { entity: "Ticket", entityId: updated.id, userId: currentUserId, action: "UPDATE", changes },
+    newAudit = await prisma.audit.create({
+      data: {
+        entity: "Ticket", entityId: updated.id, userId: currentUserId, action: "UPDATE", changes, syncState: { otrs: "PENDING" }  },
       });
+
+
+
     }
 
     await triggerPostMutationHooks({ event: "updated", ticketId: updated.id, status: updated.status, ticket: updated });
@@ -261,7 +264,8 @@ export async function updateTicket(
       oldData as unknown as OtrsTicketData,
       imageSync.data.newImageUrls,
       imageSync.data.finalAttachmentUrls,
-      normalizedRemark
+      normalizedRemark,
+      newAudit
     );
     // ==========================================
 
@@ -271,92 +275,93 @@ export async function updateTicket(
   }
 }
 
-export async function updateTicketStatus(
-  ticketId: string,
-  status: Status,
-  options: TicketMutationOptions = {},
-): Promise<TicketActionResult<{ updated: UpdatedTicketWithRelations }>> {
-  if (!ticketId) return { error: "Ticket ID is required" };
+// export async function updateTicketStatus(
+//   ticketId: string,
+//   status: Status,
+//   options: TicketMutationOptions = {},
+// ): Promise<TicketActionResult<{ updated: UpdatedTicketWithRelations }>> {
+//   if (!ticketId) return { error: "Ticket ID is required" };
 
-  if (!VALID_STATUS_SET.has(status)) {
-    return { error: "Invalid status value." };
-  }
+//   if (!VALID_STATUS_SET.has(status)) {
+//     return { error: "Invalid status value." };
+//   }
 
-  const oldData = await prisma.ticket.findFirst({
-    where: { id: ticketId },
-    select: { id: true, status: true },
-  });
-  if (!oldData) return { error: "Ticket not found" };
+//   const oldData = await prisma.ticket.findFirst({
+//     where: { id: ticketId },
+//     select: { id: true, status: true },
+//   });
+//   if (!oldData) return { error: "Ticket not found" };
 
-  const actor = await resolveActorContext(options.actorUserId);
-  const allowApiTokenActorlessUpdate = options.allowApiTokenActorlessUpdate === true;
-  if (!actor && !allowApiTokenActorlessUpdate) {
-    return { error: "Unauthorized" };
-  }
-  const currentUserId = actor?.id ?? null;
+//   const actor = await resolveActorContext(options.actorUserId);
+//   const allowApiTokenActorlessUpdate = options.allowApiTokenActorlessUpdate === true;
+//   if (!actor && !allowApiTokenActorlessUpdate) {
+//     return { error: "Unauthorized" };
+//   }
+//   const currentUserId = actor?.id ?? null;
+//   try {
+//     const updated = await prisma.ticket.update({
+//       where: { id: ticketId },
+//       data: { status },
+//       include: {
+//         department: { select: { id: true, name: true } },
+//         category: { select: { id: true, name: true } },
+//         assignedTo: { select: { id: true, name: true, email: true } },
+//       },
+//     });
 
-  try {
-    const updated = await prisma.ticket.update({
-      where: { id: ticketId },
-      data: { status },
-      include: {
-        department: { select: { id: true, name: true } },
-        category: { select: { id: true, name: true } },
-        assignedTo: { select: { id: true, name: true, email: true } },
-      },
-    });
+//     let newAudit: Audit | null = null;
+//     if (oldData.status !== updated.status) {
+//       newAudit = await prisma.audit.create({
+//         data: {
+//           entity: "Ticket",
+//           entityId: updated.id,
+//           userId: currentUserId ?? undefined,
+//           action: "UPDATE",
+//           changes: [{ field: "status", oldValue: String(oldData.status), newValue: String(updated.status) }],
+//           syncState: { otrs: "PENDING" } // 🌟 ဒီနေရာမှာ PENDING ဖြင့် စတင်မှတ်သားပါမည်
+//         },
+//       });
+//     }
 
-    if (oldData.status !== updated.status) {
-      await prisma.audit.create({
-        data: {
-          entity: "Ticket",
-          entityId: updated.id,
-          userId: currentUserId ?? undefined,
-          action: "UPDATE",
-          changes: [{ field: "status", oldValue: String(oldData.status), newValue: String(updated.status) }],
-        },
-      });
-    }
+//     await invalidateCacheByPrefixes(HELP_DESK_INVALIDATION_PREFIXES);
 
-    // ⚠️ မူလ Logic အတိုင်း Cache Stampede မဖြစ်စေရန် အစီအစဉ်အတိုင်း ရေးသားထားခြင်း
-    await invalidateCacheByPrefixes(HELP_DESK_INVALIDATION_PREFIXES);
+//     try {
+//       await Promise.all([getSingleTicket(ticketId), getTicketAuditLogs(ticketId)]);
+//     } catch (error) {
+//       console.warn("[ticket-cache] status cache warm failed", {
+//         ticketId,
+//         message: error instanceof Error ? error.message : String(error),
+//       });
+//     }
 
-    try {
-      await Promise.all([getSingleTicket(ticketId), getTicketAuditLogs(ticketId)]);
-    } catch (error) {
-      console.warn("[ticket-cache] status cache warm failed", {
-        ticketId,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
+//     emitTicketsChanged({
+//       action: "updated",
+//       ticketId: updated.id,
+//       status: updated.status,
+//       at: new Date().toISOString(),
+//     });
 
-    emitTicketsChanged({
-      action: "updated",
-      ticketId: updated.id,
-      status: updated.status,
-      at: new Date().toISOString(),
-    });
+//     const syncResult = await syncTicketOutbound({ event: "updated", ticketId: updated.id, ticket: updated });
+//     if (!syncResult.ok && !syncResult.skipped) {
+//       console.log("[ticket-sync] outbound update sync failed", {
+//         ticketId: updated.id,
+//         status: syncResult.status,
+//         error: syncResult.error,
+//       });
+//     }
 
-    const syncResult = await syncTicketOutbound({ event: "updated", ticketId: updated.id, ticket: updated });
-    if (!syncResult.ok && !syncResult.skipped) {
-      console.log("[ticket-sync] outbound update sync failed", {
-        ticketId: updated.id,
-        status: syncResult.status,
-        error: syncResult.error,
-      });
-    }
+//     // ==========================================
+//     // 🚀 SECTION 5.3: OTRS API INTEGRATION (For JSC Status Only Update)
+//     // ==========================================
+//     // 🌟 newAudit အား Handler သို့ ထည့်ပေးလိုက်ပါမည်
+//     await handleOtrsTicketStatusUpdate(updated as unknown as OtrsTicketData, oldData as unknown as OtrsTicketData, newAudit);
+//     // ==========================================
 
-    // ==========================================
-    // 🚀 SECTION 5.3: OTRS API INTEGRATION (For JSC Status Only Update)
-    // ==========================================
-    await handleOtrsTicketStatusUpdate(updated as unknown as OtrsTicketData, oldData as unknown as OtrsTicketData);
-    // ==========================================
-
-    return { data: { updated } };
-  } catch (error) {
-    return { error: toErrorMessage(error, "Failed to update ticket status.") };
-  }
-}
+//     return { data: { updated } };
+//   } catch (error) {
+//     return { error: toErrorMessage(error, "Failed to update ticket status.") };
+//   }
+// }
 
 export async function deleteTickets(ticketIds: string[]): Promise<TicketActionResult<{ ids: string[] }>> {
   if (!ticketIds.length) return { error: "No ticket ids provided." };
