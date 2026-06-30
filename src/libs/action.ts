@@ -10,6 +10,7 @@ import z from "zod";
 import { OTRSAttachment, OTRSPayload, otrsService } from "./otrsService";
 import path from "path/win32";
 import fs from "fs";
+import { emitCommentUpdated, emitNewComment } from "./socket-emitter";
 
 const CommentSchema = z.object({
   content: z.string().nullable().optional(),
@@ -279,6 +280,190 @@ const toErrorMessage = (error: unknown, fallback: string) => {
 // }
 
 
+// export async function uploadComment(input: {
+//   content?: string | null;
+//   imageUrl?: string | null;
+//   ticketId: string;
+//   parentId?: string
+// }): Promise<{ success: boolean; data?: CommentWithRelations; error?: string }> {
+//   const parsed = CommentSchema.safeParse(input);
+//   if (!parsed.success) {
+//     return {
+//       success: false,
+//       error: parsed.error.issues[0]?.message ?? "Invalid comment payload",
+//     };
+//   }
+
+//   const { content, imageUrl, ticketId, parentId } = parsed.data;
+
+//   const currentUserId = await getCurrentUserId();
+//   if (!currentUserId) {
+//     return { success: false, error: "No logged-in user found" };
+//   }
+
+//   try {
+//     // 🌟 ၁။ Ticket ကို အရင်ရှာပြီး OTRS သို့ ပို့ရန် လို/မလို ကြိုတင်စစ်ဆေးပါမည်
+//     const ticket = await prisma.ticket.findUnique({
+//       where: { id: ticketId },
+//       select: {
+//         id: true,
+//         otrsTicketId: true,
+//         ticketId: true, // EWM Ticket ID (e.g. TKT-2026-06-051)
+//         department: {
+//           select: { name: true }
+//         }
+//       },
+//     });
+
+//     const needsOtrsSync = ticket?.department?.name === "JSC" && !!ticket?.otrsTicketId;
+
+//     // 🌟 ၂။ Comment ဖန်တီးခြင်း (OTRS ပို့ရန်လိုပါက PENDING ဟု ထည့်သိမ်းမည်)
+//     const comment = await prisma.comment.create({
+//       data: {
+//         content: content || "",
+//         imageUrl: imageUrl || "",
+//         ticketId,
+//         parentId: parentId || null,
+//         commenterId: currentUserId,
+//         ...(needsOtrsSync ? { syncState: { otrs: "PENDING" } } : {}), // PENDING State ထည့်သွင်းခြင်း
+//       },
+//       include: {
+//         commenter: {
+//           select: {
+//             id: true,
+//             name: true,
+//             email: true,
+//           },
+//         },
+//         replies: true,
+//       },
+//     });
+//     emitNewComment(comment);
+//     let latestComment: CommentWithRelations = comment;
+
+//     // ၃။ OTRS ID ရှိပါက API လှမ်းခေါ်ခြင်း
+//     if (needsOtrsSync && ticket?.otrsTicketId) {
+//       try {
+//         // Attachment ပြင်ဆင်ခြင်း
+//         const otrsAttachments: OTRSAttachment[] = [];
+
+//         if (imageUrl) {
+//           const filename = imageUrl.split("/").pop() || "attachment";
+//           const folderName = imageUrl.includes("img-") ? "images" : "files";
+//           const localFilePath = path.join(process.cwd(), "uploads", folderName, filename);
+
+//           if (fs.existsSync(localFilePath)) {
+//             const fileBuffer = fs.readFileSync(localFilePath);
+//             otrsAttachments.push({
+//               Content: fileBuffer.toString("base64"),
+//               ContentType: imageUrl.match(/\.(png|jpg|jpeg)$/i) ? "image/png" : "application/pdf",
+//               Filename: filename,
+//             });
+//           }
+//         }
+
+//         const userName = comment.commenter?.name || "Unknown User";
+//         const commentDate = new Date(comment.createdAt).toLocaleString("en-GB", { hour12: false });
+//         const ewmTicketId = ticket?.ticketId || ticketId;
+
+//         const formattedBody = `Dear colleagues! \nUser ${userName} added comment ${commentDate} in the EWM ticketing System for the Ticket ${ewmTicketId}. Comment is :\n${content || ""}`;
+
+//         const otrsPayload: OTRSPayload = {
+//           Operation: "TicketUpdate",
+//           UserLogin: process.env.OTRS_USER_LOGIN || "",
+//           Password: process.env.OTRS_PASSWORD || "",
+//           Article: {
+//             ArticleTypeId: 8,
+//             From: "support@eastwindmyanmar.com.mm",
+//             CommunicationChannel: "Internal",
+//             SenderType: "customer",
+//             Subject: "User added comment to the ticket in the EWM ticketing System",
+//             Body: formattedBody,
+//             ContentType: "text/plain; charset=utf8",
+//             MimeType: "text/plain",
+//             Charset: "utf8",
+//             TimeUnit: 0,
+//             Attachment: otrsAttachments.length > 0 ? otrsAttachments : undefined
+//           },
+//         };
+
+//         // API Call ခေါ်ဆိုခြင်း
+//         const response = await otrsService.updateTicket(ticket.otrsTicketId, otrsPayload);
+
+//         // 🌟 ၄။ အောင်မြင်ပါက SUCCESS ပြောင်းမည်
+//         if (response && response.status >= 200 && response.status < 300) {
+//           const updatedComment = await prisma.comment.update({
+//             where: { id: comment.id },
+//             data: { syncState: { otrs: "SUCCESS" } },
+//             include: {
+//               commenter: {
+//                 select: {
+//                   id: true,
+//                   name: true,
+//                   email: true,
+//                 },
+//               },
+//               replies: true,
+//             },
+//           });
+//           latestComment = updatedComment;
+//           emitCommentUpdated(updatedComment);
+//           console.log("[OTRS Sync Success]: Comment synced to OTRS.");
+//         } else {
+//           // အကယ်၍ Status 2xx မဟုတ်ပါက Error သတ်မှတ်ပြီး Catch ဆီသို့ ပို့မည်
+//           throw new Error(`OTRS Ticket API Failed. Status: ${response?.status}`);
+//         }
+
+//       } catch (otrsError) {
+//         console.error("[OTRS API Error for Comment]:", otrsError);
+
+//         // 🌟 ၅။ ကျရှုံးပါက Queue ထဲသို့ PENDING အနေဖြင့် ထည့်ပေးလိုက်မည် (Cron က ဆက်လုပ်ပေးရန်)
+//         await prisma.otrsSyncQueue.create({
+//           data: {
+//             ticketId: ticket.id,
+//             operation: "TicketUpdate", // OTRS တွင် Ticket ကို Update သွားလုပ်ခြင်းဖြစ်သည်
+//             payload: JSON.parse(JSON.stringify({
+//               // Type Error မဖြစ်စေရန် Payload ကို JSON အဖြစ်ပြောင်း၍ သိမ်းပါမည်
+//               Operation: "TicketUpdate",
+//               UserLogin: process.env.OTRS_USER_LOGIN || "",
+//               Password: process.env.OTRS_PASSWORD || "",
+//               Article: {
+//                 ArticleTypeId: 8,
+//                 From: "support@eastwindmyanmar.com.mm",
+//                 CommunicationChannel: "Internal",
+//                 SenderType: "customer",
+//                 Subject: "User added comment to the ticket in the EWM ticketing System",
+//                 Body: `Dear colleagues! \nUser ${comment.commenter?.name || "Unknown User"} added comment ${new Date(comment.createdAt).toLocaleString("en-GB", { hour12: false })} in the EWM ticketing System for the Ticket ${ticket?.ticketId || ticketId}. Comment is :\n${content || ""}`,
+//                 ContentType: "text/plain; charset=utf8",
+//                 MimeType: "text/plain",
+//                 Charset: "utf8",
+//                 TimeUnit: 0,
+//                 // Queue ထဲသိမ်းသောအခါ Attachments များကိုပါ သိမ်းရန်လိုပါက ဤနေရာတွင် တွဲထည့်နိုင်ပါသည်
+//               }
+//             })),
+//             status: "PENDING",
+//             retryCount: 0,
+//             referenceType: "COMMENT", // Cron job က Comment table ကို ပြန်ပြင်ပေးနိုင်ရန်
+//             referenceId: comment.id   // Comment ID ကို တွဲထည့်ပေးခြင်း
+//           }
+//         });
+
+//         console.log("[OTRS Queue Added]: Comment sync failed, added to retry queue.");
+//       }
+//     }
+
+//     return {
+//       success: true,
+//       data: latestComment,
+//     };
+//   } catch (error) {
+//     return {
+//       success: false,
+//       error: toErrorMessage(error, "Failed to upload comment"),
+//     };
+//   }
+// }
+
 export async function uploadComment(input: {
   content?: string | null;
   imageUrl?: string | null;
@@ -301,7 +486,7 @@ export async function uploadComment(input: {
   }
 
   try {
-    // 🌟 ၁။ Ticket ကို အရင်ရှာပြီး OTRS သို့ ပို့ရန် လို/မလို ကြိုတင်စစ်ဆေးပါမည်
+    // 🌟 ၁။ Ticket ကို အရင်ရှာပါမည်
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       select: {
@@ -314,9 +499,36 @@ export async function uploadComment(input: {
       },
     });
 
-    const needsOtrsSync = ticket?.department?.name === "JSC" && !!ticket?.otrsTicketId;
+    // 🌟 ၂။ Reply ဖြစ်ခဲ့ပါက မူလ Comment (Parent Comment) ၏ စာသားကို Database မှ ပြန်ဆွဲထုတ်ပါမည်
+    let parentCommentText = "Unknown Comment";
+    if (parentId) {
+      const parentComment = await prisma.comment.findUnique({
+        where: { id: parentId },
+        select: { content: true }
+      });
+      if (parentComment?.content) {
+        parentCommentText = parentComment.content;
+      }
+    }
 
-    // 🌟 ၂။ Comment ဖန်တီးခြင်း (OTRS ပို့ရန်လိုပါက PENDING ဟု ထည့်သိမ်းမည်)
+    // 🌟 ၃။ JSC ဟုတ်/မဟုတ် စစ်ပြီး၊ OTRS ID မရှိပါက Queue ထဲတွင် TicketCreate ဝင်ဖူး/မဝင်ဖူး စစ်မည်
+    const isJsc = ticket?.department?.name === "JSC";
+    let hasCreateJob = false;
+
+    if (isJsc && !ticket?.otrsTicketId) {
+      const existingCreateJob = await prisma.otrsSyncQueue.findFirst({
+        where: {
+          ticketId: ticket.id,
+          operation: "TicketCreate",
+        }
+      });
+      hasCreateJob = !!existingCreateJob; // Status မရွေး ရှိ/မရှိ ကိုသာ စစ်ပါမည်
+    }
+
+    // OTRS ID ရှိနေလျှင် (သို့မဟုတ်) Queue ထဲတွင် Create အလုပ် ရှိနေလျှင် OTRS Sync လိုအပ်သည်ဟု သတ်မှတ်မည်
+    const needsOtrsSync = isJsc && (!!ticket?.otrsTicketId || hasCreateJob);
+
+    // 🌟 ၄။ Comment ဖန်တီးခြင်း (OTRS ပို့ရန်လိုပါက PENDING ဟု ထည့်သိမ်းမည်)
     const comment = await prisma.comment.create({
       data: {
         content: content || "",
@@ -324,7 +536,7 @@ export async function uploadComment(input: {
         ticketId,
         parentId: parentId || null,
         commenterId: currentUserId,
-        ...(needsOtrsSync ? { syncState: { otrs: "PENDING" } } : {}), // PENDING State ထည့်သွင်းခြင်း
+        ...(needsOtrsSync ? { syncState: { otrs: "PENDING" } } : {}),
       },
       include: {
         commenter: {
@@ -337,109 +549,107 @@ export async function uploadComment(input: {
         replies: true,
       },
     });
+    emitNewComment(comment);
+    let latestComment: CommentWithRelations = comment;
 
-    // ၃။ OTRS ID ရှိပါက API လှမ်းခေါ်ခြင်း
-    if (needsOtrsSync && ticket?.otrsTicketId) {
-      try {
-        // Attachment ပြင်ဆင်ခြင်း
-        const otrsAttachments: OTRSAttachment[] = [];
+    // 🌟 ၅။ OTRS သို့ ပို့ဆောင်ခြင်း သို့မဟုတ် Queue ထဲ ထည့်ခြင်း
+    if (needsOtrsSync) {
 
-        if (imageUrl) {
-          const filename = imageUrl.split("/").pop() || "attachment";
-          const folderName = imageUrl.includes("img-") ? "images" : "files";
-          const localFilePath = path.join(process.cwd(), "uploads", folderName, filename);
+      // ---------------------------------------------------------
+      // Attachment ပြင်ဆင်ခြင်း
+      // ---------------------------------------------------------
+      const otrsAttachments: OTRSAttachment[] = [];
+      let attachmentText = ""; // Body အောက်ဆုံးတွင် စာသားအနေဖြင့် ထည့်ရန်
 
-          if (fs.existsSync(localFilePath)) {
-            const fileBuffer = fs.readFileSync(localFilePath);
-            otrsAttachments.push({
-              Content: fileBuffer.toString("base64"),
-              ContentType: imageUrl.match(/\.(png|jpg|jpeg)$/i) ? "image/png" : "application/pdf",
-              Filename: filename,
-            });
-          }
-        }
+      if (imageUrl) {
+        const filename = imageUrl.split("/").pop() || "attachment";
+        const folderName = imageUrl.includes("img-") ? "images" : "files";
+        const localFilePath = path.join(process.cwd(), "uploads", folderName, filename);
 
-        const userName = comment.commenter?.name || "Unknown User";
-        const commentDate = new Date(comment.createdAt).toLocaleString("en-GB", { hour12: false });
-        const ewmTicketId = ticket?.ticketId || ticketId;
-
-        const formattedBody = `Dear colleagues! \nUser ${userName} added comment ${commentDate} in the EWM ticketing System for the Ticket ${ewmTicketId}. Comment is :\n${content || ""}`;
-
-        const otrsPayload: OTRSPayload = {
-          Operation: "TicketUpdate",
-          UserLogin: process.env.OTRS_USER_LOGIN || "",
-          Password: process.env.OTRS_PASSWORD || "",
-          Article: {
-            ArticleTypeId: 8,
-            From: "support@eastwindmyanmar.com.mm",
-            CommunicationChannel: "Internal",
-            SenderType: "customer",
-            Subject: "User added comment to the ticket in the EWM ticketing System",
-            Body: formattedBody,
-            ContentType: "text/plain; charset=utf8",
-            MimeType: "text/plain",
-            Charset: "utf8",
-            TimeUnit: 0,
-            Attachment: otrsAttachments.length > 0 ? otrsAttachments : undefined
-          },
-        };
-
-        // API Call ခေါ်ဆိုခြင်း
-        const response = await otrsService.updateTicket(ticket.otrsTicketId, otrsPayload);
-
-        // 🌟 ၄။ အောင်မြင်ပါက SUCCESS ပြောင်းမည်
-        if (response && response.status >= 200 && response.status < 300) {
-          await prisma.comment.update({
-            where: { id: comment.id },
-            data: { syncState: { otrs: "SUCCESS" } }
+        if (fs.existsSync(localFilePath)) {
+          const fileBuffer = fs.readFileSync(localFilePath);
+          otrsAttachments.push({
+            Content: fileBuffer.toString("base64"),
+            ContentType: imageUrl.match(/\.(png|jpg|jpeg)$/i) ? "image/png" : "application/pdf",
+            Filename: filename,
           });
-          console.log("[OTRS Sync Success]: Comment synced to OTRS.");
-        } else {
-          // အကယ်၍ Status 2xx မဟုတ်ပါက Error သတ်မှတ်ပြီး Catch ဆီသို့ ပို့မည်
-          throw new Error(`OTRS Ticket API Failed. Status: ${response?.status}`);
+
+          // Document ညွှန်ကြားချက်အရ Body ထဲထည့်ရန် စာသားပြင်ဆင်ခြင်း
+          attachmentText = `\nAttachment(s) for the ${parentId ? 'reply' : 'comment'}:\n${filename}`;
         }
+      }
 
-      } catch (otrsError) {
-        console.error("[OTRS API Error for Comment]:", otrsError);
+      // စာသားအချက်အလက်များ ပြင်ဆင်ခြင်း
+      const userName = comment.commenter?.name || "Unknown User";
+      const commentDate = new Date(comment.createdAt).toLocaleString("en-GB", { hour12: false });
+      const ewmTicketId = ticket?.ticketId || ticketId;
+      const isReply = !!parentId;
 
-        // 🌟 ၅။ ကျရှုံးပါက Queue ထဲသို့ PENDING အနေဖြင့် ထည့်ပေးလိုက်မည် (Cron က ဆက်လုပ်ပေးရန်)
-        await prisma.otrsSyncQueue.create({
-          data: {
-            ticketId: ticket.id,
-            operation: "TicketUpdate", // OTRS တွင် Ticket ကို Update သွားလုပ်ခြင်းဖြစ်သည်
-            payload: JSON.parse(JSON.stringify({
-              // Type Error မဖြစ်စေရန် Payload ကို JSON အဖြစ်ပြောင်း၍ သိမ်းပါမည်
-              Operation: "TicketUpdate",
-              UserLogin: process.env.OTRS_USER_LOGIN || "",
-              Password: process.env.OTRS_PASSWORD || "",
-              Article: {
-                ArticleTypeId: 8,
-                From: "support@eastwindmyanmar.com.mm",
-                CommunicationChannel: "Internal",
-                SenderType: "customer",
-                Subject: "User added comment to the ticket in the EWM ticketing System",
-                Body: `Dear colleagues! \nUser ${comment.commenter?.name || "Unknown User"} added comment ${new Date(comment.createdAt).toLocaleString("en-GB", { hour12: false })} in the EWM ticketing System for the Ticket ${ticket?.ticketId || ticketId}. Comment is :\n${content || ""}`,
-                ContentType: "text/plain; charset=utf8",
-                MimeType: "text/plain",
-                Charset: "utf8",
-                TimeUnit: 0,
-                // Queue ထဲသိမ်းသောအခါ Attachments များကိုပါ သိမ်းရန်လိုပါက ဤနေရာတွင် တွဲထည့်နိုင်ပါသည်
-              }
-            })),
-            status: "PENDING",
-            retryCount: 0,
-            referenceType: "COMMENT", // Cron job က Comment table ကို ပြန်ပြင်ပေးနိုင်ရန်
-            referenceId: comment.id   // Comment ID ကို တွဲထည့်ပေးခြင်း
+      // 🌟 Parent Comment စာသားကိုပါ ထည့်သွင်း၍ Template ကို အတိအကျ တည်ဆောက်ခြင်း
+      const subject = isReply
+        ? "User added reply to comment to the ticket in the EWM ticketing System"
+        : "User added comment to the ticket in the EWM ticketing System";
+
+      const formattedBody = isReply
+        ? `Dear colleagues!\nUser added reply to the comment “${parentCommentText}”\nin the EWM ticketing System for the Ticket ${ewmTicketId}.\nReply is :\n${content || ""}${attachmentText}`
+        : `Dear colleagues!\nUser ${userName} added comment ${commentDate} in the EWM ticketing System for the Ticket ${ewmTicketId}.\nComment is :\n${content || ""}${attachmentText}`;
+
+      // OTRS Payload တည်ဆောက်ခြင်း
+      const otrsPayload: OTRSPayload = {
+        Operation: "TicketUpdate",
+        UserLogin: process.env.OTRS_USER_LOGIN || "",
+        Password: process.env.OTRS_PASSWORD || "",
+        Article: {
+          ArticleTypeId: 8,
+          From: "support@eastwindmyanmar.com.mm",
+          CommunicationChannel: "Internal",
+          SenderType: "customer",
+          Subject: subject,
+          Body: formattedBody,
+          ContentType: "text/plain; charset=utf8",
+          MimeType: "text/plain",
+          Charset: "utf8",
+          TimeUnit: 0,
+          Attachment: otrsAttachments.length > 0 ? otrsAttachments : undefined
+        },
+      };
+
+      if (ticket?.otrsTicketId) {
+        // [A] OTRS ID ရှိပြီးသားဖြစ်၍ API သို့ တိုက်ရိုက် ပို့မည်
+        try {
+          const response = await otrsService.updateTicket(ticket.otrsTicketId, otrsPayload);
+
+          if (response && response.status >= 200 && response.status < 300) {
+            const updatedComment = await prisma.comment.update({
+              where: { id: comment.id },
+              data: { syncState: { otrs: "SUCCESS" } },
+              include: {
+                commenter: { select: { id: true, name: true, email: true } },
+                replies: true,
+              },
+            });
+            latestComment = updatedComment;
+            emitCommentUpdated(updatedComment);
+            console.log("[OTRS Sync Success]: Comment synced to OTRS.");
+          } else {
+            throw new Error(`OTRS Ticket API Failed. Status: ${response?.status}`);
           }
-        });
 
-        console.log("[OTRS Queue Added]: Comment sync failed, added to retry queue.");
+        } catch (otrsError) {
+          // တိုက်ရိုက်ပို့စဉ် Error တက်ပါက Queue ထဲထည့်မည်
+          console.error("[OTRS API Error for Comment]:", otrsError);
+          await addToQueue(ticket.id, comment.id, otrsPayload);
+        }
+      } else if (hasCreateJob) {
+        // [B] OTRS ID မရှိသေးသော်လည်း Queue ထဲတွင် Create လုပ်ခဲ့ဖူးသဖြင့် ဤ Comment ကိုလည်း Queue ထဲ တန်းထည့်မည်
+        console.log("[OTRS Queue Added]: TicketCreate exists in queue, adding Comment to wait.");
+        await addToQueue(ticket.id, comment.id, otrsPayload);
       }
     }
 
     return {
       success: true,
-      data: comment,
+      data: latestComment,
     };
   } catch (error) {
     return {
@@ -447,6 +657,20 @@ export async function uploadComment(input: {
       error: toErrorMessage(error, "Failed to upload comment"),
     };
   }
+}
+// 🌟 Queue ထဲသိမ်းရန် Helper Function (Code ပိုမိုရှင်းလင်းစေရန်)
+async function addToQueue(ticketId: string, commentId: string, payload: OTRSPayload) {
+  await prisma.otrsSyncQueue.create({
+    data: {
+      ticketId: ticketId,
+      operation: "TicketUpdate",
+      payload: JSON.parse(JSON.stringify(payload)),
+      status: "PENDING",
+      retryCount: 0,
+      referenceType: "COMMENT",
+      referenceId: commentId
+    }
+  });
 }
 interface LikeCommentParams {
   commentId: string;

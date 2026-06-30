@@ -230,41 +230,81 @@ export function useTicketForm({ mode, ticket, auditLog = [] }: UseTicketFormArgs
     }, 1);
   }, [priorityChanged, remark]);
 
+  // useEffect(() => {
+  //   if (!ticket?.id) return;
+
+  //   const socket = getSocket();
+  //   socket.emit("join-ticket", ticket.id);
+
+  //   const listener = (audit: Audit, updatedTicket: TicketFormData) => {
+  //     if (audit.entityId !== ticket.id) return;
+
+  //     // setAuditLogs((previous) => [audit, ...previous]);
+
+  //     setAuditLogs((prevLogs) => {
+  //       // ၁။ အသစ်ဝင်လာတဲ့ Log က လက်ရှိ ဇယားထဲမှာ ပါပြီးသားလား စစ်ပါမယ်
+  //       const isDuplicate = prevLogs.some((log) => log.id === audit.id);
+
+  //       // ၂။ ပါပြီးသားဆိုရင် ထပ်မထည့်ဘဲ မူလအတိုင်းပဲ ပြန်ထားပါမယ် (Key ထပ်တဲ့ Error ကို ကာကွယ်ခြင်း)
+  //       if (isDuplicate) {
+  //         return prevLogs;
+  //       }
+
+  //       // ၃။ မပါသေးဘူးဆိုမှသာ အသစ်ကို ထိပ်ဆုံးကနေ ပေါင်းထည့်ပါမယ်
+  //       return [audit, ...prevLogs];
+  //     });
+  //     setForm((previous) => ({
+  //       ...previous,
+  //       ...updatedTicket,
+  //     }));
+
+  //     // toast.success("Ticket updated");
+  //   };
+
+  //   socket.on("ticket-updated", listener);
+
+  //   return () => {
+  //     socket.off("ticket-updated", listener);
+  //   };
+  // }, [ticket?.id]);
+
   useEffect(() => {
     if (!ticket?.id) return;
 
     const socket = getSocket();
     socket.emit("join-ticket", ticket.id);
 
-    const listener = (audit: Audit, updatedTicket: TicketFormData) => {
+    // 🌟 1. မူလရှိပြီးသား ticket-updated listener
+    const ticketListener = (audit: Audit, updatedTicket: TicketFormData) => {
       if (audit.entityId !== ticket.id) return;
 
-      // setAuditLogs((previous) => [audit, ...previous]);
-
       setAuditLogs((prevLogs) => {
-        // ၁။ အသစ်ဝင်လာတဲ့ Log က လက်ရှိ ဇယားထဲမှာ ပါပြီးသားလား စစ်ပါမယ်
         const isDuplicate = prevLogs.some((log) => log.id === audit.id);
-
-        // ၂။ ပါပြီးသားဆိုရင် ထပ်မထည့်ဘဲ မူလအတိုင်းပဲ ပြန်ထားပါမယ် (Key ထပ်တဲ့ Error ကို ကာကွယ်ခြင်း)
-        if (isDuplicate) {
-          return prevLogs;
-        }
-
-        // ၃။ မပါသေးဘူးဆိုမှသာ အသစ်ကို ထိပ်ဆုံးကနေ ပေါင်းထည့်ပါမယ်
+        if (isDuplicate) return prevLogs;
         return [audit, ...prevLogs];
       });
       setForm((previous) => ({
         ...previous,
         ...updatedTicket,
       }));
-
-      // toast.success("Ticket updated");
     };
 
-    socket.on("ticket-updated", listener);
+    // 🌟 2. ယခုအသစ်ထပ်တိုးမည့် audit-updated listener (OTRS Sync အခြေအနေအတွက်)
+    const auditListener = (updatedAudit: Audit) => {
+      if (updatedAudit.entityId !== ticket.id) return; // 🌟 ticketId စစ်တာကို ဖြုတ်လိုက်ပါပြီ
+
+      setAuditLogs((prevLogs) =>
+        prevLogs.map((log) =>
+          log.id === updatedAudit.id ? { ...log, ...updatedAudit } : log
+        )
+      );
+    };
+    socket.on("ticket-updated", ticketListener);
+    socket.on("audit-updated", auditListener); // 🌟 အသစ်တိုးထားသည်
 
     return () => {
-      socket.off("ticket-updated", listener);
+      socket.off("ticket-updated", ticketListener);
+      socket.off("audit-updated", auditListener); // 🌟 အသစ်တိုးထားသည်
     };
   }, [ticket?.id]);
 

@@ -56,7 +56,20 @@ function getEmitterSocket(): Socket {
   return socket;
 }
 
-function emitEvent(event: string, payload: Record<string, unknown>) {
+export type CommentSocketPayload = {
+  id?: string;
+  ticketId?: string | null;
+  [key: string]: unknown;
+};
+
+export type AuditSocketPayload = {
+  id?: string;
+  entityId?: string | null;
+  ticketId?: string | null;
+  [key: string]: unknown;
+};
+
+function emitEvent(event: string, payload: unknown) {
   try {
     const sock = getEmitterSocket();
     if (sock.connected) {
@@ -85,4 +98,26 @@ export function emitAlertsChanged(payload: Record<string, unknown>) {
 
 export function emitSlaViolationsChanged(payload: Record<string, unknown>) {
   emitEvent("sla-violations", payload);
+}
+
+export function emitNewComment(comment: CommentSocketPayload) {
+  if (!comment.ticketId) return;
+  emitEvent("send-comment", comment);
+}
+
+export function emitCommentUpdated(comment: CommentSocketPayload) {
+  if (!comment.ticketId) return;
+  emitEvent("comment-updated", comment);
+}
+
+export function emitNewAudit(audit: AuditSocketPayload) {
+  const ticketId = audit.entityId ?? audit.ticketId;
+  if (!ticketId) return;
+  emitEvent("send-audit", audit);
+}
+
+export function emitAuditUpdated(audit: AuditSocketPayload) {
+  const ticketId = audit.entityId ?? audit.ticketId;
+  if (!ticketId) return;
+  emitEvent("audit-updated", audit);
 }

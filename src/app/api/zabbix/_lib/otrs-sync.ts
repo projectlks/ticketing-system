@@ -1,49 +1,26 @@
 import { prisma } from "@/libs/prisma";
-import { DEFAULT_CUSTOMER_EMAIL, LOCAL_CREATE_TICKET_URL } from "./constants";
+import { DEFAULT_CUSTOMER_EMAIL } from "./constants";
 import {
   buildMandatoryArticleSubject,
   ensureMandatoryArticleBody,
   mapSeverityToOtrsPriorityLabel,
-  normalizeTicketId,
 } from "./webhook";
-import {
-  CreateTicketCallResult,
-  CreateTicketResponse,
-  NormalizedWebhookContext,
-  OtrsSyncResult,
-} from "./types";
+import { NormalizedWebhookContext, OtrsSyncResult } from "./types";
+import { OTRSPayload, otrsService } from "@/libs/otrsService";
 
-/**
- * =====================================================================================
- * OTRS Sync Module
- * =====================================================================================
- *
- * Responsibility boundary for this module:
- * 1) Build outbound /api/create-ticket payload from normalized webhook context
- * 2) Call create-ticket endpoint with primary + fallback URL strategy
- * 3) Parse create-ticket response and normalize errors
- * 4) Persist returned OTRS TicketID to zabbixTicket row
- *
- * This keeps route.ts focused on orchestration only.
- */
 
-/**
- * Build payload for internal create-ticket bridge endpoint.
- *
- * Note:
- * - Article Subject/Body are enforced by webhook helpers to keep ticket content complete.
- * - State = "new" for problem and "recovery" for resolved events.
- */
-function buildCreateTicketPayload(context: NormalizedWebhookContext) {
+export function buildCreateTicketPayload(context: NormalizedWebhookContext) {
   const ticketState = context.isRecoveryEvent ? "recovery" : "new";
   const defaultSubject = buildMandatoryArticleSubject(context);
   const articleSubject = context.alertSubject ?? defaultSubject;
   const articleBody = ensureMandatoryArticleBody(context.alertMessage, context);
 
   return {
+    UserLogin: process.env.OTRS_USER_LOGIN || "myanmarapi",
+    Password: process.env.OTRS_PASSWORD || "cQtw3qjF9Rt$_@",
     Ticket: {
       Title: context.trigger.name ?? "Monitoring Problem",
-      QueueID: "96",
+      QueueID: "96", // အစ်ကိုတို့ သုံးမည့် Queue ID
       Service: "CEIR",
       State: ticketState,
       Priority: mapSeverityToOtrsPriorityLabel(context.trigger.severity),
@@ -68,14 +45,9 @@ function buildCreateTicketPayload(context: NormalizedWebhookContext) {
         Value: context.host.name ?? "",
       },
     ],
-    // EventTime: context.event.datetime ?? new Date().toISOString(),
-    // TriggerClient: context.host.inventory_tag ?? "",
-    // TriggerGroups: context.host.group ?? "",
     Article: {
       Subject: articleSubject,
       Body: articleBody,
-
-      // ပြင်ဆင်ချက် (၂) - OTRS Document အရ မဖြစ်မနေ လိုအပ်သော Article Fields များ ဖြည့်စွက်ခြင်း
       SenderType: "customer",
       From: DEFAULT_CUSTOMER_EMAIL,
       ContentType: "text/plain; charset=utf8",
@@ -83,122 +55,24 @@ function buildCreateTicketPayload(context: NormalizedWebhookContext) {
       Charset: "utf8",
       TimeUnit: 0,
     },
-    // Message: articleBody,
   };
 }
 
 /**
- * Execute single create-ticket HTTP request and parse JSON response.
- */
-async function callCreateTicket(
-  url: string,
-  payload: unknown,
-): Promise<{ data?: CreateTicketCallResult; error?: string }> {
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    console.log("###########################################################################################")
-    console.log(JSON.stringify(payload));
-    console.log("###########################################################################################")
-
-    const responseText = await response.text();
-    const contentType = response.headers.get("content-type") ?? "";
-
-    if (!contentType.includes("application/json")) {
-      return {
-        error: `create-ticket returned non-JSON from ${url} (status ${response.status}): ${responseText.slice(0, 160)}`,
-      };
-    }
-
-    let parsed: CreateTicketResponse;
-    try {
-      parsed = JSON.parse(responseText) as CreateTicketResponse;
-    } catch (error) {
-      return { error: `create-ticket returned invalid JSON: ${String(error)}` };
-    }
-
-    return {
-      data: {
-        url,
-        status: response.status,
-        data: parsed,
-      },
-    };
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-/**
- * Primary URL tries current request origin (/api/create-ticket).
- * If request origin is missing/invalid, fallback to localhost URL.
- */
-function resolvePrimaryCreateTicketUrl(requestOrigin?: string): string {
-  if (!requestOrigin) return LOCAL_CREATE_TICKET_URL;
-
-  try {
-    const resolved = new URL("/api/create-ticket", requestOrigin);
-    return resolved.toString();
-  } catch {
-    return LOCAL_CREATE_TICKET_URL;
-  }
-}
-
-/**
- * Retry strategy:
- * 1) Call create-ticket on same origin as incoming webhook
- * 2) If failed and primary wasn't localhost, retry localhost fallback
- */
-async function callCreateTicketWithFallback(
-  payload: unknown,
-  requestOrigin?: string,
-): Promise<{ data?: CreateTicketCallResult; error?: string }> {
-  const primaryCreateTicketUrl = resolvePrimaryCreateTicketUrl(requestOrigin);
-
-  const primaryResult = await callCreateTicket(primaryCreateTicketUrl, payload);
-  if (!primaryResult.error) {
-    return primaryResult;
-  }
-
-  if (primaryCreateTicketUrl === LOCAL_CREATE_TICKET_URL) {
-    return { error: primaryResult.error };
-  }
-
-  const fallbackResult = await callCreateTicket(LOCAL_CREATE_TICKET_URL, payload);
-  if (fallbackResult.error) {
-    return { error: fallbackResult.error };
-  }
-
-  return fallbackResult;
-}
-
-function resolveCreateTicketError(ticketData: CreateTicketResponse, statusCode: number): string | null {
-  return (
-    ticketData.error ??
-    ticketData.otrsError?.message ??
-    ticketData.data?.Error?.ErrorMessage ??
-    (statusCode >= 400 ? `create-ticket status ${statusCode}` : null)
-  );
-}
-
-/**
- * Persist returned OTRS ticket id into zabbixTicket.
- *
- * Recovery event may refer to problem event row, so we try both keys.
+ * Persist returned OTRS ticket id into both zabbixTicket and main Ticket.
  */
 async function persistOtrsTicketId(context: NormalizedWebhookContext, otrsTicketId: string) {
+  // ၁။ Zabbix ဇယားကို Update လုပ်မည်
   await prisma.zabbixTicket.updateMany({
     where: {
       OR: [{ eventid: context.event.id }, { eventid: context.problemEventId }],
     },
+    data: { otrsTicketId },
+  });
+
+  // ၂။ ပင်မ Ticket ဇယားကိုပါ Update လုပ်မည်
+  await prisma.ticket.updateMany({
+    where: { problemId: context.problemId },
     data: { otrsTicketId },
   });
 }
@@ -207,51 +81,75 @@ async function persistOtrsTicketId(context: NormalizedWebhookContext, otrsTicket
  * Orchestrate OTRS sync side-effect for one normalized webhook event.
  */
 export async function syncOtrsTicket(
-  context: NormalizedWebhookContext,
-  requestOrigin?: string,
+  context: NormalizedWebhookContext
 ): Promise<{ data?: OtrsSyncResult; error?: string }> {
-  const createTicketPayload = buildCreateTicketPayload(context);
-  const createTicketResult = await callCreateTicketWithFallback(
-    createTicketPayload,
-    requestOrigin,
-  );
+  try {
+    const basePayload = buildCreateTicketPayload(context);
 
-  if (createTicketResult.error || !createTicketResult.data) {
-    return {
-      error: createTicketResult.error ?? "create-ticket request failed",
-    };
+    // 🌟 API Bridge ကို ဖျက်လိုက်ပြီဖြစ်၍ ဤနေရာတွင် OTRS Auth ကို တိုက်ရိုက်ထည့်ပေးရပါမည်
+    const fullPayload: OTRSPayload = {
+      ...basePayload,
+      // Operation: "TicketCreate" စသည်ဖြင့် ထည့်လိုပါက ထည့်နိုင်ပါသည်
+    } as OTRSPayload;
+
+    // ၁။ OTRS သို့ Create လုပ်ရမည်လား၊ Update လုပ်ရမည်လား သိရန် ကိုယ့် Database တွင် အရင်ရှာပါမည် (TicketSearch အစား)
+    const existingTicket = await prisma.ticket.findUnique({
+      where: { problemId: context.problemId },
+      select: { otrsTicketId: true, id: true },
+    });
+
+    if (existingTicket?.otrsTicketId) {
+      // ----------------------------------------------------
+      // [UPDATE FLOW] OTRS ID ရှိပြီးသားဖြစ်၍ တိုက်ရိုက် Update လုပ်မည်
+      // ----------------------------------------------------
+      const otrsRes = await otrsService.updateTicket(existingTicket.otrsTicketId, fullPayload);
+
+      if (otrsRes.status >= 200 && otrsRes.status < 300) {
+        return { data: { action: "ok" } };
+      } else {
+        return { error: `OTRS Update API Error: Status ${otrsRes.status}` };
+      }
+
+    } else {
+      // ----------------------------------------------------
+      // [CREATE FLOW] OTRS ID မရှိသေး၍ အသစ်ဖွင့်မည်
+      // ----------------------------------------------------
+      // [CREATE FLOW]
+      if (context.isRecoveryEvent && existingTicket &&  existingTicket?.id) {
+        // 🌟 ပြင်ဆင်ချက်: Recovery ဝင်လာပေမယ့် Create က Queue ထဲမှာ ရှိနေသေးရင် Skip မလုပ်ပါနဲ့
+        const pendingCreate = await prisma.otrsSyncQueue.findFirst({
+          where: {
+            ticketId: existingTicket.id, // သို့မဟုတ် context.ticketId
+            operation: "TicketCreate",
+            status: "PENDING",
+            referenceType: "ZABBIX",
+          }
+        });
+
+        if (pendingCreate) {
+          // Queue ထဲမှာ အလုပ်ကျန်နေသေးရင် Error ပြန်ပေးပြီး Cron ကို စောင့်ခိုင်းလိုက်ပါ
+          return { error: "Waiting for TicketCreate to complete in queue." };
+        }
+
+        return { data: { action: "skipped", reason: "Recovery event received but no OTRS Ticket exists." } };
+      }
+
+      const otrsRes = await otrsService.createTicket(fullPayload);
+
+      // 🌟 OTRS ဆီမှ အောင်မြင်ကြောင်း Status 200 ပြန်လာပြီး TicketID ပါလာမှသာ မှတ်သားပါမည်
+      if (otrsRes.status >= 200 && otrsRes.status < 300 && otrsRes.data?.TicketID) {
+        const otrsTicketId = String(otrsRes.data.TicketID);
+
+        // အောင်မြင်ပါက ဇယား (၂) ခုလုံးတွင် ID သွားမှတ်မည်
+        await persistOtrsTicketId(context, otrsTicketId);
+
+        return { data: { action: "ok" } };
+      } else {
+        return { error: `OTRS Create API Error: Status ${otrsRes.status}` };
+      }
+    }
+  } catch (error) {
+    // ဤနေရာမှ Error ပြန်ထွက်သွားပါက route.ts က အလိုအလျောက် Queue ထဲသို့ ထည့်ပေးသွားပါမည်
+    return { error: error instanceof Error ? error.message : String(error) };
   }
-
-  const ticketData = createTicketResult.data.data;
-
-  if (ticketData.action === "skipped") {
-    return {
-      data: {
-        action: "skipped",
-        reason: ticketData.reason ?? null,
-      },
-    };
-  }
-
-  const createTicketErrorMessage = resolveCreateTicketError(
-    ticketData,
-    createTicketResult.data.status,
-  );
-  if (createTicketErrorMessage) {
-    const errorCode = ticketData.otrsError?.code ?? ticketData.data?.Error?.ErrorCode;
-    return {
-      error: errorCode
-        ? `${createTicketErrorMessage} (${errorCode})`
-        : createTicketErrorMessage,
-    };
-  }
-
-  const otrsTicketId =
-    normalizeTicketId(ticketData.data?.TicketID) ?? normalizeTicketId(ticketData.ticketId);
-
-  if (otrsTicketId) {
-    await persistOtrsTicketId(context, otrsTicketId);
-  }
-
-  return { data: { action: "ok" } };
 }

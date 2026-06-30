@@ -33,6 +33,15 @@ const io = new Server(server, {
     },
 });
 
+type TicketScopedPayload = {
+    ticketId?: string | null;
+};
+
+type AuditScopedPayload = {
+    entityId?: string | null;
+    ticketId?: string | null;
+};
+
 io.use((socket, next) => {
     if (!SOCKET_TOKEN) {
         return next(new Error("Socket auth not configured"));
@@ -61,8 +70,26 @@ io.on("connection", (socket) => {
         socket.to(`ticket:${data.ticketId}`).emit("user-typing", data);
     });
 
-    socket.on("send-comment", (comment) => {
+    socket.on("send-comment", (comment: TicketScopedPayload) => {
+        if (!comment.ticketId) return;
         io.to(`ticket:${comment.ticketId}`).emit("new-comment", comment);
+    });
+
+    socket.on("comment-updated", (comment: TicketScopedPayload) => {
+        if (!comment.ticketId) return;
+        io.to(`ticket:${comment.ticketId}`).emit("comment-updated", comment);
+    });
+
+    socket.on("send-audit", (audit: AuditScopedPayload) => {
+        const ticketId = audit.entityId ?? audit.ticketId;
+        if (!ticketId) return;
+        io.to(`ticket:${ticketId}`).emit("new-audit", audit);
+    });
+
+    socket.on("audit-updated", (audit: AuditScopedPayload) => {
+        const ticketId = audit.entityId ?? audit.ticketId;
+        if (!ticketId) return;
+        io.to(`ticket:${ticketId}`).emit("audit-updated", audit);
     });
 
     socket.on("update-ticket", (data: { id: string; audit: Audit; ticket: TicketFormData }) => {

@@ -1,4 +1,3 @@
-
 import fs from "fs";
 import https from "https";
 import { constants } from "crypto";
@@ -161,7 +160,7 @@ function logOutgoingOtrsPayload(
     payload: Record<string, unknown>
 ): void {
     redactSensitiveForLog(payload);
- 
+
 }
 
 function extractOtrsApiError(value: unknown): OtrsApiError | null {
@@ -404,74 +403,33 @@ function buildHttpsAgent(config: OtrsConfig): https.Agent {
 
 
 
-// Ticket update call ကို robust လုပ်ဖို့ helper
-// - ပထမ priority: PUT (spec table အတိုင်း)
-// - server က PUT မလက်ခံရင် POST fallback လုပ်
-// async function sendTicketUpdate(
-//     url: string,
-//     payload: Record<string, unknown>,
-//     requestConfig: AxiosRequestConfig
-// ): Promise<{ method: "PUT" | "POST"; response: AxiosResponse }> {
-//     try {
-//         console.log("payload:", JSON.stringify(payload, null, 2));
-//         const response = await axios.post(url, payload, requestConfig);
-//         return { method: "POST", response };
-//     } catch (error) {
-//         if (axios.isAxiosError(error)) {
-//             const status = error.response?.status;
-//             if (status === 404 || status === 405 || status === 501) {
-//                 const response = await axios.post(url, payload, requestConfig);
-//                 return { method: "POST", response };
-//             }
-//         }
-//         throw error;
-//     }
-// }
-
-
-// retry helper
-async function retryAxios<T>(
-    fn: () => Promise<{ data?: T; error?: unknown }>,
-    maxRetries: number = 5,
-    delayMs: number = 1000,
-): Promise<{ data?: T; error?: unknown }> {
-    let lastError: unknown;
-    for (let i = 0; i < maxRetries; i++) {
-        const result = await fn();
-        if (!result.error) {
-            return { data: result.data };
-        }
-        lastError = result.error;
-        await new Promise((r) => setTimeout(r, delayMs));
-    }
-    return { error: lastError };
-}
 
 async function sendTicketUpdate(
     url: string,
     payload: Record<string, unknown>,
     requestConfig: AxiosRequestConfig
 ): Promise<{ data?: { method: "PUT" | "POST"; response: AxiosResponse }; error?: unknown }> {
-
-    return retryAxios(async () => {
-        try {
-            const response = await axios.post(url, payload, requestConfig);
-            return { data: { method: "POST", response } };
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const status = error.response?.status;
-                if (status === 404 || status === 405 || status === 501) {
-                    try {
-                        const response = await axios.post(url, payload, requestConfig);
-                        return { data: { method: "POST", response } };
-                    } catch (fallbackError) {
-                        return { error: fallbackError };
-                    }
+    try {
+        // (၁) ကြိမ်တည်းသာ တိုက်ရိုက် လှမ်းခေါ်ပါမည်
+        const response = await axios.post(url, payload, requestConfig);
+        return { data: { method: "POST", response } };
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            const status = error.response?.status;
+            // 404, 405, 501 ဖြစ်ခဲ့လျှင် Fallback လမ်းကြောင်းဖြင့် တစ်ကြိမ်သာ ထပ်စမ်းပါမည်
+            if (status === 404 || status === 405 || status === 501) {
+                try {
+                    const fallbackResponse = await axios.post(url, payload, requestConfig);
+                    return { data: { method: "POST", response: fallbackResponse } };
+                } catch (fallbackError) {
+                    // Fallback လည်း Error တက်လျှင် Queue တွင်ထည့်ရန် ပြန်ပို့မည်
+                    return { error: fallbackError };
                 }
             }
-            return { error };
         }
-    });
+        // အခြား Error များဖြစ်လျှင်လည်း Queue တွင်ထည့်ရန် ပြန်ပို့မည်
+        return { error };
+    }
 }
 
 export async function POST(req: Request) {
@@ -481,11 +439,6 @@ export async function POST(req: Request) {
         const body = (await req.json()) as ZabbixRequestBody;
 
         const ticket = asObject(body.Ticket);
-        // console.log("[create-ticket] request received", {
-        //     requestId,
-        //     hasTicket: Boolean(ticket),
-        //     hasDynamicField: Array.isArray(body.DynamicField),
-        // });
 
         if (!ticket) {
             return NextResponse.json(
@@ -543,18 +496,7 @@ export async function POST(req: Request) {
         }
         const config = configResult.config;
         const queueId = normalizeQueueId(ticket.QueueID) ?? config.defaultQueueId ?? null;
-        // console.log("[create-ticket] config resolved", {
-        //     requestId,
-        //     baseUrl: config.baseUrl,
-        //     userLogin: maskValue(config.userLogin),
-        //     fromEmail: config.fromEmail,
-        //     pfxPath: config.pfxPath,
-        //     rejectUnauthorized: config.rejectUnauthorized,
-        //     queueId,
-        //     trigger: mappedDynamicFields.ZabbixTrigger,
-        //     event: mappedDynamicFields.ZabbixEvent,
-        //     host: mappedDynamicFields.ZabbixHost,
-        // });
+
         if (queueId === null) {
             return NextResponse.json(
                 {

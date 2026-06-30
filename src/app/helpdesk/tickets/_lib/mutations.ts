@@ -4,7 +4,7 @@ import { Audit, Priority, Status, Ticket } from "@/generated/prisma/client";
 import { requireSuperAdminAndEmail } from "@/libs/admin-guard";
 import { prisma } from "@/libs/prisma";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
-import { emitTicketsChanged } from "@/libs/socket-emitter";
+import { emitNewAudit, emitTicketsChanged } from "@/libs/socket-emitter";
 import { syncTicketOutbound } from "@/libs/ticket-outbound-sync";
 import { HELPDESK_CACHE_PREFIXES } from "../../cache/redis-keys";
 import {
@@ -36,6 +36,16 @@ const HELP_DESK_INVALIDATION_PREFIXES: string[] = [
   HELPDESK_CACHE_PREFIXES.analysis,
   HELPDESK_CACHE_PREFIXES.users,
 ];
+
+const auditRealtimeInclude = {
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+} as const;
 
 // ==========================================
 // 🚀 EXPORTED MUTATIONS (အဓိက လုပ်ဆောင်မည့် Function များ)
@@ -139,9 +149,11 @@ export async function createTicket(
     await handleOtrsTicketCreate(ticket as unknown as OtrsTicketData, images);
     // ==========================================
 
-    await prisma.audit.create({
+    const audit = await prisma.audit.create({
       data: { entity: "Ticket", entityId: ticket.id, userId, action: "CREATE" },
+      include: auditRealtimeInclude,
     });
+    emitNewAudit(audit);
 
     await triggerPostMutationHooks({ event: "created", ticketId: ticket.id, status: ticket.status, ticket });
 
@@ -248,9 +260,10 @@ export async function updateTicket(
     newAudit = await prisma.audit.create({
       data: {
         entity: "Ticket", entityId: updated.id, userId: currentUserId, action: "UPDATE", changes, syncState: { otrs: "PENDING" }  },
+      include: auditRealtimeInclude,
       });
 
-
+      emitNewAudit(newAudit);
 
     }
 
@@ -265,7 +278,8 @@ export async function updateTicket(
       imageSync.data.newImageUrls,
       imageSync.data.finalAttachmentUrls,
       normalizedRemark,
-      newAudit
+      newAudit,
+      imageSync.data.urlsToDelete // 🌟 ဒါလေးကို နောက်ဆုံးမှာ ထပ်တိုးပေးလိုက်ပါ
     );
     // ==========================================
 

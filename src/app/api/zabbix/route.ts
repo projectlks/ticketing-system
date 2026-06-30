@@ -3,12 +3,13 @@ import { HELPDESK_CACHE_PREFIXES } from "@/app/helpdesk/cache/redis-keys";
 import { invalidateCacheByPrefixes } from "@/libs/redis-cache";
 import { emitAlertsChanged, emitTicketsChanged } from "@/libs/socket-emitter";
 import { upsertInternalHelpdeskTicket, upsertZabbixSnapshot } from "./_lib/db-sync";
-import { syncOtrsTicket } from "./_lib/otrs-sync";
+import { buildCreateTicketPayload, syncOtrsTicket } from "./_lib/otrs-sync";
 import {
   buildWebhookContext,
   isAllowedOtrsSeverity,
   parseIncomingWebhookPayload,
 } from "./_lib/webhook";
+import { prisma } from "@/libs/prisma";
 
 /**
  * Zabbix Webhook Route (thin orchestration layer)
@@ -167,28 +168,79 @@ export async function POST(req: NextRequest) {
     /* ---------------------------------------------------------------------- */
     /* Step 7: Run OTRS sync through create-ticket bridge                      */
     /* ---------------------------------------------------------------------- */
-    const otrsResult = await syncOtrsTicket(context, req.nextUrl.origin);
+    // const otrsResult = await syncOtrsTicket(context, req.nextUrl.origin);
 
-    if (otrsResult.error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: otrsResult.error,
-          requestId,
-        },
-        { status: 502 },
-      );
-    }
+    // if (otrsResult.error) {
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       error: otrsResult.error,
+    //       requestId,
+    //     },
+    //     { status: 502 },
+    //   );
+    // }
 
-    if (otrsResult.data?.action === "skipped") {
+    // if (otrsResult.data?.action === "skipped") {
+    //   return NextResponse.json({
+    //     success: true,
+    //     action: "skipped",
+    //     reason: otrsResult.data.reason,
+    //   });
+    // }
+
+    // return NextResponse.json({ success: true });
+
+
+    /* ---------------------------------------------------------------------- */
+    /* Step 7: Run OTRS sync directly, Queue ONLY if it fails                  */
+    /* ---------------------------------------------------------------------- */
+
+    // 🌟 ၁။ OTRS သို့ ချက်ချင်း တိုက်ရိုက် လှမ်းပို့ပါမည် (Main Goal)
+    const otrsResult = await syncOtrsTicket(context);
+
+    // 🌟 ၂။ OTRS သို့ပို့သည်ကို အောင်မြင်လျှင် (သို့) Skip လုပ်လျှင် ပုံမှန်အတိုင်း ပြန်ပို့မည်
+    if (otrsResult.data?.action === "skipped" || (!otrsResult.error && otrsResult.data)) {
       return NextResponse.json({
         success: true,
-        action: "skipped",
-        reason: otrsResult.data.reason,
+        action: otrsResult.data?.action || "ok",
+
       });
     }
 
-    return NextResponse.json({ success: true });
+    // 🌟 ၃။ OTRS ဆာဗာ Down နေ၍ Error တက်သွားမှသာ Backup အနေဖြင့် Queue ထဲ ထည့်ပါမည်
+    if (otrsResult.error && internalResult.ticketId) {
+      console.error(`[OTRS Sync Failed] Queuing for background sync. Error: ${otrsResult.error}`);
+
+      // Queue ထဲထည့်ရန် OTRS Data အထုပ်ကို တည်ဆောက်ပါမည်
+      // (မှတ်ချက်: buildCreateTicketPayload ကို ./_lib/otrs-sync ဖိုင်မှ export လုပ်ပေးရန်လိုပါမည်)
+      const payload = buildCreateTicketPayload(context);
+
+      await prisma.otrsSyncQueue.create({
+        data: {
+          ticketId: internalResult.ticketId, // 🌟 Step 4 မှ အသင့်ရလာသော EWM Ticket ID
+          operation: internalResult.action === "created" ? "TicketCreate" : "TicketUpdate",
+          payload: JSON.parse(JSON.stringify(payload)),
+          status: "PENDING",
+          retryCount: 0,
+          referenceType: "ZABBIX",
+          referenceId: context.event.id // Zabbix Event ID
+        }
+      });
+
+      // Queue ထဲအောင်မြင်စွာ ထည့်ပြီးကြောင်း Zabbix ဆီသို့ ချက်ချင်း ပြန်ပို့ပေးပါမည်
+      return NextResponse.json({
+        success: true,
+        action: "queued_due_to_error",
+        error: otrsResult.error
+      });
+    }
+
+    // အခြားသော မမျှော်လင့်ထားသည့် အခြေအနေများအတွက်
+    return NextResponse.json(
+      { success: false, error: "Failed to sync or queue", requestId },
+      { status: 502 }
+    );
   } catch {
     return NextResponse.json(
       {

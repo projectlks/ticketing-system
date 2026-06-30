@@ -32,7 +32,9 @@ function insertCommentIntoTree(
   nodes: CommentWithRelations[],
   incoming: CommentWithRelations,
 ): CommentWithRelations[] {
-  if (nodes.some((node) => node.id === incoming.id)) return nodes;
+  if (nodes.some((node) => node.id === incoming.id)) {
+    return updateCommentInTree(nodes, incoming);
+  }
 
   if (!incoming.parentId) {
     return [...nodes, incoming];
@@ -40,6 +42,13 @@ function insertCommentIntoTree(
 
   return nodes.map((node) => {
     if (node.id === incoming.parentId) {
+      if (node.replies?.some((reply) => reply.id === incoming.id)) {
+        return {
+          ...node,
+          replies: updateCommentInTree(node.replies, incoming),
+        };
+      }
+
       return {
         ...node,
         replies: [...(node.replies || []), incoming],
@@ -50,6 +59,39 @@ function insertCommentIntoTree(
       return {
         ...node,
         replies: insertCommentIntoTree(node.replies, incoming),
+      };
+    }
+
+    return node;
+  });
+}
+
+function mergeComment(
+  current: CommentWithRelations,
+  incoming: CommentWithRelations,
+): CommentWithRelations {
+  return {
+    ...current,
+    ...incoming,
+    commenter: incoming.commenter ?? current.commenter,
+    likes: incoming.likes ?? current.likes,
+    replies: incoming.replies?.length ? incoming.replies : current.replies,
+  };
+}
+
+function updateCommentInTree(
+  nodes: CommentWithRelations[],
+  incoming: CommentWithRelations,
+): CommentWithRelations[] {
+  return nodes.map((node) => {
+    if (node.id === incoming.id) {
+      return mergeComment(node, incoming);
+    }
+
+    if (node.replies?.length) {
+      return {
+        ...node,
+        replies: updateCommentInTree(node.replies, incoming),
       };
     }
 
@@ -126,6 +168,21 @@ export default function CommentSection({
 
     return () => {
       socket.off("new-comment", handleNewComment);
+    };
+  }, [ticketId]);
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleUpdatedComment = (comment: CommentWithRelations) => {
+      if (comment.ticketId !== ticketId) return;
+      setComments((previous) => updateCommentInTree(previous, comment));
+    };
+
+    socket.on("comment-updated", handleUpdatedComment);
+
+    return () => {
+      socket.off("comment-updated", handleUpdatedComment);
     };
   }, [ticketId]);
 

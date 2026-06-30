@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import dayjs from "@/libs/dayjs";
 import { prisma } from "@/libs/prisma";
+import { emitAuditUpdated, emitNewComment } from "@/libs/socket-emitter";
 import { OTRSAttachment, OTRSPayload, otrsService } from "@/libs/otrsService";
 import { Audit, OtrsOperation, Priority, Status } from "@/generated/prisma/client";
 
@@ -17,6 +18,53 @@ export interface OtrsTicketData {
     status: Status;
     otrsTicketId: string | null;
     department?: { id: string; name: string } | null;
+}
+
+const commentRealtimeInclude = {
+    commenter: {
+        select: {
+            id: true,
+            name: true,
+            email: true,
+        },
+    },
+    replies: true,
+} as const;
+
+const auditRealtimeInclude = {
+    user: {
+        select: {
+            id: true,
+            name: true,
+            email: true,
+        },
+    },
+} as const;
+
+async function createSystemComment(ticketId: string, content: string) {
+    const comment = await prisma.comment.create({
+        data: {
+            ticketId,
+            commenterId: process.env.NEXT_PUBLIC_COMMENTER_ID || "",
+            content,
+        },
+        include: commentRealtimeInclude,
+    });
+    emitNewComment(comment);
+    return comment;
+}
+
+async function updateAuditSyncState(
+    auditId: string,
+    syncState: { otrs: "SUCCESS" | "FAILED" },
+) {
+    const audit = await prisma.audit.update({
+        where: { id: auditId },
+        data: { syncState },
+        include: auditRealtimeInclude,
+    });
+    emitAuditUpdated(audit);
+    return audit;
 }
 
 // ==========================================
@@ -94,9 +142,7 @@ export async function handleOtrsTicketCreate(ticket: OtrsTicketData, images: str
 
         if (otrsRes.status >= 200 && otrsRes.status < 300 && otrsRes.data.TicketNumber) {
             const otrsLink = `https://support.eastwind.ru/customer.pl?Action=CustomerTicketZoom;TicketNumber=${otrsRes.data.TicketNumber}`;
-            await prisma.comment.create({
-                data: { ticketId: ticket.id, commenterId: process.env.NEXT_PUBLIC_COMMENTER_ID || "", content: otrsLink }
-            });
+            await createSystemComment(ticket.id, otrsLink);
             await prisma.ticket.update({
                 where: { id: ticket.id },
                 data: { otrsTicketId: String(otrsRes.data.TicketID), otrsTicketNumber: String(otrsRes.data.TicketNumber) }
@@ -128,7 +174,8 @@ export async function handleOtrsTicketUpdate(
     newImageUrls: string[],
     finalAttachmentUrls: string[],
     normalizedRemark: string,
-    newAudit: Audit | null
+    newAudit: Audit | null,
+    urlsToDelete: string[] = [] // 🌟 Parameter အသစ် ထပ်တိုးထားပါသည်
 ) {
     const isJscNow = updated.department?.name === "JSC";
     const wasJscBefore = oldData.department?.name === "JSC";
@@ -240,10 +287,7 @@ export async function handleOtrsTicketUpdate(
         try {
             await otrsService.updateTicket(updated.otrsTicketId!, payload);
             if (newAudit) {
-                await prisma.audit.update({
-                    where: { id: newAudit.id },
-                    data: { syncState: { otrs: "SUCCESS" } }
-                });
+                await updateAuditSyncState(newAudit.id, { otrs: "SUCCESS" });
             }
         } catch (error) {
             console.error("[OTRS Sync]: Re-assign Update Failed", error);
@@ -265,8 +309,9 @@ export async function handleOtrsTicketUpdate(
         const statusChanged = oldData.status !== updated.status;
         const priorityChanged = oldData.priority !== updated.priority;
         const attachmentsAdded = newImageUrls.length > 0;
+        const attachmentsDeleted = urlsToDelete.length > 0; // 🌟 ဖျက်လိုက်သော ပုံများ ရှိ/မရှိ စစ်ဆေးခြင်း
 
-        if (statusChanged || priorityChanged || attachmentsAdded) {
+        if (statusChanged || priorityChanged || attachmentsAdded || attachmentsDeleted) {
             const otrsAttachments = await convertToOtrsAttachments(newImageUrls);
 
             let subject = "Ticket updated";
@@ -285,6 +330,13 @@ export async function handleOtrsTicketUpdate(
                 subjects.push(`attachment(s) added`);
                 bodyContent += `User added attachment(s) in the EWM ticketing System for the Ticket ${updated.ticketId}.\nAttachments are:\n${otrsAttachments.map((a) => a.Filename).join("\n")}\n`;
             }
+            // 🌟 ဤအပိုင်းသည် ဖျက်လိုက်သော ပုံများအတွက် စာသား ထပ်တိုးမည့် အပိုင်းဖြစ်ပါသည်
+            if (attachmentsDeleted) {
+                subjects.push(`attachment(s) deleted`);
+                const deletedFilenames = urlsToDelete.map(url => url.split("/").pop() || "unknown_file").join("\n");
+                bodyContent += `User deleted attachment(s) in the EWM ticketing System for the Ticket ${updated.ticketId}.\nDeleted attachments are:\n${deletedFilenames}\n`;
+            }
+            
             if (subjects.length > 0) subject = subjects.join(", ");
 
             const ticketBlock: Record<string, string> = {};
@@ -319,10 +371,7 @@ export async function handleOtrsTicketUpdate(
                 try {
                     await otrsService.updateTicket(updated.otrsTicketId!, payload);
                     if (newAudit) {
-                        await prisma.audit.update({
-                            where: { id: newAudit.id },
-                            data: { syncState: { otrs: "SUCCESS" } }
-                        });
+                        await updateAuditSyncState(newAudit.id, { otrs: "SUCCESS" });
                     }
                 } catch (error) {
                     console.error("[OTRS Sync]: Update Failed", error);
@@ -401,14 +450,11 @@ export async function handleOtrsTicketUpdate(
 
             if (otrsRes.status >= 200 && otrsRes.status < 300 && otrsRes.data.TicketNumber) {
                 const otrsLink = `https://support.eastwind.ru/customer.pl?Action=CustomerTicketZoom;TicketNumber=${otrsRes.data.TicketNumber}`;
-                await prisma.comment.create({ data: { ticketId: updated.id, commenterId: process.env.NEXT_PUBLIC_COMMENTER_ID || "", content: otrsLink } });
+                await createSystemComment(updated.id, otrsLink);
                 await prisma.ticket.update({ where: { id: updated.id }, data: { otrsTicketId: String(otrsRes.data.TicketID), otrsTicketNumber: String(otrsRes.data.TicketNumber) } });
 
                 if (newAudit) {
-                    await prisma.audit.update({
-                        where: { id: newAudit.id },
-                        data: { syncState: { otrs: "SUCCESS" } }
-                    });
+                    await updateAuditSyncState(newAudit.id, { otrs: "SUCCESS" });
                 }
             } else {
                 throw new Error(`OTRS Ticket API Failed. Status: ${otrsRes.status}`);
@@ -457,10 +503,7 @@ export async function handleOtrsTicketUpdate(
             try {
                 await otrsService.updateTicket(updated.otrsTicketId!, payload);
                 if (newAudit) {
-                    await prisma.audit.update({
-                        where: { id: newAudit.id },
-                        data: { syncState: { otrs: "SUCCESS" } }
-                    });
+                    await updateAuditSyncState(newAudit.id, { otrs: "SUCCESS" });
                 }
             } catch (error) {
                 console.error("[OTRS Sync]: Transfer Out Update Failed", error);
@@ -517,7 +560,7 @@ export async function handleOtrsTicketStatusUpdate(updated: OtrsTicketData, oldD
             try {
                 await otrsService.updateTicket(updated.otrsTicketId, payload);
                 if (newAudit) {
-                    await prisma.audit.update({ where: { id: newAudit.id }, data: { syncState: { otrs: "SUCCESS" } } });
+                    await updateAuditSyncState(newAudit.id, { otrs: "SUCCESS" });
                 }
             } catch (error) {
                 console.error("[OTRS Sync]: Status Update Failed", error);
