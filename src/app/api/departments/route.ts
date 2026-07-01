@@ -1,11 +1,10 @@
 // route.ts
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, } from "next/server";
 import { prisma } from "@/libs/prisma";
 import { withAuth } from "@/libs/api-auth-wrapper"; // 🌟 withAuth ကို Import လုပ်ပါမည်
 
 // 🌟 GET function ကို withAuth ဖြင့် ပတ်လိုက်ပါပြီ
-export const GET = withAuth(async (request: NextRequest, userId: string) => {
-
+export const GET = withAuth(async () => {
     // လုံခြုံရေးစစ်တဲ့ အပိုင်းတွေ (Session စစ်တာ၊ Basic Auth စစ်တာ၊ Token စစ်တာ) ကို 
     // ဒီထဲမှာ ရေးစရာမလိုတော့ပါဘူး။ withAuth က အလိုအလျောက် စစ်ပေးပြီး 
     // Auth အောင်မြင်မှသာ ဒီအထဲကို တရားဝင် userId လေးနဲ့တကွ ဝင်ခွင့်ပေးမှာပါ။

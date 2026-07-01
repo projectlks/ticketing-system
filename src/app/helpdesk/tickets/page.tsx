@@ -140,6 +140,10 @@ export default function Page() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // 🌟 (၁) ဤနေရာတွင် State အသစ် ထပ်တိုးပါ
+  const searchParamsString = searchParams.toString();
+  const [prevSearchStr, setPrevSearchStr] = useState<string | null>(null);
+
   const departmentPresetContext = useMemo(() => {
     if (searchParams.get("source") !== "department") return null;
 
@@ -165,7 +169,79 @@ export default function Page() {
     };
   }, [searchParams]);
 
-  useEffect(() => {
+  // useEffect(() => {
+  //   const newFilters: Record<string, string[]> = {};
+  //   const statusParam = searchParams.get("status");
+  //   const ownershipParam = searchParams.get("ownership");
+  //   const priorityParam = searchParams.get("priority");
+  //   const archivedParam = searchParams.get("archived");
+  //   const slaParam = searchParams.get("sla");
+  //   const legacyFilterParam = searchParams.get("filter");
+
+  //   const statusValues = parseEnumList(statusParam, STATUS_OPTIONS);
+  //   if (statusValues.length) {
+  //     newFilters.Status = statusValues;
+  //   }
+
+  //   const normalizedOwnership = normalizeOwnership(ownershipParam);
+  //   if (normalizedOwnership && OWNERSHIP_OPTIONS.has(normalizedOwnership)) {
+  //     newFilters.Ownership = [normalizedOwnership];
+  //   }
+
+  //   const priorityValues = parseEnumList(priorityParam, PRIORITY_OPTIONS);
+  //   if (priorityValues.length) {
+  //     newFilters.Priority = priorityValues;
+  //   }
+
+  //   if (
+  //     archivedParam &&
+  //     (archivedParam === "Archived" || archivedParam === "UnArchived")
+  //   ) {
+  //     newFilters.Archived = [archivedParam];
+  //   }
+
+  //   if (slaParam) {
+  //     const normalized = slaParam.trim().toLowerCase();
+  //     if (normalized === "violated") {
+  //       newFilters.SLA = ["Violated"];
+  //     } else if (normalized === "not violated") {
+  //       newFilters.SLA = ["Not Violated"];
+  //     }
+  //   }
+
+  //   const newSearchFilters: Record<string, string[]> = {};
+  //   const departmentParam = searchParams.get("department");
+  //   const departmentIdParam = searchParams.get("departmentId");
+
+  //   if (departmentParam) {
+  //     newSearchFilters.department = [departmentParam];
+  //   }
+
+  //   if (departmentIdParam) {
+  //     newSearchFilters.departmentId = [departmentIdParam];
+  //   }
+
+  //   if (legacyFilterParam) {
+  //     const normalizedLegacyOwnership = normalizeOwnership(legacyFilterParam);
+  //     if (
+  //       normalizedLegacyOwnership &&
+  //       OWNERSHIP_OPTIONS.has(normalizedLegacyOwnership)
+  //     ) {
+  //       newFilters.Ownership = [normalizedLegacyOwnership];
+  //     } else {
+  //       newSearchFilters.departmentId = [legacyFilterParam];
+  //     }
+  //   }
+
+  //   setSelectedFilters(newFilters);
+  //   setSelectedSearchQueryFilters(newSearchFilters);
+  //   setCurrentPage(1);
+  // }, [searchParams]);
+
+  // 🌟 (၂) useEffect အစား Render နေစဉ်မှာပင် တိုက်ရိုက် Update လုပ်မည့် Code 🌟
+  if (searchParamsString !== prevSearchStr) {
+    setPrevSearchStr(searchParamsString); // URL အသစ်ကို မှတ်ထားလိုက်ပါမည်
+
     const newFilters: Record<string, string[]> = {};
     const statusParam = searchParams.get("status");
     const ownershipParam = searchParams.get("ownership");
@@ -232,7 +308,7 @@ export default function Page() {
     setSelectedFilters(newFilters);
     setSelectedSearchQueryFilters(newSearchFilters);
     setCurrentPage(1);
-  }, [searchParams]);
+  }
 
   const queryInput = useMemo(
     () =>
@@ -259,26 +335,60 @@ export default function Page() {
       : "Failed to load tickets."
     : null;
 
-  useEffect(() => {
-    // Query parameter ပြောင်းပြီး dataset အသစ်ရောက်လာချိန်မှာ
-    // မရှိတော့တဲ့ row id selection မကျန်အောင် clean လုပ်ထားပါတယ်။
+  // useEffect(() => {
+  //   // Query parameter ပြောင်းပြီး dataset အသစ်ရောက်လာချိန်မှာ
+  //   // မရှိတော့တဲ့ row id selection မကျန်အောင် clean လုပ်ထားပါတယ်။
+  //   setSelectedTickets((previous) =>
+  //     previous.filter((id) => tickets.some((ticket) => ticket.id === id)),
+  //   );
+  // }, [tickets]);
+
+  // useEffect(() => {
+  //   const safeTotalPages = Math.max(1, totalPages);
+  //   if (currentPage > safeTotalPages) {
+  //     setCurrentPage(safeTotalPages);
+  //   }
+  // }, [totalPages, currentPage]);
+
+  // useEffect(() => {
+  //   if (showDeleteConfirm && selectedTickets.length === 0) {
+  //     setShowDeleteConfirm(false);
+  //   }
+  // }, [showDeleteConfirm, selectedTickets.length]);
+
+  // 🌟 (၁) ယခင်တန်ဖိုးဟောင်းများကို မှတ်ထားရန် State လေးများ အရင်ကြေညာပါ
+  const [prevTickets, setPrevTickets] = useState(tickets);
+  const [prevTotalPages, setPrevTotalPages] = useState(totalPages);
+  const [prevSelectedCount, setPrevSelectedCount] = useState(
+    selectedTickets.length,
+  );
+
+  // 🌟 (၂) useEffect သုံးမည့်အစား Render လုပ်နေစဉ်မှာပင် တိုက်ရိုက် စစ်ဆေးပါမည်
+
+  // ၁။ Tickets ပြောင်းသွားချိန် Selection ရှင်းခြင်း
+  if (tickets !== prevTickets) {
+    setPrevTickets(tickets); // တန်ဖိုးအသစ်ကို မှတ်ထားမည်
     setSelectedTickets((previous) =>
       previous.filter((id) => tickets.some((ticket) => ticket.id === id)),
     );
-  }, [tickets]);
+  }
 
-  useEffect(() => {
+  // ၂။ Total Pages ပြောင်းသွားချိန် Current Page ညှိခြင်း
+  if (totalPages !== prevTotalPages) {
+    setPrevTotalPages(totalPages);
     const safeTotalPages = Math.max(1, totalPages);
     if (currentPage > safeTotalPages) {
       setCurrentPage(safeTotalPages);
     }
-  }, [totalPages, currentPage]);
+  }
 
-  useEffect(() => {
+  // ၃။ Selected Tickets အရေအတွက် ပြောင်းသွားချိန် Delete Confirm Box ပိတ်ခြင်း
+  if (selectedTickets.length !== prevSelectedCount) {
+    setPrevSelectedCount(selectedTickets.length);
     if (showDeleteConfirm && selectedTickets.length === 0) {
       setShowDeleteConfirm(false);
     }
-  }, [showDeleteConfirm, selectedTickets.length]);
+  }
 
   const markTicketChange = useCallback(
     (ticketId: string, type: TicketChangeType) => {
@@ -532,7 +642,9 @@ export default function Page() {
           onDownload={handleExcelDownload}
           downloadDisabled={selectedTickets.length === 0}
           onDelete={canDelete ? handleDeleteRequest : undefined}
-          deleteDisabled={!canDelete || selectedTickets.length === 0 || isDeleting}
+          deleteDisabled={
+            !canDelete || selectedTickets.length === 0 || isDeleting
+          }
           deleteLabel={
             isDeleting ? "Deleting..." : `Delete (${selectedTickets.length})`
           }
@@ -620,44 +732,46 @@ export default function Page() {
                       onClick={() =>
                         router.push(`/helpdesk/tickets/${ticket.id}`)
                       }>
-                    <td
-                      className="px-3 py-3"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleSelectTicket(ticket.id);
-                      }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTickets.includes(ticket.id)}
-                        className="accent-zinc-900"
-                        onChange={() => undefined}
-                      />
-                    </td>
-
-                    {/* <TableBody className="px-4 py-3 text-left">{index}</TableBody> */}
-
-                    <TableBody data={String(index + 1 + ((currentPage - 1) * pageSize))} />
-
-                    {visibleColumnKeys.map((column) => {
-                      const cellContent = renderCell(
-                        ticket,
-                        column.key,
-                        helpers,
-                        changeType,
-                      );
-
-                      return React.isValidElement(cellContent) ? (
-                        React.cloneElement(cellContent, {
-                          key: `${ticket.id}-${column.key}`,
-                        })
-                      ) : (
-                        <TableBody
-                          key={`${ticket.id}-${column.key}`}
-                          data={cellContent as string}
+                      <td
+                        className="px-3 py-3"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleSelectTicket(ticket.id);
+                        }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedTickets.includes(ticket.id)}
+                          className="accent-zinc-900"
+                          onChange={() => undefined}
                         />
-                      );
-                    })}
-                  </tr>
+                      </td>
+
+                      {/* <TableBody className="px-4 py-3 text-left">{index}</TableBody> */}
+
+                      <TableBody
+                        data={String(index + 1 + (currentPage - 1) * pageSize)}
+                      />
+
+                      {visibleColumnKeys.map((column) => {
+                        const cellContent = renderCell(
+                          ticket,
+                          column.key,
+                          helpers,
+                          changeType,
+                        );
+
+                        return React.isValidElement(cellContent) ? (
+                          React.cloneElement(cellContent, {
+                            key: `${ticket.id}-${column.key}`,
+                          })
+                        ) : (
+                          <TableBody
+                            key={`${ticket.id}-${column.key}`}
+                            data={cellContent as string}
+                          />
+                        );
+                      })}
+                    </tr>
                   );
                 })}
               </tbody>

@@ -176,7 +176,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <section className="min-h-screen w-full bg-[#F8FAFC] text-zinc-900">
       <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto w-full max-w-[1600px]  overflow-visible px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-[1600px]   px-4 sm:px-6">
           <div className="flex items-center gap-2 py-3">
             <button
               type="button"

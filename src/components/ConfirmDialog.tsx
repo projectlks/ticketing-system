@@ -21,7 +21,6 @@ export default function ConfirmDialog({
   open,
   title,
   description,
-  details = [],
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   contextLabel,

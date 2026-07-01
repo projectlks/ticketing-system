@@ -124,11 +124,11 @@ export function AuditLogList({
 
   return (
     <ul
-      className={`relative space-y-4 pl-2 ${className}`}
+      className={`relative space-y-5 pl-2 ${className}`}
       aria-label="Audit log">
       <div
         aria-hidden="true"
-        className="absolute left-3.5 top-0 h-full border-l border-zinc-200"
+        className="absolute left-3.5 top-0 h-full border-l border-indigo-200"
       />
 
       {items.map((item, idx) => {
@@ -195,11 +195,11 @@ export function AuditLogList({
           <li key={key} className="relative pl-8 group ">
             <span
               aria-hidden="true"
-              className="absolute left-0 top-1 inline-flex h-3.5 w-3.5 rounded-full bg-white ring-4 ring-zinc-300"
+              className="absolute left-0 top-1.5 inline-flex h-3.5 w-3.5 rounded-full bg-white ring-4 ring-indigo-300"
             />
 
             <article
-              className={`rounded-lg border ${isOtrsSyncFailed ? "border-red-300" : "border-zinc-200"} bg-white p-3 shadow-xs`}>
+              className={`rounded-lg border ${isOtrsSyncFailed ? "border-red-300" : "border-indigo-100"} bg-white p-3 shadow-xs`}>
               <div className="flex flex-col gap-2 text-xs text-zinc-500 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-100">

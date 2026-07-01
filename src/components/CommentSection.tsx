@@ -205,7 +205,9 @@ export default function CommentSection({
         </div>
       </header>
 
-      <div id="commentsSection" className="h-[42vh] overflow-y-auto pr-1 sm:h-[48vh]">
+      <div
+        id="commentsSection"
+        className="h-[42vh] overflow-y-auto px-3 sm:px-4  sm:h-[48vh]">
         {comments.length === 0 && (
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-5 text-center text-sm text-zinc-500">
             No comments yet. Start the conversation.
@@ -225,7 +227,7 @@ export default function CommentSection({
       </div>
 
       <div className="mt-3 border-t border-zinc-100 pt-3">
-        <div className="mb-2 min-h-[40px]">
+        <div className="mb-2 min-h-10">
           {typingUser ? (
             <div className="inline-flex items-center gap-2.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600">
               <Player
@@ -237,7 +239,7 @@ export default function CommentSection({
               <span>{typingUser} is typing...</span>
             </div>
           ) : (
-            <div aria-hidden className="h-[40px]" />
+            <div aria-hidden className="h-10" />
           )}
         </div>
         <CommentInput ticketId={ticketId} />
