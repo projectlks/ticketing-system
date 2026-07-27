@@ -183,6 +183,8 @@ export default function SignInPage() {
       {loading && <Loading />}
 
       <main className="bnv-app-bg bg-[#f3f6fd] relative isolate min-h-screen overflow-hidden text-zinc-900">
+
+        
         <div className="grid-overlay pointer-events-none absolute inset-0 opacity-60" />
 
         <section className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">

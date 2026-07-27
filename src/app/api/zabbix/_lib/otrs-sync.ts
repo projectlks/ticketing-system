@@ -26,6 +26,7 @@ export function buildCreateTicketPayload(context: NormalizedWebhookContext) {
       Priority: mapSeverityToOtrsPriorityLabel(context.trigger.severity),
       Type: "Incident",
       CustomerUser: DEFAULT_CUSTOMER_EMAIL,
+      ResponsibleID: "1"
     },
     DynamicField: [
       {
