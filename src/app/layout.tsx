@@ -7,11 +7,12 @@ import { UserDataProvider } from "@/context/UserProfileContext";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import Providers from "@/components/Provider";
+import { CSPostHogProvider } from "./providers";
 
 export const metadata: Metadata = {
   title: "Ticketing System",
   description: "Every Concern Tracked, Owned, and Resolved.",
-    icons: {
+  icons: {
     icon: "/logo.png",
   },
 };
@@ -32,7 +33,11 @@ export default async function RootLayout({
     <html lang="en" className={roboto.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Providers session={session}>
-          <UserDataProvider>{children}</UserDataProvider>
+          <CSPostHogProvider>
+
+            <UserDataProvider>{children}</UserDataProvider>
+          </CSPostHogProvider>
+
         </Providers>
       </body>
     </html>

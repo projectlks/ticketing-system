@@ -1,8 +1,110 @@
+// import NextAuth from "next-auth";
+// import CredentialsProvider from "next-auth/providers/credentials";
+// import { PrismaAdapter } from "@next-auth/prisma-adapter";
+// import { prisma } from "@/libs/prisma";
+// import bcrypt from "bcrypt";
+
+// type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
+// const DUMMY_PASSWORD_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8xjAnN0m4fP60Xj0R0hP5Kf6xk9bGa";
+
+// const AUTH_BASE_URL =
+//   process.env.NEXTAUTH_URL ||
+//   process.env.NEXT_PUBLIC_APP_URL ||
+//   process.env.BASE_URL ||
+//   "";
+// const USE_SECURE_COOKIES = AUTH_BASE_URL.startsWith("https://");
+
+// const handler = NextAuth({
+//   adapter: PrismaAdapter(prisma),
+
+//   session: {
+//     strategy: "jwt",
+//     maxAge: 60 * 60 * 24, // 1 day
+//     updateAge: 60 * 15,   // 15 minutes
+//   },
+//   useSecureCookies: USE_SECURE_COOKIES,
+
+//   providers: [
+//     CredentialsProvider({
+//       name: "Credentials",
+//       credentials: {
+//         email: { label: "Email", type: "text" },
+//         password: { label: "Password", type: "password" },
+//       },
+
+//       async authorize(credentials) {
+//         const email = credentials?.email?.trim().toLowerCase();
+//         const password = credentials?.password;
+
+//         if (!email || !password) return null;
+
+//         const user = await prisma.user.findUnique({
+//           where: { email },
+//         });
+
+//         // User enumeration မဖြစ်စေဖို့ user မရှိတဲ့ case မှာလည်း bcrypt compare တူညီစွာလုပ်သည်။
+//         const comparedHash = user?.password ?? DUMMY_PASSWORD_HASH;
+//         const isValid = await bcrypt.compare(password, comparedHash);
+//         const isLoginAllowed = Boolean(user && !user.isArchived && isValid);
+
+//         if (!isLoginAllowed) return null;
+
+
+
+//         return user;
+//       },
+//     }),
+//   ],
+
+//   callbacks: {
+//     async jwt({ token, user }) {
+//       if (user) {
+//         token.id = user.id;
+//         token.role = user.role as AppRole;
+//         token.picture = user.profileUrl || null;
+//         token.name = user.name || null;
+//         token.email = user.email || null;
+//       }
+//       return token;
+//     },
+
+//     async session({ session, token }) {
+//       if (token) {
+//         session.user.id = token.id as string;
+//         session.user.role = (token.role as AppRole | undefined) ?? "LEVEL_1";
+//         session.user.picture = token.picture as string | null;
+//         session.user.name = token.name as string | null;
+//         session.user.email = token.email as string | null;
+//       } else {
+//         // Clear user completely if no token
+//         session.user.id = "";
+//         session.user.role = "";
+//         session.user.picture = "";
+//         session.user.name = "";
+//         session.user.email = "";
+//       }
+
+//       return session;
+//     },
+//   },
+
+
+
+
+//   pages: {
+//     signIn: "/auth/signin",
+//   },
+// });
+
+// export { handler as GET, handler as POST };
+
+
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/libs/prisma";
 import bcrypt from "bcrypt";
+import { writeSystemLog } from "@/libs/logger"; // 🌟 Logger ကို ခေါ်ယူထားပါသည်
 
 type AppRole = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "SUPER_ADMIN";
 const DUMMY_PASSWORD_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8xjAnN0m4fP60Xj0R0hP5Kf6xk9bGa";
@@ -36,7 +138,11 @@ const handler = NextAuth({
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
 
-        if (!email || !password) return null;
+        if (!email || !password) {
+          // 🌟 Standard English Log (Blocked)
+          writeSystemLog("security", "[LOGIN_BLOCKED] Authentication attempt blocked: Missing credentials.");
+          return null;
+        }
 
         const user = await prisma.user.findUnique({
           where: { email },
@@ -47,9 +153,11 @@ const handler = NextAuth({
         const isValid = await bcrypt.compare(password, comparedHash);
         const isLoginAllowed = Boolean(user && !user.isArchived && isValid);
 
-        if (!isLoginAllowed) return null;
-
-
+        if (!isLoginAllowed) {
+          // 🌟 Standard English Log (Failed)
+          writeSystemLog("security", `[LOGIN_FAILED] Authentication failed: Invalid credentials or account archived. (Email: ${email})`);
+          return null;
+        }
 
         return user;
       },
@@ -88,8 +196,15 @@ const handler = NextAuth({
     },
   },
 
-
-
+  // 🌟 Login နှင့် Logout အောင်မြင်မှုများကို ဖမ်းမည့်အပိုင်း
+  events: {
+    async signIn({ user }) {
+      writeSystemLog("security", `[LOGIN_SUCCESS] User authenticated successfully. (Email: ${user.email})`);
+    },
+    async signOut({ token }) {
+      writeSystemLog("security", `[LOGOUT_SUCCESS] User session terminated successfully. (Email: ${token?.email || "Unknown"})`);
+    }
+  },
 
   pages: {
     signIn: "/auth/signin",
